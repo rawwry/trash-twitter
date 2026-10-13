@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% from "partials/avatar.html" import avatar with context %}
+{% set nav = 'archive' %}
+{% set av = post_avatar(post) %}
+{% set person = post.account.person if post.account else None %}
+{% block title %}{{ post.author_name }} · Nr. {{ archive_no(post) }}{% endblock %}
+{% block content %}
+<div class="detail-toolbar">
+  <a class="back-link" href="{{ url('/') }}" aria-label="Zurück zum Archiv">{{ icon('chev-left', 18) }}<span class="label-hide">Archiv</span></a>
+  <span class="spacer"></span>
+  <a class="icon-btn {{ 'is-disabled' if not newer }}" {% if newer %}href="{{ url('/posts/' ~ newer) }}"{% endif %} data-nav="newer" title="Neuere Aussage (←)" aria-label="Neuere Aussage">{{ icon('chev-up') }}</a>
+  <a class="icon-btn {{ 'is-disabled' if not older }}" {% if older %}href="{{ url('/posts/' ~ older) }}"{% endif %} data-nav="older" title="Ältere Aussage (→)" aria-label="Ältere Aussage">{{ icon('chev-down') }}</a>
+  {% if post.url %}
+  <a class="icon-btn" href="{{ post.url }}" target="_blank" rel="noopener noreferrer" title="Original öffnen" aria-label="Original öffnen">{{ icon('external') }}</a>
+  <button class="icon-btn" type="button" data-copy-text="{{ post.url }}" title="Link kopieren" aria-label="Link zum Original kopieren">{{ icon('link') }}</button>
+  {% endif %}
+</div>
+
+<div class="detail-layout">
+  <div class="stack">
+    {# --- Die Aussage --------------------------------------------------------- #}
+    <article class="quote quote-lead" aria-label="Aussage">
+      <header class="q-head">
+        {% if av %}<img class="q-avatar" src="{{ file_url(av) }}" alt="" width="52" height="52">
+        {% else %}<span class="q-avatar q-avatar-empty" aria-hidden="true">{{ (post.author_display_name or post.author_handle or '?').lstrip('@')[:1] }}</span>{% endif %}
+        <div class="q-who">
+          {% if person %}<a class="q-name" href="{{ url('/personen/' ~ person.id) }}">{{ post.author_name }}</a>
+          {% else %}<span class="q-name">{{ post.author_name }}</span>{% endif %}
+          <span class="q-handle">{% if post.author_handle and post.author_display_name %}@{{ post.author_handle }} · {% endif %}{{ PLATFORM_LABELS[post.platform] }}</span>
+        </div>
+      </header>
+      <div data-edit-view="text">
+        {% if post.text %}<blockquote class="q-text">{{ post.text }}</blockquote>
+        {% else %}<p class="q-text q-missing">{{ 'Wortlaut wird abgerufen …' if post.status in ('pending', 'running') else 'Kein Wortlaut erfasst. Über „Bearbeiten“ selbst eintragen.' }}</p>{% endif %}
+      </div>
+      <form method="post" action="{{ url('/posts/' ~ post.id ~ '/text') }}" class="stack" data-edit-form="text" hidden>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <textarea name="text" rows="7" maxlength="20000" aria-label="Wortlaut">{{ post.text }}</textarea>
+        <div class="row wrap">
+          <button class="btn sm" type="submit">Speichern</button>
+          <button class="btn-ghost sm" type="button" data-edit-cancel="text">Abbrechen</button>
+          <span class="faint xs">Gilt danach als „manuell“ und wird nicht mehr überschrieben.</span>
+        </div>
+      </form>
+      {% if post.alt_texts %}
+      <ul class="alt-texts" aria-label="Bildbeschreibungen">{% for alt in post.alt_texts.split('\n') %}<li><span class="faint">Bild:</span> {{ alt }}</li>{% endfor %}</ul>
+      {% endif %}
+      <footer class="q-foot">
+        <time datetime="{{ post.said_at.isoformat() }}Z">{{ said(post) }}</time>
+        <span class="q-no">Nr. {{ archive_no(post) }}</span>
+        {% if post.text_source %}<span class="q-flag" title="{{ TEXT_SOURCE_HELP[post.text_source] }}">Wortlaut: {{ TEXT_SOURCE_LABELS[post.text_source] }}</span>{% endif %}
+        <span class="q-actions">
+          {% if post.text %}<button class="btn-ghost sm" type="button" data-copy-text="{{ post.text }}">{{ icon('copy', 15) }} Text</button>{% endif %}
+          <button class="btn-ghost sm" type="button" data-edit="text">{{ icon('edit', 15) }} Bearbeiten</button>
+        </span>
+      </footer>
+      {% if post.text_source == 'ocr' %}<p class="faint xs" style="margin:10px 0 0">Per Texterkennung aus dem Bild gelesen – bitte mit dem Beleg abgleichen.</p>{% endif %}
+    </article>
+
+    {# --- Quellenangabe ------------------------------------------------------ #}
+    <section class="card citation-card" aria-labelledby="cite-title">
+      <div class="section-title">
+        <h2 id="cite-title">Quellenangabe</h2>
+        <button class="btn-soft sm" type="button" data-copy-text="{{ citation(post) }}">{{ icon('copy', 15) }} Kopieren</button>
+      </div>
+      <p class="citation">{{ citation(post) }}</p>
+    </section>
+
+    {# --- Anmerkung & Tags ----------------------------------------------------- #}
+    <section class="card">
+      <div class="section-title">
+        <h2>Anmerkung &amp; Tags</h2>
+        <button class="icon-btn" type="button" data-edit="note" title="Anmerkung und Tags bearbeiten" aria-label="Anmerkung und Tags bearbeiten">{{ icon('edit', 18) }}</button>
+      </div>
+      <div data-edit-view="note">
+        {% if post.note %}<p class="note-view">{{ post.note }}</p>{% else %}<p class="note-view empty">Keine Anmerkung.</p>{% endif %}
+        {% if post.tags %}<div class="chips" style="margin-top:12px">{% for t in post.tags %}<a class="chip" href="{{ url('/') }}?tags={{ t.name|urlencode }}">#{{ t.name }}</a>{% endfor %}</div>{% endif %}
+      </div>
+      <form method="post" action="{{ url('/posts/' ~ post.id ~ '/note') }}" class="stack" data-edit-form="note" hidden>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <textarea name="note" rows="3" maxlength="2000" aria-label="Anmerkung" placeholder="Kontext, Einordnung, Hinweise">{{ post.note }}</textarea>
+        {% with field_value=post.tags|map(attribute='name')|join(', ') %}{% include "partials/tag_input.html" %}{% endwith %}
+        <div class="row"><button class="btn sm" type="submit">Speichern</button>
+          <button class="btn-ghost sm" type="button" data-edit-cancel="note">Abbrechen</button></div>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="section-title">
+        <h2>Listen</h2>
+        <button class="btn-soft sm" type="button" data-open="list-dialog"
+                hx-get="{{ url('/lists/picker') }}?post={{ post.id }}" hx-target="#list-dialog-body" hx-swap="innerHTML">
+          {{ icon('lists', 15) }} Listen wählen</button>
+      </div>
+      {% include "partials/post_lists.html" %}
+    </section>
+  </div>
+
+  <div class="stack side-col">
+    {# --- Angaben -------------------------------------------------------------- #}
+    <section class="card facts-card">
+      <div class="section-title"><h2>Angaben</h2></div>
+      <dl class="facts">
+        <dt>Verfasser</dt>
+        <dd>{% if person %}<a href="{{ url('/personen/' ~ person.id) }}">{{ person.name }}</a>{% else %}{{ post.author_name }}{% endif %}</dd>
+        {% if post.account %}
+        <dt>Account</dt>
+        <dd>{% if post.account.profile_url %}<a href="{{ post.account.profile_url }}" target="_blank" rel="noopener noreferrer">{{ post.account.label }} ↗</a>{% else %}{{ post.account.label }}{% endif %}
+          {% if post.account.handle and post.author_handle and post.account.handle|lower != post.author_handle|lower %}<span class="faint xs">(damals @{{ post.author_handle }})</span>{% endif %}</dd>
+        {% if post.account.stable_id %}<dt>Konto-ID</dt><dd class="mono xs">{{ post.account.stable_id }}</dd>{% endif %}
+        {% endif %}
+        <dt>Plattform</dt><dd>{{ PLATFORM_LABELS[post.platform] }}</dd>
+        <dt>Veröffentlicht</dt>
+        <dd id="datum">{{ said(post) }}{% if post.posted_at and post.date_source in DATE_SOURCE_LABELS %} <span class="faint xs">({{ DATE_SOURCE_LABELS[post.date_source] }})</span>{% endif %}
+          <details class="date-edit">
+            <summary class="xs muted">{{ 'Korrigieren' if post.posted_at else 'Eintragen' }}</summary>
+            <form method="post" action="{{ url('/posts/' ~ post.id ~ '/date') }}" class="row wrap">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <input type="date" name="day" value="{{ post.posted_at|localtime('%Y-%m-%d') if post.posted_at else '' }}" aria-label="Datum">
+              <input type="time" name="clock" value="{{ post.posted_at|localtime('%H:%M') if post.posted_at and not post.date_only else '' }}" aria-label="Uhrzeit (optional)">
+              <button class="btn-soft sm" type="submit">Speichern</button>
+            </form>
+            <p class="faint xs" style="margin:6px 0 0">Uhrzeit optional, Ortszeit. Datum leeren = entfernen.</p>
+          </details>
+        </dd>
+        <dt>Archiviert</dt><dd>{{ post.created_at|localtime }}{% if post.added_by %} von {{ post.added_by.name }}{% endif %}</dd>
+        <dt>Archiv-Nr.</dt><dd class="mono">{{ archive_no(post) }}</dd>
+        <dt>Original</dt><dd>{% if post.url %}<a href="{{ post.url }}" target="_blank" rel="noopener noreferrer" class="break">{{ post.url }}</a>{% else %}<span class="faint">kein Link (archiviert aus eigenem Screenshot)</span>{% endif %}</dd>
+      </dl>
+    </section>
+
+    {# --- Beleg ----------------------------------------------------------------- #}
+    <section class="card" id="beleg">
+      <div class="section-title">
+        <h2>Beleg</h2>
+        {% if post.screenshot_path %}
+        <div class="row">
+          <button class="icon-btn" type="button" data-share-image="{{ shot(post) }}&as=jpg" data-share-name="beleg-{{ archive_no(post) }}.jpg" data-share-url="{{ post.url }}" title="Beleg teilen" aria-label="Beleg teilen">{{ icon('share', 18) }}</button>
+          <a class="icon-btn" href="{{ shot(post) }}&download=1&as=jpg" title="Beleg speichern" aria-label="Beleg speichern">{{ icon('download', 18) }}</a>
+        </div>
+        {% endif %}
+      </div>
+      <div class="shot-frame">
+        {% if post.screenshot_path %}
+          <img src="{{ shot(post) }}" alt="Screenshot der Aussage auf {{ PLATFORM_LABELS[post.platform] }}" data-lightbox>
+        {% else %}
+          <div class="shot-empty">{% if post.status in ('pending', 'running') %}<span class="spinner" aria-hidden="true"></span> Beleg-Screenshot wird erstellt …{% else %}Kein Beleg-Screenshot vorhanden.{% endif %}</div>
+        {% endif %}
+      </div>
+      {% if post.shot_reconstructed and post.shot_source != 'upload' %}
+      <p class="flash flash-info small" style="margin:10px 0 0"><strong>Text ergänzt:</strong> X zeigt diesen langen Beitrag nur gekürzt („Mehr anzeigen“).
+        Für den Beleg hat die App den vollständigen Wortlaut in die Ansicht eingesetzt – Aussehen, Verfasser und Datum stammen von X, der Text-Rest von der App.</p>
+      {% elif post.long_post and post.shot_source != 'upload' %}
+      <p class="flash flash-info small" style="margin:10px 0 0">Langer Beitrag: Der Beleg zeigt nur den Anfang. „Neu erfassen“ setzt den vollständigen Wortlaut ein,
+        oder du lädst einen eigenen Screenshot hoch.</p>
+      {% endif %}
+      <p class="faint xs" style="margin:8px 0 0">
+        {% if post.shot_source == 'upload' %}Selbst hochgeladen – wird nicht automatisch ersetzt.{% else %}Automatisch aufgenommen{% if post.thread_count %}, Thread aus {{ post.thread_count }} Teilen zusammengesetzt{% endif %}.{% endif %}
+      </p>
+      {% include "partials/status.html" %}
+
+      <details id="eigener-screenshot" {% if post.status == 'error' and post.shot_source != 'upload' %}open{% endif %}>
+        <summary class="muted small">{{ 'Anderen Screenshot hochladen' if post.shot_source == 'upload' else 'Eigenen Screenshot hochladen' }}</summary>
+        <form method="post" action="{{ url('/posts/' ~ post.id ~ '/screenshot') }}" enctype="multipart/form-data" class="stack" style="margin-top:12px">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <label class="dropzone compact" data-dropzone>
+            <input type="file" name="files" multiple accept="image/png,image/jpeg,image/webp,image/gif" class="sr-only" data-drop-input>
+            <span class="dropzone-text">{{ icon('download', 22) }}<strong>Bild auswählen</strong><span class="faint xs">oder hierher ziehen / einfügen</span></span>
+            <span class="drop-previews" data-drop-previews></span>
+          </label>
+          <div><button class="btn-soft sm" type="submit">Hochladen</button></div>
+        </form>
+      </details>
+      {% if post.shot_source == 'upload' and post.url %}
+      <form method="post" action="{{ url('/posts/' ~ post.id ~ '/auto') }}" style="margin-top:10px">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="btn-ghost sm" type="submit">{{ icon('refresh', 15) }} Wieder automatisch aufnehmen</button>
+      </form>
+      {% endif %}
+
+      {% if post.url %}
+      <details id="thread" style="margin-top:10px">
+        <summary class="muted small">{% if post.thread_count %}Thread ({{ post.thread_count }} Teile) ändern{% else %}Teil eines Threads? Teile ergänzen{% endif %}</summary>
+        {% if post.thread_count %}
+        <div class="chips" style="margin-top:10px">
+          {% for part in post.thread_list %}<a class="chip neutral" href="{{ part.url }}" target="_blank" rel="noopener noreferrer">{{ loop.index }}/{{ post.thread_count }} ↗</a>{% endfor %}
+        </div>
+        {% endif %}
+        <form method="post" action="{{ url('/posts/' ~ post.id ~ '/thread') }}" class="stack" style="margin-top:12px">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <label>Weitere Teile (ein Link pro Zeile)
+            <textarea name="thread_extra" rows="3" maxlength="5000" autocapitalize="off" spellcheck="false">{{ post.thread_extra|fromjson|join('\n') }}</textarea>
+          </label>
+          <div><button class="btn-soft sm" type="submit">{{ icon('refresh', 15) }} Neu erfassen</button></div>
+        </form>
+      </details>
+      {% endif %}
+    </section>
+
+    <p class="danger-zone"><a href="{{ url('/posts/' ~ post.id ~ '/delete') }}" class="link-danger">{{ icon('trash', 14) }} Aus dem Archiv löschen …</a></p>
+  </div>
+</div>
+{% endblock %}

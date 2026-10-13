@@ -1,0 +1,134 @@
+{% from "partials/icons.html" import icon %}
+{# Formular "Aussage archivieren" - im Sheet (in_dialog) und als eigene Seite (/add, /teilen). #}
+{% set add_mode = mode or 'link' %}
+<div class="sheet-inner" data-add-tabs>
+  <div class="sheet-head">
+    <h2 id="add-title">{% if shared %}Geteilte Aussage archivieren{% else %}Aussage archivieren{% endif %}</h2>
+    {% if in_dialog %}<button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close') }}</button>{% endif %}
+  </div>
+  {# Reiter: ohne JS normale Links auf /add?mode=..., mit JS nur Umschalten #}
+  <nav class="seg full add-tabs" aria-label="Art des Hinzufügens">
+    <a href="{{ url('/add') }}" data-add-tab="link" {% if add_mode == 'link' %}aria-current="true"{% endif %}><span>{{ icon('link', 16) }} Link</span></a>
+    <a href="{{ url('/add') }}?mode=upload" data-add-tab="upload" {% if add_mode == 'upload' %}aria-current="true"{% endif %}><span>{{ icon('download', 16) }} Screenshot</span></a>
+    <a href="{{ url('/add') }}?mode=bulk" data-add-tab="bulk" {% if add_mode == 'bulk' %}aria-current="true"{% endif %}><span>{{ icon('lists', 16) }} Viele Links</span></a>
+  </nav>
+  {% if add_error %}
+  <div class="flash flash-error" role="alert">
+    {{ add_error }}{% if existing %} <a href="{{ url('/posts/' ~ existing.id) }}">Zum vorhandenen Eintrag →</a>{% endif %}
+  </div>
+  {% endif %}
+
+<form method="post" action="{{ url('/posts') }}" class="stack" data-add-form data-add-panel="link" {% if add_mode != 'link' %}hidden{% endif %}>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <div class="url-field">
+    <label for="add-url-{{ 'd' if in_dialog else 'p' }}" class="sr-only">Link zur Aussage</label>
+    <input id="add-url-{{ 'd' if in_dialog else 'p' }}" name="url" value="{{ form_url or '' }}" required inputmode="url"
+           autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="500"
+           placeholder="Link von X oder Bluesky einfügen"
+           hx-get="{{ url('/posts/check') }}" hx-trigger="input changed delay:250ms, paste delay:50ms{% if form_url %}, load{% endif %}"
+           hx-target="next .link-check" hx-swap="outerHTML" data-url-input>
+    <button type="button" class="btn-soft sm paste-btn" data-paste hidden>{{ icon('clipboard', 16) }} Einfügen</button>
+  </div>
+  {% if check %}{% include "partials/link_check.html" %}{% else %}<div class="link-check" aria-live="polite"></div>{% endif %}
+
+  {# Threads: nur von Hand (automatische Erkennung seit 0.6.1 aus) #}
+  <div class="thread-opts">
+    <details {% if form_thread_extra %}open{% endif %}>
+      <summary class="muted small">Teil eines Threads? Weitere Teile hinzufügen</summary>
+      <label class="stack" style="margin-top:10px">
+        <textarea name="thread_extra" rows="3" maxlength="5000" autocapitalize="off" spellcheck="false"
+                  placeholder="Ein Link pro Zeile – in der Reihenfolge des Threads">{{ form_thread_extra or '' }}</textarea>
+        <span class="hint">Oben steht der erste Teil, hier die folgenden. Wortlaut aller Teile und ein gemeinsamer Beleg.</span>
+      </label>
+    </details>
+  </div>
+  <details {% if prefs.add_expanded == 'on' or form_note or form_tags %}open{% endif %}>
+    <summary class="muted small" style="cursor:pointer">Anmerkung &amp; Tags (optional)</summary>
+    <div class="stack" style="margin-top:12px">
+      <label>Anmerkung
+        <textarea name="note" rows="2" maxlength="2000" placeholder="Kontext oder Einordnung">{{ form_note or '' }}</textarea>
+      </label>
+      {% with field_value=form_tags or '' %}{% include "partials/tag_input.html" %}{% endwith %}
+    </div>
+  </details>
+  <button class="btn lg" type="submit">{{ icon('archive', 20) }} Archivieren</button>
+  <p class="faint xs center" style="margin:0">Wortlaut, Verfasser, Datum und Beleg-Screenshot kommen automatisch. Unterstützt: x.com, twitter.com, bsky.app</p>
+</form>
+
+{# --- Eigenen Screenshot hochladen ------------------------------------------------- #}
+<form method="post" action="{{ url('/posts/upload') }}" enctype="multipart/form-data" class="stack"
+      data-add-panel="upload" {% if add_mode != 'upload' %}hidden{% endif %}>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <label class="dropzone" data-dropzone>
+    <input type="file" name="files" multiple accept="image/png,image/jpeg,image/webp,image/gif" class="sr-only" data-drop-input>
+    <span class="dropzone-text">
+      {{ icon('download', 26) }}
+      <strong>Screenshot auswählen</strong>
+      <span class="faint xs">oder hierher ziehen · am Computer auch mit ⌘V / Strg+V einfügen.
+        Mehrere Bilder werden untereinander geklebt.</span>
+    </span>
+    <span class="drop-previews" data-drop-previews></span>
+  </label>
+  <label>Link zum Original <span class="hint">optional – dann prüft die App Duplikate und holt Verfasser und Wortlaut</span>
+    <input name="link" value="{{ form_link or '' }}" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"
+           maxlength="500" placeholder="https://x.com/… oder https://bsky.app/…">
+  </label>
+  <div class="field-row">
+    <span class="label-text">Plattform <span class="hint">nur nötig ohne Link</span></span>
+    <div class="seg" role="radiogroup" aria-label="Plattform">
+      <label><input type="radio" name="platform" value="x" {% if form_platform == 'x' %}checked{% endif %}><span>X</span></label>
+      <label><input type="radio" name="platform" value="bluesky" {% if form_platform == 'bluesky' %}checked{% endif %}><span>Bluesky</span></label>
+    </div>
+  </div>
+  <details {% if form_handle or form_posted or form_text %}open{% endif %}>
+    <summary class="muted small" style="cursor:pointer">Verfasser, Datum &amp; Wortlaut (optional)</summary>
+    <div class="stack" style="margin-top:12px">
+      <div class="two-cols">
+        <label>Verfasser (Handle)<input name="handle" value="{{ form_handle or '' }}" maxlength="100" placeholder="@handle" autocapitalize="off"></label>
+        <label>Gepostet am<input type="date" name="posted" value="{{ form_posted or '' }}"></label>
+      </div>
+      <label>Wortlaut <span class="hint">leer lassen = Texterkennung aus dem Bild</span>
+        <textarea name="text" rows="3" maxlength="20000">{{ form_text or '' }}</textarea>
+      </label>
+    </div>
+  </details>
+  <details {% if form_note or form_tags %}open{% endif %}>
+    <summary class="muted small" style="cursor:pointer">Anmerkung &amp; Tags (optional)</summary>
+    <div class="stack" style="margin-top:12px">
+      <label>Anmerkung
+        <textarea name="note" rows="2" maxlength="2000">{{ form_note or '' }}</textarea>
+      </label>
+      {% with field_value=form_tags or '' %}{% include "partials/tag_input.html" %}{% endwith %}
+    </div>
+  </details>
+  <button class="btn lg" type="submit" data-upload-submit>{{ icon('archive', 20) }} Hochladen &amp; archivieren</button>
+  <p class="faint xs center" style="margin:0">JPG, PNG, WebP oder GIF · bis 10 Bilder à 15 MB · Standort- und Kameradaten werden entfernt</p>
+</form>
+{# --- Massenimport: viele Links auf einmal ------------------------------------------ #}
+<form method="post" action="{{ url('/import') }}" class="stack" data-add-panel="bulk" {% if add_mode != 'bulk' %}hidden{% endif %}>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <label>Links
+    <textarea name="links" rows="8" maxlength="200000" autocapitalize="off" spellcheck="false" required
+              placeholder="https://x.com/…/status/…&#10;https://bsky.app/profile/…/post/…&#10;Einer pro Zeile – oder einfach eine Liste/Text einfügen">{{ form_links or '' }}</textarea>
+    <span class="hint">Bis zu 500 Links. Doppelte, schon archivierte und schon als Thread-Teil erfasste Beiträge werden übersprungen.</span>
+  </label>
+  <details {% if form_tags %}open{% endif %}>
+    <summary class="muted small" style="cursor:pointer">Tags &amp; Liste für alle (optional)</summary>
+    <div class="stack" style="margin-top:12px">
+      {% with field_value=form_tags or '' %}{% include "partials/tag_input.html" %}{% endwith %}
+      {% set lists_ = list_choices() %}
+      <fieldset class="list-radio">
+        <legend class="label-text">In Liste ablegen</legend>
+        <div class="chips">
+          <label class="chip-radio"><input type="radio" name="list_id" value="0" checked><span>keine</span></label>
+          {% for pl in lists_ %}<label class="chip-radio"><input type="radio" name="list_id" value="{{ pl.id }}"><span>{{ pl.title }}</span></label>{% endfor %}
+        </div>
+        <input name="new_list" maxlength="120" placeholder="… oder neue Liste anlegen" aria-label="Neue Liste">
+      </fieldset>
+    </div>
+  </details>
+  <button class="btn lg" type="submit">{{ icon('archive', 20) }} Alle archivieren</button>
+  <p class="faint xs center" style="margin:0">Die Aussagen werden nacheinander im Hintergrund erfasst (je ca. 5–25 s).
+    Den Fortschritt siehst du danach. <a href="{{ url('/import') }}">Frühere Importe</a></p>
+</form>
+</div>

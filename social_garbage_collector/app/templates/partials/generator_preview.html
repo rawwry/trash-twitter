@@ -1,0 +1,24 @@
+{% from "partials/icons.html" import icon %}
+<div class="preview-box">
+  <label for="gen-query" class="sr-only">Erzeugter Suchbefehl</label>
+  <textarea id="gen-query" class="query-out" rows="3" readonly placeholder="Hier erscheint der Suchbefehl">{{ result.query }}</textarea>
+  <p class="summary">{{ result.summary }}</p>
+  {% if result.warnings %}
+  <ul class="warnings">{% for w in result.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+  {% endif %}
+  <div class="row wrap">
+    <button type="button" class="btn" data-copy="#gen-query" {% if result.empty %}disabled{% endif %}>{{ icon('copy', 16) }} Kopieren</button>
+    {% if not result.empty %}
+    <a class="btn-soft" href="{{ result.url(sort) }}" target="_blank" rel="noopener noreferrer">{{ mod.OPEN_LABEL }} {{ icon('external', 16) }}</a>
+    {% else %}
+    <span class="btn-soft is-disabled" aria-disabled="true">{{ mod.OPEN_LABEL }}</span>
+    {% endif %}
+  </div>
+  {# Handy: schmale Leiste ueber der Tab-Leiste, damit man den Befehl beim Tippen sieht. #}
+  <div class="gen-mini" {% if result.empty %}hidden{% endif %}>
+    <code class="mono">{{ result.query }}</code>
+    <button type="button" class="btn sm" data-copy="#gen-query" aria-label="Suchbefehl kopieren">{{ icon('copy', 15) }}</button>
+    {% if not result.empty %}<a class="btn-soft sm" href="{{ result.url(sort) }}" target="_blank" rel="noopener noreferrer" aria-label="{{ mod.OPEN_LABEL }}">{{ icon('external', 15) }}</a>{% endif %}
+  </div>
+  {% if not mod.SORT_IN_URL and mod.SORT_HINT %}<p class="faint xs" style="margin:10px 0 0">{{ mod.SORT_HINT }}</p>{% endif %}
+</div>

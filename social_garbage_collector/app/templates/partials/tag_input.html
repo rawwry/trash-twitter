@@ -1,0 +1,12 @@
+{# Tag-Eingabe mit Autovervollstaendigung. Erwartet field_value, optional field_label.
+   Das Feld heisst immer "tags" - so erwartet es auch /tags/suggest. #}
+{% set _sid = 'tagsugg-' ~ range(100000, 999999)|random %}
+<div class="tag-input">
+  <label>{{ field_label or 'Tags' }} <small class="muted">(mit Komma trennen)</small>
+    <input name="tags" value="{{ field_value }}" autocomplete="off" maxlength="600"
+           placeholder="humor, politik, katzen"
+           hx-get="{{ url('/tags/suggest') }}" hx-trigger="input changed delay:200ms, focus"
+           hx-target="#{{ _sid }}" data-tag-input>
+  </label>
+  <div class="tag-suggestions" id="{{ _sid }}" aria-live="polite"></div>
+</div>

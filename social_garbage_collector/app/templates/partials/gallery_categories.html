@@ -1,0 +1,27 @@
+{% from "partials/icons.html" import icon %}
+<div class="sheet-inner" id="gallery-cats-inner">
+  <div class="sheet-head"><h2 id="gc-title">Kategorien</h2>
+    <button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close') }}</button></div>
+  <form class="row" hx-post="{{ url('/galerie/kategorien') }}" hx-target="#gallery-cats-inner" hx-swap="outerHTML">
+    <input name="name" maxlength="60" placeholder="Neue Kategorie" required aria-label="Neue Kategorie" class="grow">
+    <button class="btn-soft" type="submit">{{ icon('plus', 16) }} Anlegen</button>
+  </form>
+  <ul class="cat-list">
+    {% for cat, n in counts %}
+    <li>
+      <i class="dot tone-{{ cat.tone }}"></i>
+      <form class="row grow" hx-post="{{ url('/galerie/kategorien/' ~ cat.id ~ '/umbenennen') }}" hx-target="#gallery-cats-inner" hx-swap="outerHTML" hx-trigger="change">
+        <input name="name" value="{{ cat.name }}" maxlength="60" aria-label="Name der Kategorie" class="grow">
+      </form>
+      <span class="faint small nowrap">{{ n }} {{ 'Bild' if n == 1 else 'Bilder' }}</span>
+      <button class="icon-btn" type="button" title="Löschen (Bilder bleiben)" aria-label="{{ cat.name }} löschen"
+              hx-post="{{ url('/galerie/kategorien/' ~ cat.id ~ '/loeschen') }}" hx-target="#gallery-cats-inner" hx-swap="outerHTML"
+              hx-confirm="Kategorie „{{ cat.name }}“ löschen? Die Bilder bleiben erhalten.">{{ icon('trash', 16) }}</button>
+    </li>
+    {% else %}
+    <li class="muted small">Noch keine Kategorien. Leg oben eine an oder vergib sie beim Hochladen.</li>
+    {% endfor %}
+  </ul>
+  <p class="faint xs" style="margin:0">Umbenennen: Namen ändern und Enter. Gleicher Name wie eine andere Kategorie = zusammenführen.</p>
+  {% if changed %}<a class="btn" href="{{ url('/galerie') }}">Fertig</a>{% endif %}
+</div>

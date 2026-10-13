@@ -1,0 +1,30 @@
+{% extends "settings/base.html" %}
+{% block title %}Einstellungen{% endblock %}
+{% block settings %}
+<h1>Einstellungen</h1>
+<p class="sub">Alles, was du für dich anpassen kannst – links auswählen.</p>
+<div class="setting-group">
+  <div class="setting-row">
+    <div class="text">
+      <div class="label">{{ user.name }}</div>
+      <div class="help">{{ 'Admin' if user.is_admin else 'Mitglied' }}{% if user.last_login_at %} · letzter Login {{ user.last_login_at|localtime }}{% endif %}</div>
+    </div>
+    <a class="btn-soft sm" href="{{ url('/settings/konto') }}">Konto</a>
+  </div>
+  <div class="setting-row">
+    <div class="text"><div class="label">Passwort</div>
+      <div class="help">Dein Passwort änderst du selbst. Niemand sonst – auch kein Admin – kann es sehen.</div></div>
+    <a class="btn-soft sm" href="{{ url('/settings/konto') }}#passwort">Ändern</a>
+  </div>
+  <div class="setting-row">
+    <div class="text"><div class="label">Erscheinungsbild</div>
+      <div class="help">{{ {'system': 'Wie das System', 'light': 'Hell', 'dark': 'Dunkel'}[prefs.theme] }}</div></div>
+    <a class="btn-soft sm" href="{{ url('/settings/darstellung') }}">Ändern</a>
+  </div>
+  <div class="setting-row">
+    <div class="text"><div class="label">Aus anderen Apps teilen</div>
+      <div class="help">Aussagen direkt aus X oder Bluesky archivieren</div></div>
+    <a class="btn-soft sm" href="{{ url('/settings/teilen') }}">Einrichten</a>
+  </div>
+</div>
+{% endblock %}

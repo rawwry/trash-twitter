@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% set nav = 'gallery' %}
+{% block title %}Galerie{% endblock %}
+{% block container_class %}gallery-page{% endblock %}
+{% block content %}
+<div class="gallery-head">
+  <h1>Galerie</h1>
+  <div class="gallery-actions">
+    <button class="btn-ghost sm" type="button" data-open="gallery-cats"
+            hx-get="{{ url('/galerie/kategorien') }}" hx-target="#gallery-cats-body">{{ icon('tag', 15) }}<span class="label-m"> Kategorien</span></button>
+    <button class="btn sm" type="button" data-open="gallery-upload">{{ icon('plus', 16) }} Bilder</button>
+  </div>
+</div>
+
+{% include "partials/gallery_body.html" %}
+
+{# --- Hochladen ----------------------------------------------------------------- #}
+<dialog class="sheet" id="gallery-upload" aria-labelledby="gu-title">
+  <div class="sheet-grip"></div>
+  <form class="sheet-inner" method="post" action="{{ url('/galerie/hochladen') }}" enctype="multipart/form-data">
+    <div class="sheet-head"><h2 id="gu-title">Bilder hinzufügen</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close') }}</button></div>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label class="dropzone" data-dropzone data-drop-max="40">
+      <input type="file" name="files" multiple accept="image/*" class="sr-only" data-drop-input>
+      <span class="dropzone-text">{{ icon('download', 26) }}<strong>Bilder auswählen</strong>
+        <span class="faint xs">oder hierher ziehen · ⌘V / Strg+V · bis zu 40 Bilder</span></span>
+      <span class="drop-previews" data-drop-previews></span>
+    </label>
+    <fieldset class="list-radio">
+      <legend class="label-text">Kategorien</legend>
+      {% if counts %}
+      <div class="chips">
+        {% for cat, n in counts %}<label class="chip-radio"><input type="checkbox" name="kategorien" value="{{ cat.id }}" {% if cat.id in selected %}checked{% endif %}><span><i class="dot tone-{{ cat.tone }}"></i>{{ cat.name }}</span></label>{% endfor %}
+      </div>
+      {% endif %}
+      <input name="neue_kategorien" maxlength="300" placeholder="{{ 'Neue Kategorie(n), mit Komma getrennt' if counts else 'Kategorien anlegen, z. B. Urlaub, Familie' }}" aria-label="Neue Kategorien">
+    </fieldset>
+    <button class="btn lg" type="submit">{{ icon('download', 18) }} Hochladen</button>
+    <p class="faint xs center" style="margin:0">Bilder werden verkleinert und ohne Standort- und Kameradaten gespeichert. Gleiche Bilder werden erkannt.</p>
+  </form>
+</dialog>
+
+<dialog class="sheet" id="gallery-cats" aria-labelledby="gc-title">
+  <div class="sheet-grip"></div>
+  <div id="gallery-cats-body"><div class="sheet-inner"><p class="muted">Lade …</p></div></div>
+</dialog>
+
+<dialog class="sheet" id="gallery-edit" aria-labelledby="ge-title">
+  <div class="sheet-grip"></div>
+  <div id="gallery-edit-body"><div class="sheet-inner"><p class="muted">Lade …</p></div></div>
+</dialog>
+
+{# --- Vollbild ------------------------------------------------------------------- #}
+<dialog class="lightbox-dlg" id="lightbox" aria-label="Bildansicht" data-lightbox>
+  <div class="lb-top">
+    <span class="lb-count" data-lb-count></span>
+    <span class="spacer"></span>
+    <button class="lb-btn" type="button" data-lb-info aria-pressed="false" aria-label="Infos" title="Infos (i)">{{ icon('info', 20) }}</button>
+    <a class="lb-btn" data-lb-download href="#" aria-label="Herunterladen" title="Herunterladen">{{ icon('download', 20) }}</a>
+    <button class="lb-btn" type="button" data-lb-close aria-label="Schließen" title="Schließen (Esc)">{{ icon('close', 22) }}</button>
+  </div>
+  <button class="lb-nav prev" type="button" data-lb-prev aria-label="Vorheriges Bild">{{ icon('chev-left', 28) }}</button>
+  <figure class="lb-stage" data-lb-stage><img data-lb-img alt=""></figure>
+  <button class="lb-nav next" type="button" data-lb-next aria-label="Nächstes Bild">{{ icon('chev-right', 28) }}</button>
+  <div class="lb-info" data-lb-panel>
+    <div class="lb-info-inner">
+      <div>
+        <p class="lb-title" data-lb-title></p>
+        <p class="lb-note" data-lb-note></p>
+        <div class="lb-cats" data-lb-cats></div>
+        <p class="lb-meta" data-lb-meta></p>
+      </div>
+      <button class="btn-soft sm" type="button" data-lb-edit data-open="gallery-edit" hx-target="#gallery-edit-body">{{ icon('edit', 15) }} Bearbeiten</button>
+    </div>
+  </div>
+</dialog>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% from "partials/icons.html" import icon %}
+<section id="results" aria-live="polite">
+  <div class="results-bar">
+    <div class="active-filters">
+      <span class="result-count"><strong>{{ total }}</strong> {{ 'Aussage' if total == 1 else 'Aussagen' }}{% if f.active %} gefunden{% endif %}</span>
+      {% if f.active %}
+      {% if f.q %}<span class="chip neutral">„{{ f.q }}“</span>{% endif %}
+      {% if f.platform %}<span class="chip neutral">{{ PLATFORM_LABELS[f.platform] }}</span>{% endif %}
+      {% if filter_person %}<span class="chip neutral">Person: {{ filter_person.name }}</span>{% elif f.person_id %}<span class="chip neutral">Person #{{ f.person_id }}</span>{% endif %}
+      {% for t in f.tags %}<span class="chip">#{{ t }}</span>{% endfor %}
+      {% if f.author %}<span class="chip neutral">Verfasser: {{ f.author }}</span>{% endif %}
+      {% if f.date_from or f.date_to %}<span class="chip neutral">{{ f.date_from.strftime('%d.%m.%Y') if f.date_from else '…' }} – {{ f.date_to.strftime('%d.%m.%Y') if f.date_to else '…' }}</span>{% endif %}
+      {% if f.status %}<span class="chip neutral">{{ STATUS_LABELS[f.status] }}</span>{% endif %}
+      <a class="btn-ghost sm" href="{{ url('/') }}">Filter löschen</a>
+      {% endif %}
+    </div>
+    {% if posts %}
+    <button type="button" class="btn-ghost sm select-toggle" data-select-toggle aria-pressed="false" title="Mehrere Aussagen auswählen">
+      {{ icon('check', 16) }}<span>Auswählen</span>
+    </button>
+    {% endif %}
+    {# Darstellung umschalten - wird pro Person gemerkt #}
+    <nav class="seg view-switch" aria-label="Darstellung">
+      {% for key, ico, label in [('cards', 'grid', 'Karten'), ('list', 'rows', 'Liste'), ('timeline', 'timeline', 'Zeitachse')] %}
+      <a href="{{ url('/') }}?{{ query_string }}{{ '&' if query_string }}view={{ key }}" title="{{ label }}" aria-label="{{ label }}"
+         {% if view == key %}aria-current="true"{% endif %}><span>{{ icon(ico, 18) }}<span class="label">{{ label }}</span></span></a>
+      {% endfor %}
+    </nav>
+  </div>
+
+  {% if posts %}
+  <div id="post-grid" class="posts view-{{ view }}">
+    {% include "partials/cards_page.html" %}
+  </div>
+  {% include "partials/load_more.html" %}
+  {% else %}
+  <div class="empty-state">
+    {% if f.active %}
+      <h2>Keine Treffer</h2>
+      <p>Weniger Filter oder andere Suchbegriffe versuchen.</p>
+    {% else %}
+      <h2>Das Archiv ist leer</h2>
+      <p>Die erste Aussage archivierst du über „Aussage“ oder die Taste <kbd>n</kbd>: Link von X oder Bluesky einfügen, Wortlaut, Verfasser und Beleg kommen automatisch.</p>
+      <button class="btn" type="button" data-open="add-dialog">{{ icon('plus', 18) }} Erste Aussage archivieren</button>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>

@@ -1,0 +1,12 @@
+{# "Mehr laden": haengt die naechste Seite an #post-grid an und ersetzt sich selbst (out-of-band). #}
+<div id="load-more" class="load-more" {% if oob %}hx-swap-oob="true"{% endif %}>
+  {% if has_more %}
+  {% set last = posts[-1] if posts else None %}
+  {% set last_group = ((last.created_at if f.sort in ('new', 'old') else last.said_at)|monthkey) if last else '' %}
+  <button class="btn-soft" type="button"
+          hx-get="{{ url('/') }}?{{ query_string }}{{ '&' if query_string }}page={{ page + 1 }}&more=1&after_group={{ last_group }}"
+          hx-target="#post-grid" hx-swap="beforeend">
+    Mehr laden
+  </button>
+  {% endif %}
+</div>

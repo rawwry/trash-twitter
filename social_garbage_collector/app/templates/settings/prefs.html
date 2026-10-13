@@ -1,0 +1,73 @@
+{% extends "settings/base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}{{ title }}{% endblock %}
+{% block settings %}
+<h1>{{ title }}</h1>
+<p class="sub">Änderungen werden sofort gespeichert und gelten nur für dich.</p>
+
+{# Speichert bei jeder Aenderung per htmx; ohne JS ueber den Knopf unten. #}
+<form method="post" action="{{ url('/settings/prefs') }}" class="setting-group"
+      hx-post="{{ url('/settings/prefs') }}" hx-trigger="change" hx-swap="none">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="section" value="{{ section }}">
+  {% for p in items %}
+  {# Viele/lange Optionen passen nicht neben den Text -> untereinander #}
+  <div class="setting-row {{ 'stacked' if p.choices|length > 3 }}">
+    <div class="text">
+      <div class="label" id="pref-{{ p.key }}">{{ p.label }}</div>
+      <div class="help">{{ p.help }}</div>
+    </div>
+    <div class="seg" role="radiogroup" aria-labelledby="pref-{{ p.key }}">
+      {% for value, label in p.choices %}
+      <label><input type="radio" name="{{ p.key }}" value="{{ value }}" {% if prefs[p.key] == value %}checked{% endif %}
+                    {% if p.live %}data-live="{{ p.key }}"{% endif %}><span>{{ label }}</span></label>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+  <noscript><div class="setting-row"><button class="btn" type="submit">Speichern</button></div></noscript>
+</form>
+
+{% if section == 'teilen' %}
+<h2>Aus X oder Bluesky teilen</h2>
+<div class="setting-group">
+  <div class="setting-row stacked">
+    <div class="text"><div class="label">iPhone &amp; iPad – Kurzbefehl „Archivieren“</div>
+      <div class="help">Danach steht „Archivieren“ im Teilen-Menü jeder App.</div></div>
+    <ol class="steps small">
+      <li>App <strong>Kurzbefehle</strong> öffnen → <strong>+</strong> → oben auf ⓘ → <strong>„Im Share-Sheet anzeigen“</strong> einschalten (Typ: URLs).</li>
+      <li>Aktion <strong>„URL codieren“</strong> hinzufügen (Eingabe: <em>Kurzbefehleingabe</em>).</li>
+      <li>Aktion <strong>„URL“</strong> mit diesem Inhalt, am Ende die Variable <em>Codierte URL</em> einsetzen:</li>
+    </ol>
+    <div class="copy-field">
+      <input id="shortcut-url" readonly value="{{ base_url }}/teilen?url=" aria-label="Adresse für den Kurzbefehl">
+      <button class="btn-soft sm" type="button" data-copy="#shortcut-url">{{ icon('copy', 16) }} Kopieren</button>
+    </div>
+    <ol class="steps small" start="4">
+      <li>Aktion <strong>„URLs öffnen“</strong> hinzufügen, Kurzbefehl <strong>„Archivieren“</strong> nennen. Fertig.</li>
+    </ol>
+  </div>
+  <div class="setting-row stacked">
+    <div class="text"><div class="label">Android – als App installieren</div>
+      <div class="help">In Chrome: Menü ⋮ → <strong>„Zum Startbildschirm hinzufügen“</strong>. Danach erscheint {{ APP_NAME }} direkt im Teilen-Menü.</div></div>
+  </div>
+  <div class="setting-row stacked">
+    <div class="text"><div class="label">Computer – Lesezeichen</div>
+      <div class="help">Den Knopf in die Lesezeichenleiste ziehen. Auf einer Aussage bei X oder Bluesky anklicken – fertig.</div></div>
+    <div><a class="bookmarklet" href="javascript:(()=>{location.href='{{ base_url }}/teilen?url='+encodeURIComponent(location.href)})()" data-bookmarklet>In {{ APP_NAME }} archivieren</a></div>
+  </div>
+  <div class="setting-row stacked">
+    <div class="help">Tipp: Für deine Freunde funktioniert das nur mit der Adresse, unter der sie die App öffnen
+      (z. B. <code>http://homeassistant.local:8780</code>) – nicht über die Home-Assistant-Seitenleiste.</div>
+  </div>
+</div>
+
+<h2>Tastenkürzel</h2>
+<div class="setting-group">
+  <div class="setting-row">
+    <div class="text"><div class="label">Alle Kürzel anzeigen</div><div class="help">Oder einfach <kbd>?</kbd> drücken.</div></div>
+    <button class="btn-soft sm" type="button" data-open="keys-dialog">Anzeigen</button>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,75 @@
+# TrashTwitter (bis 0.5: SocialGarbageCollector) als lokales Home-Assistant-Add-on.
+# Der Slug bleibt "social_garbage_collector", sonst saehe der Supervisor ein
+# neues Add-on und die Einstellungen waeren weg. Daten liegen weiter unter
+# /share/SocialGarbageCollector.
+#
+# Kein "image:"-Schluessel: daran erkennt der Supervisor, dass er das Add-on
+# aus dem danebenliegenden Dockerfile selbst baut (auf dem Pi, fuer aarch64).
+#
+# "version" muss mit VERSION in app/__init__.py uebereinstimmen.
+name: TrashTwitter
+version: "0.9.0"
+slug: social_garbage_collector
+description: >-
+  Quellenarchiv fuer oeffentliche Aussagen von X und Bluesky: Wortlaut,
+  Verfasser, Datum und Beleg-Screenshot dauerhaft gesichert, nach Personen
+  geordnet und durchsuchbar.
+stage: experimental
+url: https://github.com/rawwry/trashtwitter-homeassistant
+
+arch:
+  - aarch64
+  - amd64
+
+# python:3.12-slim bringt kein Init-System mit. run.sh startet uvicorn per
+# exec und bekommt so die Stopp-Signale direkt.
+init: false
+startup: application
+boot: auto
+
+# Ingress: Aufruf ueber die HA-Seitenleiste (fuer dich als Admin).
+# Der Port ist fuer die Freunde, die keinen Home-Assistant-Zugang haben.
+# Innen 8000, aussen 8780 (8778 = Dein Weg Toolkit, 8779 = Merch Collector).
+ingress: true
+ingress_port: 8000
+panel_icon: mdi:format-quote-open
+panel_title: TrashTwitter
+ports:
+  8000/tcp: 8780
+ports_description:
+  8000/tcp: Weboberflaeche fuer den direkten Aufruf (Freunde ohne HA-Zugang)
+webui: "http://[HOST]:[PORT:8000]/"
+
+# /health braucht keinen Login - genau das, was der Watchdog braucht.
+watchdog: "http://[HOST]:[PORT:8000]/health"
+
+# Alle Daten liegen unter /share/SocialGarbageCollector (DB, Screenshots,
+# Backups). Updates des Add-ons fassen diesen Ordner nie an.
+map:
+  - share:rw
+
+options:
+  base_path: /share/SocialGarbageCollector
+  admin_username: admin
+  admin_password: ""
+  session_hours: 168
+  cookie_secure: false
+  login_max_attempts: 5
+  login_lock_minutes: 15
+  backup_keep: 7
+  screenshot_theme: dark
+  timezone: Europe/Berlin
+  log_level: info
+
+schema:
+  base_path: str
+  admin_username: str
+  admin_password: password?
+  session_hours: int(1,8760)
+  cookie_secure: bool
+  login_max_attempts: int(3,50)
+  login_lock_minutes: int(1,1440)
+  backup_keep: int(0,365)
+  screenshot_theme: list(dark|light)
+  timezone: str
+  log_level: list(debug|info|warning|error)

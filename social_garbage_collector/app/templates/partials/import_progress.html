@@ -1,0 +1,19 @@
+{# Fortschritt eines Imports - fragt alle 4 s nach, solange noch etwas offen ist. #}
+<section class="card import-progress" id="import-progress"
+         {% if open %}hx-get="{{ url('/import/' ~ batch.id ~ '/progress') }}" hx-trigger="every 4s" hx-swap="outerHTML"{% endif %}>
+  <div class="section-title">
+    <h2>{% if open %}Wird erfasst …{% else %}Fertig{% endif %}</h2>
+    <span class="muted small">{{ total - open }} von {{ total }}{% if counts.get('error') %} · <span class="is-error">{{ counts.get('error') }} Fehler</span>{% endif %}</span>
+  </div>
+  <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ percent }}"><span style="width: {{ percent }}%"></span></div>
+  <ul class="import-items">
+    {% for p in posts %}
+    <li>
+      <a href="{{ url('/posts/' ~ p.id) }}" class="import-name">{{ p.author_name }}</a>
+      <span class="import-text faint">{{ p.text|truncate(90) if p.text else p.url }}</span>
+      <span class="badge status-{{ p.status }}">{% if p.status == 'running' %}<span class="spinner" aria-hidden="true"></span>{% endif %}{{ STATUS_LABELS[p.status] }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% if total > posts|length %}<p class="faint xs" style="margin:8px 0 0">… und {{ total - posts|length }} weitere.</p>{% endif %}
+</section>

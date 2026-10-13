@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% set nav = 'archive' %}
+{% block title %}Import{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url('/import') }}">{{ icon('chev-left', 18) }} Importe</a>
+<div class="page-head" style="margin-top:10px">
+  <div>
+    <h1>Import vom {{ batch.created_at|localtime('%d.%m.%Y, %H:%M') }}</h1>
+    <p class="sub">{{ batch.total_links }} {{ 'Link' if batch.total_links == 1 else 'Links' }} erkannt{% if batch.created_by %} · von {{ batch.created_by.name }}{% endif %}</p>
+  </div>
+  {% if batch.created_count %}<a class="btn-soft sm" href="{{ url('/') }}?sort=new">{{ icon('archive', 16) }} Zum Archiv</a>{% endif %}
+</div>
+
+<div class="import-summary">
+  <div class="stat"><div class="v">{{ batch.created_count }}</div><div class="l">neu archiviert</div></div>
+  <div class="stat"><div class="v">{{ existing|length }}</div><div class="l">schon im Archiv</div></div>
+  <div class="stat"><div class="v">{{ repeated|length }}</div><div class="l">doppelt eingefügt</div></div>
+  <div class="stat"><div class="v">{{ invalid|length }}</div><div class="l">nicht erkannt</div></div>
+</div>
+
+{% if batch.created_count %}{% include "partials/import_progress.html" %}{% endif %}
+
+{% if existing %}
+<details class="card import-skip" {% if not batch.created_count %}open{% endif %}>
+  <summary><strong>Schon im Archiv</strong> <span class="faint">({{ existing|length }}) – übersprungen</span></summary>
+  <ul>{% for e in existing %}<li><a href="{{ url('/posts/' ~ e.post_id) }}">Nr. {{ '%06d' % e.post_id }}</a> <span class="faint break">{{ e.url }}</span></li>{% endfor %}</ul>
+</details>
+{% endif %}
+{% if repeated %}
+<details class="card import-skip">
+  <summary><strong>Doppelt eingefügt</strong> <span class="faint">({{ repeated|length }}) – nur einmal übernommen</span></summary>
+  <ul>{% for u in repeated %}<li class="break">{{ u }}</li>{% endfor %}</ul>
+</details>
+{% endif %}
+{% if invalid %}
+<details class="card import-skip" open>
+  <summary><strong>Nicht erkannt</strong> <span class="faint">({{ invalid|length }}) – kein Link zu einem Beitrag auf X oder Bluesky</span></summary>
+  <ul>{% for u in invalid %}<li class="break">{{ u }}</li>{% endfor %}</ul>
+</details>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% set nav = 'archive' %}
+{% block title %}Aussage archivieren{% endblock %}
+{% block container_class %}narrow{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url('/') }}">‹ Archiv</a>
+<div class="card" style="margin-top:14px; padding:0">
+  {% include "partials/add_form.html" %}
+</div>
+{% endblock %}

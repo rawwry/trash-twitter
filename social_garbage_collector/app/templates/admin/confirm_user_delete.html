@@ -1,0 +1,13 @@
+{% extends "settings/base.html" %}
+{% block title %}Benutzer löschen{% endblock %}
+{% block settings %}
+<h1>„{{ target.username }}“ löschen?</h1>
+<p class="sub">Das Konto wird entfernt und sofort abgemeldet. Archivierte Aussagen, Listen und gespeicherte Suchen bleiben,
+  nur der Name als „archiviert von“ verschwindet. Tipp: Deaktivieren geht auch und lässt sich rückgängig machen.</p>
+<form method="post" action="{{ url('/admin/users/' ~ target.id ~ '/delete') }}" class="row wrap">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="confirm" value="ja">
+  <button class="btn-danger" type="submit">Ja, endgültig löschen</button>
+  <a class="btn-ghost" href="{{ url('/admin/users') }}">Abbrechen</a>
+</form>
+{% endblock %}

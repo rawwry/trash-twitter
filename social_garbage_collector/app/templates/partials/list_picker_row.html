@@ -1,0 +1,16 @@
+{% from "partials/icons.html" import icon %}
+<li data-list-title="{{ pl.title|lower }}">
+  {% if mode == 'post' %}
+  <button class="list-row" type="button" aria-pressed="{{ 'true' if member else 'false' }}"
+          hx-post="{{ url('/posts/' ~ picker_post.id ~ '/lists/' ~ pl.id ~ '/toggle') }}" hx-target="closest li" hx-swap="outerHTML">
+    <span class="list-check">{% if member %}{{ icon('check', 16) }}{% endif %}</span>
+    <span class="list-name">{{ pl.title }}</span><span class="list-count">{{ count }}</span>
+  </button>
+  {% else %}
+  <button class="list-row" type="button" data-bulk-target="{{ pl.id }}">
+    <span class="list-check">{{ icon('lists', 16) }}</span>
+    <span class="list-name">{{ pl.title }}</span><span class="list-count">{{ count }}</span>
+  </button>
+  {% endif %}
+</li>
+{% if oob_chips %}{% include "partials/post_lists.html" %}{% endif %}

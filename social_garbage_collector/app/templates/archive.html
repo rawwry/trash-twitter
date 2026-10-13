@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% set nav = 'archive' %}
+{% block title %}Archiv{% endblock %}
+{% block content %}
+<div class="page-head archive-head">
+  <div>
+    <h1>Archiv</h1>
+    <p class="sub">Öffentliche Aussagen von X und Bluesky – im Wortlaut, mit Quelle und Beleg.</p>
+  </div>
+</div>
+
+<form class="archive-search" method="get" action="{{ url('/') }}" role="search"
+      hx-get="{{ url('/') }}" hx-target="#results" hx-swap="outerHTML" hx-push-url="true"
+      hx-trigger="change, input changed delay:350ms from:input[type=search]">
+  {% if f.person_id %}<input type="hidden" name="person" value="{{ f.person_id }}">{% endif %}
+  {% if f.account_id %}<input type="hidden" name="account" value="{{ f.account_id }}">{% endif %}
+  <div class="searchbar">
+    <div class="search-input">
+      {{ icon('search') }}
+      <input type="search" name="q" value="{{ f.q }}" placeholder="Wortlaut, Verfasser, Anmerkung durchsuchen …" aria-label="Archiv durchsuchen" data-search>
+      {% if prefs.shortcuts == 'on' %}<kbd>/</kbd>{% endif %}
+    </div>
+    <div class="seg" role="radiogroup" aria-label="Plattform">
+      <label><input type="radio" name="platform" value="" {% if not f.platform %}checked{% endif %}><span>Alle</span></label>
+      <label><input type="radio" name="platform" value="x" {% if f.platform == 'x' %}checked{% endif %}><span>X</span></label>
+      <label><input type="radio" name="platform" value="bluesky" {% if f.platform == 'bluesky' %}checked{% endif %}><span>Bluesky</span></label>
+    </div>
+    <select name="sort" aria-label="Sortierung">
+      {% for key, label in [('posted', 'Aussage: neueste'), ('posted_old', 'Aussage: älteste'), ('new', 'Archiviert: neueste'), ('old', 'Archiviert: älteste')] %}
+      <option value="{{ key }}" {% if f.sort == key %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="button" class="btn-soft filter-toggle" data-toggle="filter-panel" aria-label="Filter"
+            aria-expanded="{{ 'true' if f.advanced_count else 'false' }}" aria-controls="filter-panel">
+      {{ icon('filter', 18) }}<span class="label-m">Filter</span>{% if f.advanced_count %} <span class="count-badge">{{ f.advanced_count }}</span>{% endif %}
+    </button>
+  </div>
+
+  <div class="card filter-panel" id="filter-panel" {% if not f.advanced_count %}hidden{% endif %}>
+    <label>Verfasser<input name="author" value="{{ f.author }}" placeholder="Name oder @handle"></label>
+    {% with field_value=f.tags|join(', '), field_label='Tags (alle müssen passen)' %}{% include "partials/tag_input.html" %}{% endwith %}
+    <label>Aussage vom<input type="date" name="from" value="{{ f.date_from or '' }}"></label>
+    <label>Aussage bis<input type="date" name="to" value="{{ f.date_to or '' }}"></label>
+    <label>Liste
+      <select name="list">
+        <option value="">alle</option>
+        {% for pl in all_lists %}<option value="{{ pl.id }}" {% if f.list_id == pl.id %}selected{% endif %}>{{ pl.title }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Archiviert von
+      <select name="user">
+        <option value="">allen</option>
+        {% for u in all_users %}<option value="{{ u.id }}" {% if f.user_id == u.id %}selected{% endif %}>{{ u.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Status
+      <select name="status">
+        <option value="">alle</option>
+        {% for key, label in STATUS_LABELS.items() %}<option value="{{ key }}" {% if f.status == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </label>
+    {% if filter_person %}
+    <div class="filter-person">
+      <span class="label-text">Person</span>
+      <span class="chip neutral">{{ filter_person.name }} <a href="{{ url('/') }}" aria-label="Personenfilter entfernen" class="x">×</a></span>
+    </div>
+    {% endif %}
+  </div>
+  <noscript><button class="btn" type="submit">Suchen</button></noscript>
+</form>
+
+{% include "partials/results.html" %}
+
+{# Mehrfachauswahl: die Kaestchen in den Karten gehoeren per form="bulk-form" zu diesem Formular. #}
+<form id="bulk-form" class="bulk-bar" method="post" action="{{ url('/posts/bulk/list') }}" hidden data-bulk-bar>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="back" value="/" data-bulk-back>
+  <span class="bulk-count"><strong data-select-count>0</strong> ausgewählt</span>
+  <button type="button" class="btn-ghost sm" data-select-all>Alle</button>
+  <input type="hidden" name="list_id" value="" data-bulk-list-id>
+  <input type="hidden" name="new_list" value="" data-bulk-new-name>
+  <button class="btn sm" type="button" disabled data-bulk-submit data-open="list-dialog"
+          hx-get="{{ url('/lists/picker') }}" hx-target="#list-dialog-body" hx-swap="innerHTML">{{ icon('lists', 16) }} In Liste ablegen …</button>
+  <button type="button" class="icon-btn" data-select-cancel aria-label="Auswahl beenden">{{ icon('close', 18) }}</button>
+</form>
+{% endblock %}

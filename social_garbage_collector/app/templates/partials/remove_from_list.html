@@ -1,0 +1,5 @@
+<form method="post" action="{{ url('/posts/' ~ post.id ~ '/lists/' ~ plist.id ~ '/remove') }}" class="remove-from-list">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="back" value="list">
+  <button class="btn-ghost sm" type="submit">Aus Liste entfernen</button>
+</form>

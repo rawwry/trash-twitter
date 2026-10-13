@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% set nav = 'settings' %}
+{% block content %}
+{% set groups = [
+  ('Persönlich', [
+    ('konto', '/settings/konto', 'user', 'Konto & Passwort'),
+    ('darstellung', '/settings/darstellung', 'palette', 'Darstellung'),
+    ('archiv', '/settings/archiv', 'archive', 'Archiv'),
+    ('suchgenerator', '/settings/suchgenerator', 'wand', 'Suchgenerator'),
+    ('teilen', '/settings/teilen', 'share', 'Teilen & Kürzel'),
+  ]),
+  ('Gemeinsam', [
+    ('tags', '/settings/tags', 'tag', 'Tags verwalten'),
+    ('generator', '/generator', 'search', 'Suchgenerator für X & Bluesky'),
+  ]),
+] %}
+{# Admin-Bereich existiert fuer Nicht-Admins gar nicht im HTML. #}
+{% if user.is_admin %}
+  {% set groups = groups + [('Verwaltung', [
+    ('benutzer', '/admin/users', 'people', 'Benutzer'),
+    ('system', '/admin/system', 'monitor', 'System & Sicherung'),
+    ('protokoll', '/admin/log', 'doc', 'Protokoll'),
+  ])] %}
+{% endif %}
+{% set groups = groups + [('Info', [('info', '/settings/info', 'info', 'Über ' ~ APP_NAME)])] %}
+
+<div class="settings-layout {{ 'has-section' if section }}">
+  <aside class="settings-nav" aria-label="Einstellungen">
+    <h1 class="settings-title-mobile" style="margin:0 4px 4px">Einstellungen</h1>
+    {% for label, items in groups %}
+    <div>
+      <div class="group-label">{{ label }}</div>
+      <ul>
+        {% for key, href, ico, title in items %}
+        <li><a href="{{ url(href) }}" {% if section == key %}aria-current="page"{% endif %}>
+          <span class="ico" aria-hidden="true">{{ icon(ico, 17) }}</span>{{ title }}<span class="chev">{{ icon('chev-right', 16) }}</span></a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+  </aside>
+  <section class="settings-main">
+    <a class="back-link settings-back" href="{{ url('/settings') }}">{{ icon('chev-left', 18) }} Einstellungen</a>
+    {% block settings %}{% endblock %}
+  </section>
+</div>
+{% endblock %}

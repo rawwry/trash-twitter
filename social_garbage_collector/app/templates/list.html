@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% set nav = 'lists' %}
+{% set view = 'list' if prefs.archive_view == 'list' else 'cards' %}
+{% block title %}{{ plist.title }}{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url('/lists') }}">{{ icon('chev-left', 18) }} Listen</a>
+<div class="page-head" style="margin-top:10px">
+  <form method="post" action="{{ url('/lists/' ~ plist.id ~ '/rename') }}" class="row grow" style="min-width:260px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input name="title" value="{{ plist.title }}" required maxlength="120" class="title-input" aria-label="Titel der Liste (zum Umbenennen anklicken)">
+    <button class="btn-ghost sm" type="submit">Speichern</button>
+  </form>
+  <div class="actions">
+    <a class="btn-ghost sm" href="{{ url('/') }}?list={{ plist.id }}">{{ icon('search', 16) }} Im Archiv filtern</a>
+    <a class="btn-danger sm" href="{{ url('/lists/' ~ plist.id ~ '/delete') }}">{{ icon('trash', 16) }} Löschen</a>
+  </div>
+</div>
+<div class="list-desc" data-edit-view="desc">
+  {% if plist.description %}<p class="person-note" style="margin:0">{{ plist.description }}</p>{% endif %}
+  <button class="btn-ghost sm" type="button" data-edit="desc">{{ icon('edit', 14) }} {{ 'Beschreibung bearbeiten' if plist.description else 'Beschreibung hinzufügen' }}</button>
+</div>
+<form method="post" action="{{ url('/lists/' ~ plist.id ~ '/describe') }}" class="stack list-desc" data-edit-form="desc" hidden>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <textarea name="description" rows="3" maxlength="2000" placeholder="Worum geht es in dieser Liste?">{{ plist.description }}</textarea>
+  <div class="row"><button class="btn sm" type="submit">Speichern</button><button class="btn-ghost sm" type="button" data-edit-cancel="desc">Abbrechen</button></div>
+</form>
+<p class="muted small" style="margin-top:-8px">{{ posts|length }} {{ 'Aussage' if posts|length == 1 else 'Aussagen' }}, nach Datum geordnet
+  {% if plist.created_by %}· angelegt von {{ plist.created_by.name }}{% endif %}
+  · Aussagen legst du über „Listen wählen“ auf ihrer Detailseite oder per Mehrfachauswahl im Archiv ab.</p>
+
+{% if posts %}
+<div class="posts view-{{ view }}">
+  {% include "partials/cards_page.html" %}
+</div>
+{% else %}
+<div class="empty-state">
+  <h2>Diese Liste ist leer</h2>
+  <p>Öffne eine Aussage und lege sie unter „Listen“ hier ab.</p>
+</div>
+{% endif %}
+{% endblock %}

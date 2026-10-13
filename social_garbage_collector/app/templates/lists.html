@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% set nav = 'lists' %}
+{% block title %}Listen{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Listen</h1>
+    <p class="sub">Gemeinsame Sammlungen von Aussagen zu einem Thema – alle Mitglieder können sie bearbeiten.</p>
+  </div>
+  <form method="post" action="{{ url('/lists') }}" class="row">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input name="title" placeholder="Neue Liste, z. B. Energiepolitik" required maxlength="120" aria-label="Titel der neuen Liste" style="min-width:220px">
+    <button class="btn" type="submit">{{ icon('plus', 18) }} Anlegen</button>
+  </form>
+</div>
+{% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
+
+{% if lists %}
+<div class="list-tiles">
+  {% for pl, count, first, last, persons in lists %}
+  <a class="list-tile" href="{{ url('/lists/' ~ pl.id) }}">
+    <span class="list-tile-title">{{ pl.title }}</span>
+    {% if pl.description %}<span class="list-tile-desc">{{ pl.description }}</span>{% endif %}
+    <span class="faces">
+      {% for p in faces.get(pl.id, []) %}{% if p.avatar_path %}<img class="q-avatar" src="{{ file_url(p.avatar_path) }}" alt="" title="{{ p.name }}" width="30" height="30" loading="lazy">{% else %}<span class="q-avatar q-avatar-empty" title="{{ p.name }}">{{ p.name.lstrip('@')[:1] }}</span>{% endif %}{% endfor %}
+      {% if persons > 5 %}<span class="faces-more">+{{ persons - 5 }}</span>{% endif %}
+    </span>
+    <span class="list-tile-meta">
+      <span><strong>{{ count }}</strong> {{ 'Aussage' if count == 1 else 'Aussagen' }} · {{ persons }} {{ 'Person' if persons == 1 else 'Personen' }}</span>
+      {% if first %}<span>{{ first|localtime('%Y') }}{% if (last|localtime('%Y')) != (first|localtime('%Y')) %}–{{ last|localtime('%Y') }}{% endif %}</span>{% endif %}
+    </span>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <h2>Noch keine Listen</h2>
+  <p>Leg oben eine an – zum Beispiel zu einem Thema, einer Debatte oder einem Ereignis.</p>
+</div>
+{% endif %}
+{% endblock %}

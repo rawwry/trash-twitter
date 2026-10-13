@@ -1,0 +1,62 @@
+{% extends "settings/base.html" %}
+{% block title %}Konto & Passwort{% endblock %}
+{% from "partials/avatar.html" import avatar with context %}
+{% from "partials/icons.html" import icon %}
+{% block settings %}
+<h1>Konto &amp; Passwort</h1>
+<p class="sub">Angemeldet als <strong>{{ user.username }}</strong>{% if user.last_login_at %} · letzter Login {{ user.last_login_at|localtime }}{% endif %}</p>
+
+{% if forced %}
+<div class="flash flash-info" role="status">👋 Willkommen! Bitte vergib zuerst ein eigenes Passwort – danach geht's los.</div>
+{% endif %}
+{% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
+
+<h2>Profil</h2>
+{% if profile_error %}<div class="flash flash-error" role="alert">{{ profile_error }}</div>{% endif %}
+<form method="post" action="{{ url('/settings/konto/profil') }}" enctype="multipart/form-data" class="setting-group">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <div class="setting-block profile-edit">
+    <label class="avatar-picker" title="Profilbild ändern">
+      <span data-avatar-preview>{{ avatar(user, 88) }}</span>
+      <span class="avatar-edit-badge" aria-hidden="true">{{ icon('edit', 14) }}</span>
+      <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp,image/gif" data-avatar-input class="sr-only">
+      <span class="sr-only">Profilbild auswählen</span>
+    </label>
+    <div class="stack grow">
+      <label>Anzeigename <span class="hint">So sehen dich die anderen. Anmelden tust du dich weiter als „{{ user.username }}“.</span>
+        <input name="display_name" value="{{ user.display_name }}" maxlength="40" placeholder="{{ user.username }}" autocomplete="nickname">
+      </label>
+      <div class="row wrap">
+        <button class="btn" type="submit">Profil speichern</button>
+        {% if user.avatar_path %}<button class="btn-ghost sm" type="submit" name="remove_avatar" value="1">Bild entfernen</button>{% endif %}
+      </div>
+    </div>
+  </div>
+</form>
+
+<h2 id="passwort">Passwort ändern</h2>
+<form method="post" action="{{ url('/settings/konto/passwort') }}" class="setting-group">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <div class="setting-block stack">
+    <label>Aktuelles Passwort<input name="current" type="password" required autocomplete="current-password"></label>
+    <label>Neues Passwort <span class="hint">mindestens 5 Zeichen</span><input name="new" type="password" required minlength="5" autocomplete="new-password"></label>
+    <label>Neues Passwort wiederholen<input name="new2" type="password" required minlength="5" autocomplete="new-password"></label>
+    <div class="row wrap"><button class="btn" type="submit">Passwort speichern</button>
+      <span class="faint xs">Andere Geräte werden dabei abgemeldet.</span></div>
+  </div>
+</form>
+
+{% if not forced %}
+<h2>Sitzungen</h2>
+<div class="setting-group">
+  <div class="setting-row">
+    <div class="text"><div class="label">Auf allen anderen Geräten abmelden</div>
+      <div class="help">Praktisch, wenn du dich irgendwo nicht abgemeldet hast.</div></div>
+    <form method="post" action="{{ url('/settings/konto/abmelden') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn-soft sm" type="submit">Abmelden</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

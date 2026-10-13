@@ -1,0 +1,8 @@
+{# Profilbild oder farbiger Kreis mit Anfangsbuchstabe. Import mit "with context" (braucht url()). #}
+{% macro avatar(u, size=32, cls='') -%}
+{%- if u and u.avatar_path -%}
+<img class="avatar avatar-img {{ cls }}" src="{{ url('/' ~ u.avatar_path) }}" alt="" width="{{ size }}" height="{{ size }}" loading="lazy" style="--s:{{ size }}px">
+{%- else -%}
+<span class="avatar {{ cls }}" style="--s:{{ size }}px;--h:{{ ((u.id or 0) * 67) % 360 if u else 210 }}" aria-hidden="true">{{ (u.name if u else '?')[:1] }}</span>
+{%- endif -%}
+{%- endmacro %}

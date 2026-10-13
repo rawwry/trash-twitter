@@ -1,0 +1,31 @@
+{% from "partials/icons.html" import icon %}
+<div class="sheet-inner">
+  <div class="sheet-head"><h2 id="ge-title">Bild bearbeiten</h2>
+    <button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close') }}</button></div>
+  <div class="ge-preview" style="--c: {{ image.color }}"><img src="{{ url('/galerie/datei/' ~ image.thumb_path) }}" alt=""></div>
+  <form method="post" action="{{ url('/galerie/bild/' ~ image.id) }}" class="stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="back" value="{{ back }}" data-gallery-back>
+    <label>Titel <span class="hint">optional – erscheint nur in der Detailansicht</span><input name="title" value="{{ image.title }}" maxlength="200"></label>
+    <label>Notiz<textarea name="note" rows="2" maxlength="2000">{{ image.note }}</textarea></label>
+    <fieldset class="list-radio">
+      <legend class="label-text">Kategorien</legend>
+      {% if counts %}<div class="chips">
+        {% for cat, n in counts %}<label class="chip-radio"><input type="checkbox" name="kategorien" value="{{ cat.id }}" {% if cat in image.categories %}checked{% endif %}><span><i class="dot tone-{{ cat.tone }}"></i>{{ cat.name }}</span></label>{% endfor %}
+      </div>{% endif %}
+      <input name="neue_kategorien" maxlength="300" placeholder="Neue Kategorie(n), mit Komma getrennt" aria-label="Neue Kategorien">
+    </fieldset>
+    <div class="row wrap">
+      <button class="btn" type="submit">Speichern</button>
+      <span class="spacer grow"></span>
+    </div>
+  </form>
+  {% if may_delete %}
+  <form method="post" action="{{ url('/galerie/bild/' ~ image.id ~ '/loeschen') }}" data-confirm="Dieses Bild endgültig löschen?">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="back" value="{{ back }}" data-gallery-back>
+    <button class="link-danger small" type="submit">{{ icon('trash', 14) }} Bild löschen</button>
+  </form>
+  {% endif %}
+  <p class="faint xs" style="margin:0">Hochgeladen am {{ image.created_at|localtime('%d.%m.%Y') }}{% if image.uploaded_by %} von {{ image.uploaded_by.name }}{% endif %} · {{ image.width }} × {{ image.height }} px</p>
+</div>

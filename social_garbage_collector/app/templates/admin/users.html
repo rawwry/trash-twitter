@@ -1,0 +1,102 @@
+{% extends "settings/base.html" %}
+{% block title %}Benutzer{% endblock %}
+{% from "partials/avatar.html" import avatar with context %}
+{% block settings %}
+<h1>Benutzer</h1>
+<p class="sub">Konten anlegen, Rollen vergeben, Passwörter zurücksetzen. Selbst registrieren kann sich niemand.</p>
+{% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
+
+<h2>Neues Konto</h2>
+<form method="post" action="{{ url('/admin/users') }}" class="setting-group">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <div class="setting-block admin-create">
+    <label>Name<input name="username" required maxlength="64" value="{{ form.username if form else '' }}" autocomplete="off" autocapitalize="off"></label>
+    <label>Rolle
+      <select name="role">
+        <option value="user" {% if not form or form.role == 'user' %}selected{% endif %}>Mitglied</option>
+        <option value="admin" {% if form and form.role == 'admin' %}selected{% endif %}>Admin</option>
+      </select>
+    </label>
+    <div class="pw-field" style="display:flex;flex-direction:column;gap:6px">
+      <label for="create-pw">Anfangspasswort <span class="hint">min. 5 Zeichen</span></label>
+      <div class="row">
+        <div class="grow" id="create-pw-slot">
+          <input id="create-pw" name="password" type="text" required minlength="5" autocomplete="off" class="mono">
+        </div>
+        <button type="button" class="btn-soft" title="Zufälliges Passwort erzeugen"
+                hx-get="{{ url('/admin/users/generate-password') }}?name=password"
+                hx-target="#create-pw-slot" hx-swap="innerHTML">🎲<span class="sr-only">Zufällig erzeugen</span></button>
+      </div>
+    </div>
+    <button class="btn" type="submit">Anlegen</button>
+  </div>
+  <div class="setting-row"><div class="help">Neue Mitglieder müssen das Anfangspasswort beim ersten Login ändern.</div></div>
+</form>
+
+<h2>Alle Konten</h2>
+<div class="setting-group">
+  <div class="table-wrap">
+  <table class="table table-cards">
+    <thead>
+      <tr>
+        <th>Name</th><th>Rolle</th><th>Status</th><th>Angelegt</th><th>Letzter Login</th>
+        <th>Aktionen</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for u in users %}
+      {% set is_me = (u.id == user.id) %}
+      <tr class="{% if not u.is_active %}inactive{% endif %}">
+        <td class="cell-head"><span class="who-inline">{{ avatar(u, 28) }}<span><strong>{{ u.name }}</strong>{% if u.display_name %}<br><span class="faint xs">@{{ u.username }}</span>{% endif %}</span></span>{% if is_me %} <span class="badge">du</span>{% endif %}
+            {% if u.must_change_password %}<br><span class="faint xs">muss Passwort ändern</span>{% endif %}</td>
+        <td data-label="Rolle">
+          {% if is_me %}Admin{% else %}
+          <form method="post" action="{{ url('/admin/users/' ~ u.id ~ '/role') }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <select name="role" onchange="this.form.requestSubmit()" aria-label="Rolle von {{ u.username }}">
+              <option value="user" {% if u.role == 'user' %}selected{% endif %}>Mitglied</option>
+              <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>Admin</option>
+            </select>
+            <noscript><button class="btn-ghost sm">ok</button></noscript>
+          </form>
+          {% endif %}
+        </td>
+        <td data-label="Status">
+          {% if is_me %}<span class="badge status-done">aktiv</span>{% else %}
+          <form method="post" action="{{ url('/admin/users/' ~ u.id ~ '/active') }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="badge-btn {% if u.is_active %}status-done{% else %}status-error{% endif %}" type="submit"
+                    title="{% if u.is_active %}Deaktivieren{% else %}Aktivieren{% endif %}">
+              {% if u.is_active %}aktiv{% else %}deaktiviert{% endif %}
+            </button>
+          </form>
+          {% endif %}
+        </td>
+        <td class="nowrap" data-label="Angelegt">{{ u.created_at|localtime('%d.%m.%Y') }}</td>
+        <td class="nowrap" data-label="Letzter Login">{{ u.last_login_at|ago or '–' }}</td>
+        <td class="cell-actions">
+          <div class="actions">
+            <details class="reset">
+              <summary class="btn-ghost sm">Passwort zurücksetzen</summary>
+              <form method="post" action="{{ url('/admin/users/' ~ u.id ~ '/reset-password') }}" class="stack">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="row">
+                  <div class="grow" id="reset-slot-{{ u.id }}">
+                    <input name="new_password" type="text" required minlength="5" class="mono" autocomplete="off" aria-label="Neues Passwort für {{ u.username }}">
+                  </div>
+                  <button type="button" class="btn-soft sm" hx-get="{{ url('/admin/users/generate-password') }}?name=new_password"
+                          hx-target="#reset-slot-{{ u.id }}" hx-swap="innerHTML" title="Zufällig erzeugen">🎲</button>
+                </div>
+                <button class="btn sm" type="submit">Setzen</button>
+              </form>
+            </details>
+            {% if not is_me %}<a class="link-danger small" href="{{ url('/admin/users/' ~ u.id ~ '/delete') }}">löschen</a>{% endif %}
+          </div>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

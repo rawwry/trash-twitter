@@ -1,0 +1,125 @@
+{% from "partials/icons.html" import icon %}
+{% from "partials/avatar.html" import avatar with context %}
+<!doctype html>
+<html lang="de" data-theme="{{ prefs.theme }}" data-accent="{{ prefs.accent }}" data-density="{{ prefs.density }}" data-motion="{{ prefs.motion }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}{% endblock %} · {{ APP_NAME }}</title>
+  <meta name="description" content="Quellenarchiv für öffentliche Aussagen von X und Bluesky">
+  {# Homescreen: Vollbild ohne Browserleiste, Statusleiste über dem eigenen Hintergrund #}
+  <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#16181c" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="{{ APP_NAME }}">
+  <link rel="manifest" href="{{ url('/manifest.webmanifest') }}">
+  <link rel="apple-touch-icon" href="{{ static('brand/apple-touch-icon.png') }}">
+  <link rel="apple-touch-icon" sizes="167x167" href="{{ static('brand/apple-touch-icon-167.png') }}">
+  <link rel="apple-touch-icon" sizes="152x152" href="{{ static('brand/apple-touch-icon-152.png') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ static('brand/favicon-32.png') }}">
+  <link rel="icon" type="image/png" sizes="48x48" href="{{ static('brand/favicon-48.png') }}">
+  <link rel="shortcut icon" href="{{ static('brand/favicon.ico') }}">
+  <link rel="stylesheet" href="{{ static('style.css') }}">
+  <script src="{{ static('htmx.min.js') }}" defer></script>
+  <script src="{{ static('app.js') }}" defer></script>
+</head>
+{# htmx schickt das CSRF-Token bei jeder Anfrage als Header mit. #}
+<body hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'
+      data-root="{{ url('') }}" data-shortcuts="{{ 'on' if user and prefs.shortcuts == 'on' else 'off' }}"
+      {% if user %}data-user="1"{% endif %}>
+{% set logged_in = user and not user.must_change_password %}
+
+<header class="app-header">
+  <div class="header-inner">
+    <a class="brand" href="{{ url('/') }}" aria-label="{{ APP_NAME }} – zum Archiv">
+      <img src="{{ static('brand/logo-96.png') }}" alt="" width="30" height="30">
+      <span>{{ APP_NAME }}</span>
+    </a>
+    {% if logged_in %}
+    <nav class="nav-tabs" aria-label="Hauptnavigation">
+      <a href="{{ url('/') }}" {% if nav == 'archive' %}aria-current="page"{% endif %}>Archiv</a>
+      <a href="{{ url('/personen') }}" {% if nav == 'persons' %}aria-current="page"{% endif %}>Personen</a>
+      <a href="{{ url('/lists') }}" {% if nav == 'lists' %}aria-current="page"{% endif %}>Listen</a>
+      <a href="{{ url('/galerie') }}" {% if nav == 'gallery' %}aria-current="page"{% endif %}>Galerie</a>
+      <a href="{{ url('/generator') }}" {% if nav == 'generator' %}aria-current="page"{% endif %}>Suchgenerator</a>
+    </nav>
+    <div class="header-actions">
+      <button class="btn sm btn-add" type="button" data-open="add-dialog" title="Aussage archivieren (n)">{{ icon('plus', 18) }} Aussage</button>
+      <details class="menu">
+        <summary aria-label="Kontomenü">{{ avatar(user, 36, "ring") }}</summary>
+        <div class="menu-panel" role="menu">
+          <div class="who">{{ avatar(user, 40) }}<div><strong>{{ user.name }}</strong><span class="faint xs">@{{ user.username }} · {{ 'Admin' if user.is_admin else 'Mitglied' }}</span></div></div>
+          <a href="{{ url('/settings') }}" role="menuitem">{{ icon('settings', 18) }} Einstellungen</a>
+          <a href="{{ url('/settings/konto') }}#passwort" role="menuitem">{{ icon('shield', 18) }} Passwort ändern</a>
+          {# Admin-Links existieren fuer Nicht-Admins gar nicht im HTML. #}
+          {% if user.is_admin %}
+          <a href="{{ url('/admin/users') }}" role="menuitem">{{ icon('shield', 18) }} Benutzer verwalten</a>
+          {% endif %}
+          <div class="sep"></div>
+          <form method="post" action="{{ url('/logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" role="menuitem">{{ icon('logout', 18) }} Abmelden</button>
+          </form>
+        </div>
+      </details>
+    </div>
+    {% endif %}
+  </div>
+</header>
+
+<main class="container {% block container_class %}{% endblock %}" id="main">
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="app-footer">
+  {{ APP_NAME }} <span class="version">v{{ VERSION }}</span> · Quellenarchiv für öffentliche Aussagen
+</footer>
+
+{% if logged_in %}
+<nav class="tabbar" aria-label="Navigation">
+  <a href="{{ url('/') }}" {% if nav == 'archive' %}aria-current="page"{% endif %}>
+    {{ icon('archive', 25) }}<span>Archiv</span>
+  </a>
+  <a href="{{ url('/personen') }}" {% if nav == 'persons' %}aria-current="page"{% endif %}>{{ icon('people', 25) }}<span>Personen</span></a>
+  <button type="button" class="tab-add" data-open="add-dialog" aria-label="Aussage archivieren"><span class="plus">{{ icon('plus', 26) }}</span></button>
+  <a href="{{ url('/lists') }}" {% if nav == 'lists' %}aria-current="page"{% endif %}>{{ icon('lists', 25) }}<span>Listen</span></a>
+  <a href="{{ url('/galerie') }}" {% if nav == 'gallery' %}aria-current="page"{% endif %}>{{ icon('image', 25) }}<span>Galerie</span></a>
+</nav>
+
+{# Hinzufuegen-Sheet: von ueberall erreichbar (Knopf, Plus-Tab, Taste "n") #}
+<dialog class="sheet" id="add-dialog" aria-labelledby="add-title">
+  <div class="sheet-grip"></div>
+  {% with in_dialog=True %}{% include "partials/add_form.html" %}{% endwith %}
+</dialog>
+
+{# Listen-Auswahl: Inhalt kommt per htmx (/lists/picker) #}
+<dialog class="sheet" id="list-dialog" aria-labelledby="list-title">
+  <div class="sheet-grip"></div>
+  <div id="list-dialog-body"><div class="sheet-inner"><p class="muted">Lade Listen …</p></div></div>
+</dialog>
+
+<dialog class="sheet" id="keys-dialog" aria-labelledby="keys-title">
+  <div class="sheet-grip"></div>
+  <div class="sheet-inner">
+    <div class="sheet-head"><h2 id="keys-title">Tastenkürzel</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close') }}</button></div>
+    <dl class="kbd-list">
+      <dt><kbd>n</kbd></dt><dd>Aussage archivieren</dd>
+      <dt><kbd>/</kbd></dt><dd>Im Archiv suchen</dd>
+      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Neuere / ältere Aussage (auf der Detailseite)</dd>
+      <dt><kbd>g</kbd> <kbd>a</kbd></dt><dd>Zum Archiv</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Schließen</dd>
+      <dt><kbd>?</kbd></dt><dd>Diese Übersicht</dd>
+    </dl>
+    <p class="muted small">Abschalten in Einstellungen → Teilen &amp; Kürzel.</p>
+  </div>
+</dialog>
+{% endif %}
+
+<div class="toasts" id="toasts" aria-live="polite">
+  {% if toast %}<div class="toast {{ toast.kind }}" data-autoclose>{{ toast.message }}</div>{% endif %}
+</div>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% set nav = 'archive' %}
+{% block title %}Importe{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Importe</h1>
+    <p class="sub">Massenimporte der letzten Zeit. Neuer Import: „Aussage“ → „Viele Links“.</p>
+  </div>
+  <a class="btn sm" href="{{ url('/add') }}?mode=bulk">{{ icon('plus', 16) }} Neuer Import</a>
+</div>
+{% if batches %}
+<div class="person-list">
+  {% for b in batches %}
+  <a class="person-row" href="{{ url('/import/' ~ b.id) }}">
+    <span class="q-avatar q-avatar-empty list-ico" aria-hidden="true">{{ icon('lists', 20) }}</span>
+    <span class="person-main">
+      <span class="person-name">{{ b.created_at|localtime('%d.%m.%Y, %H:%M') }}</span>
+      <span class="person-accounts"><span>{{ b.total_links }} Links</span>{% if b.created_by %}<span>von {{ b.created_by.name }}</span>{% endif %}</span>
+    </span>
+    <span class="person-stats"><span><strong>{{ b.created_count }}</strong> neu</span></span>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state"><h2>Noch keine Importe</h2><p>Über „Aussage“ → „Viele Links“ fügst du viele Links auf einmal ein.</p></div>
+{% endif %}
+{% endblock %}

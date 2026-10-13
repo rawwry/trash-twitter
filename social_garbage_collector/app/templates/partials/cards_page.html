@@ -1,0 +1,15 @@
+{# Eine Seite Aussagen in der gewaehlten Darstellung (ohne "Mehr laden"). #}
+{% set by_archive = f is defined and f.sort in ('new', 'old') %}
+{% if view == 'timeline' %}
+  {% set ns = namespace(group=after_group or '') %}
+  {% for post in posts %}
+    {% set moment = post.created_at if by_archive else post.said_at %}
+    {% set g = moment|monthkey %}
+    {% if g != ns.group %}<h2 class="tl-month"><span>{{ moment|monthname }}</span>{% if by_archive %}<small> archiviert</small>{% endif %}</h2>{% set ns.group = g %}{% endif %}
+    {% with full=True %}{% include "partials/quote.html" %}{% endwith %}
+  {% endfor %}
+{% elif view == 'list' %}
+  {% for post in posts %}{% include "partials/quote_row.html" %}{% endfor %}
+{% else %}
+  {% for post in posts %}{% include "partials/quote.html" %}{% endfor %}
+{% endif %}

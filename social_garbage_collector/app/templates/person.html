@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% set nav = 'persons' %}
+{% block title %}{{ person.name }}{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url('/personen') }}">{{ icon('chev-left', 18) }} Personen</a>
+
+<div class="person-head">
+  {% if person.avatar_path %}<img class="q-avatar" src="{{ file_url(person.avatar_path) }}" alt="" width="72" height="72">
+  {% else %}<span class="q-avatar q-avatar-empty" aria-hidden="true">{{ person.name.lstrip('@')[:1] }}</span>{% endif %}
+  <div class="grow">
+    <div data-edit-view="person">
+      <h1>{{ person.name }}</h1>
+      {% if person.subtitle %}<p class="person-subtitle-lg">{{ person.subtitle }}</p>{% endif %}
+      <p class="sub muted">
+        {{ stats.count or 0 }} {{ 'Aussage' if stats.count == 1 else 'Aussagen' }}
+        {% if stats.first %} · {{ stats.first|localtime('%d.%m.%Y') }} bis {{ stats.last|localtime('%d.%m.%Y') }}{% endif %}
+        · {{ person.accounts|length }} {{ 'Account' if person.accounts|length == 1 else 'Accounts' }}
+      </p>
+      {% if person.note %}<p class="person-note">{{ person.note }}</p>{% endif %}
+    </div>
+    {# Nur Darstellung - Wortlaut und Original-Profilbilder der Aussagen bleiben unveraendert. #}
+    <form method="post" action="{{ url('/personen/' ~ person.id ~ '/bearbeiten') }}" enctype="multipart/form-data"
+          class="stack" data-edit-form="person" hidden>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="profile-edit">
+        <label class="avatar-picker" title="Foto ändern">
+          <span data-avatar-preview>{% if person.avatar_path %}<img class="avatar avatar-img" src="{{ file_url(person.avatar_path) }}" alt="" width="88" height="88" style="--s:88px">{% else %}<span class="avatar" style="--s:88px" aria-hidden="true">{{ person.name.lstrip('@')[:1] }}</span>{% endif %}</span>
+          <span class="avatar-edit-badge" aria-hidden="true">{{ icon('edit', 14) }}</span>
+          <input type="file" name="photo" accept="image/jpeg,image/png,image/webp,image/gif" data-avatar-input class="sr-only">
+        </label>
+        <div class="stack grow">
+          <span class="faint xs">Eigenes Foto für die Personenseiten. {% if person.photo_path %}Ohne eigenes Foto erscheint wieder das Profilbild des Accounts.{% else %}Ohne eigenes Foto erscheint das Profilbild des Accounts.{% endif %}</span>
+          {% if person.photo_path %}<label class="check"><input type="checkbox" name="remove_photo" value="1"> Eigenes Foto entfernen</label>{% endif %}
+        </div>
+      </div>
+      <label>Name<input name="name" value="{{ person.name }}" maxlength="200" required></label>
+      <label>Kurzbeschreibung <span class="hint">eine Zeile unter dem Namen, z. B. „Bundestagsabgeordnete, SPD“</span>
+        <input name="subtitle" value="{{ person.subtitle }}" maxlength="120"></label>
+      <label>Beschreibung <span class="hint">Hintergrund, Funktion, Zeitraum – sachlich</span>
+        <textarea name="note" rows="3" maxlength="5000">{{ person.note }}</textarea></label>
+      <div class="row"><button class="btn sm" type="submit">Speichern</button>
+        <button class="btn-ghost sm" type="button" data-edit-cancel="person">Abbrechen</button></div>
+      <p class="faint xs" style="margin:0">Ändert nur die Darstellung der Person. Die archivierten Aussagen behalten Wortlaut, Namen und Profilbild vom Zeitpunkt der Archivierung.
+        {% if not person.name_locked %}Solange du den Namen nicht änderst, folgt er dem Anzeigenamen des Accounts.{% endif %}</p>
+    </form>
+  </div>
+  <div class="actions">
+    <button class="btn-ghost sm" type="button" data-edit="person">{{ icon('edit', 15) }} Bearbeiten</button>
+    <a class="btn-soft sm" href="{{ url('/') }}?person={{ person.id }}">{{ icon('search', 15) }} Im Archiv</a>
+  </div>
+</div>
+
+<div class="person-layout">
+  <section aria-labelledby="statements-title">
+    <div class="section-title">
+      <h2 id="statements-title">Aussagen</h2>
+      {% if total > posts|length %}<a class="small" href="{{ url('/') }}?person={{ person.id }}">Alle {{ total }} im Archiv →</a>{% endif %}
+    </div>
+    {% if posts %}
+    <div class="posts view-cards one-col">
+      {% for post in posts %}{% with plist=None %}{% include "partials/quote.html" %}{% endwith %}{% endfor %}
+    </div>
+    {% else %}
+    <p class="muted">Keine archivierten Aussagen.</p>
+    {% endif %}
+  </section>
+
+  <aside class="stack">
+    <section class="card" aria-labelledby="accounts-title">
+      <div class="section-title"><h2 id="accounts-title">Accounts</h2></div>
+      <ul class="account-list">
+        {% for a in person.accounts %}
+        <li id="account-{{ a.id }}">
+          <div class="account-top">
+            {% if a.avatar_path %}<img class="q-avatar" src="{{ file_url(a.avatar_path) }}" alt="" width="36" height="36" loading="lazy">
+            {% else %}<span class="q-avatar q-avatar-empty" aria-hidden="true">{{ (a.display_name or a.handle or '?')[:1] }}</span>{% endif %}
+            <div class="grow">
+              <strong>{{ a.display_name or a.label }}</strong>
+              <div class="faint xs">{{ PLATFORM_LABELS[a.platform] }} · {{ a.label }} · {{ account_counts.get(a.id, 0) }} Aussagen</div>
+            </div>
+            {% if a.profile_url %}<a class="icon-btn" href="{{ a.profile_url }}" target="_blank" rel="noopener noreferrer" title="Profil öffnen" aria-label="Profil öffnen">{{ icon('external', 18) }}</a>{% endif %}
+          </div>
+          {% if a.stable_id %}<div class="mono xs faint break">ID {{ a.stable_id }}</div>{% else %}<div class="xs faint">Feste Konto-ID noch unbekannt – Zuordnung über den Handle.</div>{% endif %}
+          {% if a.changes %}
+          <details class="account-history">
+            <summary class="xs muted">Verlauf ({{ a.changes|length }})</summary>
+            <ul>
+              {% for c in a.changes %}
+              <li><span class="faint">{{ c.seen_at|localtime('%d.%m.%Y') }}</span> {{ CHANGE_LABELS.get(c.field, c.field) }}:
+                {% if c.field == 'avatar_path' %}
+                  <img class="q-avatar mini" src="{{ file_url(c.old_value) }}" alt="altes Profilbild" width="20" height="20"> → <img class="q-avatar mini" src="{{ file_url(c.new_value) }}" alt="neues Profilbild" width="20" height="20">
+                {% else %}{{ c.old_value }} → {{ c.new_value }}{% endif %}</li>
+              {% endfor %}
+            </ul>
+          </details>
+          {% endif %}
+          <form method="post" action="{{ url('/accounts/' ~ a.id ~ '/person') }}" class="row wrap account-move">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <select name="person_id" aria-label="Account einer anderen Person zuordnen" class="grow">
+              <option value="" disabled selected>Andere Person zuordnen …</option>
+              {% if person.accounts|length > 1 %}<option value="neu">Eigene, neue Person</option>{% endif %}
+              {% for o in others %}<option value="{{ o.id }}">{{ o.name }}</option>{% endfor %}
+            </select>
+            <button class="btn-ghost sm" type="submit">Zuordnen</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    {% if others %}
+    <section class="card" id="zusammenfuehren" aria-labelledby="merge-title">
+      <div class="section-title"><h2 id="merge-title">Zusammenführen</h2></div>
+      <p class="muted small">Ist das dieselbe Person wie ein anderer Eintrag? Dann wandern alle Accounts und Aussagen dorthin, die Beschreibungen werden zusammengelegt.</p>
+      <form method="post" action="{{ url('/personen/' ~ person.id ~ '/zusammenfuehren') }}" class="row wrap">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <select name="target_id" aria-label="Ziel-Person" class="grow" required>
+          <option value="" disabled selected>Aufgehen lassen in …</option>
+          {% for o in others %}<option value="{{ o.id }}">{{ o.name }}</option>{% endfor %}
+        </select>
+        <button class="btn-soft sm" type="submit">Zusammenführen</button>
+      </form>
+    </section>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

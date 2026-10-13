@@ -1,0 +1,533 @@
+/* TrashTwitter – das bisschen JavaScript, das es braucht.
+   Alles Wesentliche funktioniert auch ohne JS; das hier macht es angenehmer. */
+(function () {
+  "use strict";
+
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const body = document.body;
+  const root = () => body.dataset.root || "";
+
+  function csrf() {
+    try { return JSON.parse(body.getAttribute("hx-headers") || "{}")["X-CSRF-Token"] || ""; }
+    catch (e) { return ""; }
+  }
+
+  // --- Toasts --------------------------------------------------------------
+  function toast(message, kind = "ok") {
+    const box = $("#toasts");
+    if (!box || !message) return;
+    const el = document.createElement("div");
+    el.className = "toast " + (kind === "error" ? "error" : "");
+    el.textContent = message;
+    box.appendChild(el);
+    autoclose(el);
+  }
+  function autoclose(el) {
+    setTimeout(() => {
+      el.classList.add("leaving");
+      setTimeout(() => el.remove(), 320);
+    }, 2600);
+  }
+  // Toast aus dem Server-Header HX-Trigger: {"toast": {"message": "...", "kind": "ok"}}
+  body.addEventListener("toast", (ev) => toast(ev.detail.message, ev.detail.kind));
+
+  // --- Dialoge / Sheets ----------------------------------------------------
+  function openDialog(id) {
+    const dlg = document.getElementById(id);
+    if (!dlg || dlg.open) return;
+    $$("details.menu[open]").forEach((d) => d.removeAttribute("open"));
+    dlg.showModal();
+    const input = $("[data-url-input]", dlg);
+    if (input) setTimeout(() => input.focus(), 60);
+  }
+  document.addEventListener("click", (ev) => {
+    const opener = ev.target.closest("[data-open]");
+    if (opener) { ev.preventDefault(); openDialog(opener.dataset.open); return; }
+    const closer = ev.target.closest("[data-close]");
+    if (closer) { closer.closest("dialog")?.close(); return; }
+    // Klick auf den abgedunkelten Hintergrund schliesst das Sheet
+    if (ev.target.tagName === "DIALOG") ev.target.close();
+    // Offene Menues schliessen, wenn daneben geklickt wird
+    $$("details.menu[open]").forEach((d) => { if (!d.contains(ev.target)) d.removeAttribute("open"); });
+  });
+
+  // --- Einfuegen aus der Zwischenablage (nur in sicherem Kontext moeglich) --
+  if (window.isSecureContext && navigator.clipboard && navigator.clipboard.readText) {
+    $$("[data-paste]").forEach((btn) => { btn.hidden = false; });
+  }
+  document.addEventListener("click", async (ev) => {
+    const btn = ev.target.closest("[data-paste]");
+    if (!btn) return;
+    try {
+      const text = (await navigator.clipboard.readText()).trim();
+      const input = $("[data-url-input]", btn.closest("form"));
+      if (input && text) {
+        input.value = text;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.focus();
+      }
+    } catch (e) { toast("Kein Zugriff auf die Zwischenablage – bitte selbst einfügen.", "error"); }
+  });
+  // Eingefuegte Links von Leerzeichen und "Schau mal: " befreien
+  document.addEventListener("paste", (ev) => {
+    const input = ev.target.closest && ev.target.closest("[data-url-input]");
+    if (!input) return;
+    const text = (ev.clipboardData || window.clipboardData).getData("text");
+    const m = text && text.match(/https?:\/\/\S+/);
+    if (m) { ev.preventDefault(); input.value = m[0]; input.dispatchEvent(new Event("input", { bubbles: true })); }
+  });
+
+  // --- Kopieren --------------------------------------------------------------
+  async function copyText(text, btn) {
+    try { await navigator.clipboard.writeText(text); }
+    catch (e) {
+      // Rueckfall fuer http:// im LAN (dort gibt es die Clipboard-API nicht)
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove();
+    }
+    toast("Kopiert");
+    if (btn) { btn.classList.add("just"); setTimeout(() => btn.classList.remove("just"), 500); }
+  }
+  document.addEventListener("click", (ev) => {
+    const a = ev.target.closest("[data-copy]");
+    if (a) {
+      ev.preventDefault();
+      const el = $(a.dataset.copy);
+      if (el) copyText("value" in el ? el.value : el.textContent, a);
+      return;
+    }
+    const b = ev.target.closest("[data-copy-text]");
+    if (b) { ev.preventDefault(); copyText(b.dataset.copyText, b); }
+  });
+
+  // --- Screenshot teilen (iOS/Android: als Bild ins Teilen-Menue) ----------------
+  document.addEventListener("click", async (ev) => {
+    const btn = ev.target.closest("[data-share-image]");
+    if (!btn) return;
+    ev.preventDefault();
+    try {
+      const blob = await (await fetch(btn.dataset.shareImage, { credentials: "same-origin" })).blob();
+      const file = new File([blob], btn.dataset.shareName || "beleg.jpg", { type: blob.type || "image/jpeg" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Beleg", text: btn.dataset.shareUrl || "" });
+        return;
+      }
+      if (navigator.share) { await navigator.share({ url: btn.dataset.shareUrl }); return; }
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    } catch (e) {
+      if (e && e.name !== "AbortError") toast("Teilen hat nicht geklappt.", "error");
+    }
+  });
+
+  // --- Lightbox fuer Screenshots ------------------------------------------------
+  document.addEventListener("click", (ev) => {
+    const img = ev.target.closest("[data-lightbox]");
+    if (img) {
+      const box = document.createElement("div");
+      box.className = "lightbox";
+      box.innerHTML = '<img alt="">';
+      box.firstChild.src = img.src;
+      box.addEventListener("click", () => box.remove());
+      document.body.appendChild(box);
+      return;
+    }
+  });
+
+  // --- Bearbeiten-Umschalter (Text, Notiz) ----------------------------------------
+  function setEdit(key, on) {
+    const view = $(`[data-edit-view="${key}"]`);
+    const form = $(`[data-edit-form="${key}"]`);
+    if (!view || !form) return;
+    view.hidden = on; form.hidden = !on;
+    if (on) { const f = $("textarea, input:not([type=hidden])", form); if (f) { f.focus(); f.setSelectionRange?.(f.value.length, f.value.length); } }
+  }
+  document.addEventListener("click", (ev) => {
+    const e = ev.target.closest("[data-edit]");
+    if (e) { setEdit(e.dataset.edit, true); return; }
+    const c = ev.target.closest("[data-edit-cancel]");
+    if (c) setEdit(c.dataset.editCancel, false);
+  });
+
+  // --- Filter-Bereich auf/zu ---------------------------------------------------------
+  document.addEventListener("click", (ev) => {
+    const t = ev.target.closest("[data-toggle]");
+    if (!t) return;
+    const panel = document.getElementById(t.dataset.toggle);
+    if (!panel) return;
+    panel.hidden = !panel.hidden;
+    t.setAttribute("aria-expanded", String(!panel.hidden));
+  });
+
+  // --- Tag-Vorschlaege -----------------------------------------------------------------
+  document.addEventListener("click", (ev) => {
+    const tagBtn = ev.target.closest("[data-tag]");
+    if (!tagBtn) return;
+    const box = tagBtn.closest(".tag-input");
+    const input = box && $("[data-tag-input]", box);
+    if (!input) return;
+    const parts = input.value.split(",");
+    parts[parts.length - 1] = " " + tagBtn.dataset.tag;
+    input.value = parts.map((p) => p.trim()).filter(Boolean).join(", ") + ", ";
+    input.focus();
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    tagBtn.parentElement.innerHTML = "";
+  });
+
+  // --- Bestaetigung vor dem Absenden: <form data-confirm="..."> ------------------------
+  document.addEventListener("submit", (ev) => {
+    const form = ev.target.closest("form[data-confirm]");
+    if (form && !window.confirm(form.dataset.confirm)) ev.preventDefault();
+  }, true);
+
+  // --- Einstellungen sofort sichtbar machen (Design, Akzent, Dichte, Bewegung) ---------
+  document.addEventListener("change", (ev) => {
+    const input = ev.target.closest("[data-live]");
+    if (input && input.checked) document.documentElement.dataset[input.dataset.live] = input.value;
+  });
+
+  // --- Suchgenerator: Felder je Plattform ein-/ausblenden -------------------------------
+  function applyPlatform(platform) {
+    $$("#gen-form [data-platforms], .gen-bottom [data-platforms]").forEach((el) => {
+      // Werte bleiben im DOM erhalten - nur sichtbar/unsichtbar.
+      el.hidden = !el.dataset.platforms.trim().split(/\s+/).includes(platform);
+    });
+  }
+  document.addEventListener("change", (ev) => {
+    if (!ev.target.matches("[data-platform-switch]")) return;
+    applyPlatform(ev.target.value);
+    const url = new URL(window.location.href);
+    url.searchParams.set("platform", ev.target.value);
+    url.searchParams.delete("preset");
+    url.searchParams.delete("saved");
+    history.replaceState(null, "", url);
+  });
+
+  // --- Listen-Auswahl (Fenster) ---------------------------------------------------------
+  // Suchen = filtern; gibt es den Namen noch nicht, erscheint "als neue Liste anlegen".
+  document.addEventListener("input", (ev) => {
+    const input = ev.target.closest("[data-list-filter]");
+    if (!input) return;
+    const box = input.closest("[data-list-picker]");
+    const q = input.value.trim().toLowerCase();
+    let exact = false;
+    $$("[data-list-title]", box).forEach((li) => {
+      const t = li.dataset.listTitle;
+      li.hidden = q !== "" && !t.includes(q);
+      if (t === q) exact = true;
+    });
+    const create = $("[data-list-new]", box);
+    create.hidden = q === "" || exact;
+    $("[data-list-new-label]", box).textContent = input.value.trim();
+    $("[data-list-new-title]", box).value = input.value.trim();
+  });
+  document.addEventListener("keydown", (ev) => {
+    const input = ev.target.closest && ev.target.closest("[data-list-filter]");
+    if (!input || ev.key !== "Enter") return;
+    ev.preventDefault();
+    const box = input.closest("[data-list-picker]");
+    const visible = $$("[data-list-title]", box).filter((li) => !li.hidden);
+    const create = $("[data-list-new]", box);
+    if (!create.hidden) $("button", create).click();
+    else if (visible.length === 1) $("button", visible[0]).click();
+  });
+  // Mehrfachauswahl: Liste antippen = alle markierten Aussagen dort ablegen
+  document.addEventListener("click", (ev) => {
+    const pick = ev.target.closest("[data-bulk-target], [data-bulk-new-list]");
+    if (!pick) return;
+    ev.preventDefault();
+    const form = bulkBar();
+    if (!form) return;
+    $("[data-bulk-list-id]", form).value = pick.dataset.bulkTarget || "0";
+    $("[data-bulk-new-name]", form).value = pick.dataset.bulkTarget ? "" : $("[data-list-new-title]", pick.closest("[data-list-picker]")).value;
+    pick.closest("dialog")?.close();
+    form.requestSubmit();
+  });
+
+  // --- Tastenkuerzel -----------------------------------------------------------------------
+  let lastKey = "", lastKeyAt = 0;
+  document.addEventListener("keydown", (ev) => {
+    if (body.dataset.shortcuts !== "on" || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    const t = ev.target;
+    if (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+    if ($("dialog[open]")) return;
+    const k = ev.key;
+    const now = Date.now();
+    const combo = now - lastKeyAt < 800 ? lastKey + k : k;
+    lastKey = k; lastKeyAt = now;
+
+    if (k === "n") { ev.preventDefault(); openDialog("add-dialog"); }
+    else if (k === "/") {
+      ev.preventDefault();
+      const s = $("[data-search]");
+      if (s) s.focus(); else window.location.href = root() + "/";
+    }
+    else if (k === "?") { openDialog("keys-dialog"); }
+    else if (combo === "ga") { window.location.href = root() + "/"; }
+    else if (k === "ArrowLeft" || k === "ArrowRight") {
+      const a = $(`[data-nav="${k === "ArrowLeft" ? "newer" : "older"}"][href]`);
+      if (a) window.location.href = a.href;
+    }
+  });
+
+  // --- Profilbild: Vorschau sofort nach der Auswahl ------------------------------------------
+  document.addEventListener("change", (ev) => {
+    const input = ev.target.closest("[data-avatar-input]");
+    if (!input || !input.files || !input.files[0]) return;
+    const box = $("[data-avatar-preview]", input.closest("form"));
+    if (!box) return;
+    const img = document.createElement("img");
+    img.className = "avatar avatar-img";
+    img.style.setProperty("--s", "88px");
+    img.alt = "";
+    img.src = URL.createObjectURL(input.files[0]);
+    box.replaceChildren(img);
+  });
+
+  // --- Mehrfachauswahl im Archiv ----------------------------------------------------------------
+  // Die Auswahl lebt in einem Set, damit sie Filterwechsel und "Mehr laden" (htmx) uebersteht.
+  const selected = new Set();
+  const bulkBar = () => $("[data-bulk-bar]");
+  const selecting = () => body.classList.contains("selecting");
+
+  function syncSelection(scope = document) {
+    $$("[data-select-toggle]").forEach((b) => b.setAttribute("aria-pressed", String(selecting())));
+    $$("[data-select-item]", scope).forEach((cb) => {
+      cb.checked = selected.has(cb.value);
+      cb.closest("[data-post]")?.classList.toggle("is-selected", cb.checked);
+    });
+    const bar = bulkBar();
+    if (!bar) return;
+    $("[data-select-count]", bar).textContent = selected.size;
+    $("[data-bulk-submit]", bar).disabled = selected.size === 0;
+    // Die Formular-Felder "ids" kommen aus den Karten (form="bulk-form"). Nicht mehr sichtbare
+    // Auswahl (nach Filterwechsel) geht als versteckte Felder mit.
+    $$("input[data-hidden-id]", bar).forEach((i) => i.remove());
+    const visible = new Set($$("[data-select-item]").map((cb) => cb.value));
+    selected.forEach((id) => {
+      if (visible.has(id)) return;
+      const h = document.createElement("input");
+      h.type = "hidden"; h.name = "ids"; h.value = id; h.dataset.hiddenId = "1";
+      bar.appendChild(h);
+    });
+  }
+
+  function setSelecting(on) {
+    body.classList.toggle("selecting", on);
+    const bar = bulkBar();
+    if (bar) bar.hidden = !on;
+    $$("[data-select-toggle]").forEach((b) => b.setAttribute("aria-pressed", String(on)));
+    if (!on) selected.clear();
+    syncSelection();
+  }
+
+  document.addEventListener("click", (ev) => {
+    if (ev.target.closest("[data-select-toggle]")) { setSelecting(!selecting()); return; }
+    if (ev.target.closest("[data-select-cancel]")) { setSelecting(false); return; }
+    if (ev.target.closest("[data-select-all]")) {
+      $$("[data-select-item]").forEach((cb) => selected.add(cb.value));
+      syncSelection();
+      return;
+    }
+    if (!selecting()) return;
+    // Im Auswahlmodus: Tipp auf die Karte waehlt aus, statt sie zu oeffnen.
+    const card = ev.target.closest("[data-post]");
+    if (!card || ev.target.closest(".select-box")) return;
+    ev.preventDefault();
+    const cb = $("[data-select-item]", card);
+    if (!cb) return;
+    selected.has(cb.value) ? selected.delete(cb.value) : selected.add(cb.value);
+    syncSelection();
+  }, true);
+
+  document.addEventListener("change", (ev) => {
+    const cb = ev.target.closest("[data-select-item]");
+    if (cb) { cb.checked ? selected.add(cb.value) : selected.delete(cb.value); syncSelection(); return; }
+  });
+  document.addEventListener("submit", (ev) => {
+    const form = ev.target.closest("[data-bulk-bar]");
+    // Nach dem Ablegen zurueck auf genau diese Archivansicht (inkl. Filter)
+    if (form) $("[data-bulk-back]", form).value = location.pathname.replace(root(), "") + location.search;
+  });
+  document.addEventListener("htmx:afterSwap", (ev) => { if (selecting()) syncSelection(ev.target); });
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && selecting() && !$("dialog[open]")) setSelecting(false); });
+
+  // --- Hinzufuegen: Reiter "Link" / "Screenshot" ------------------------------------------------
+  function showAddTab(root, mode) {
+    $$("[data-add-tab]", root).forEach((t) => t.toggleAttribute("aria-current", t.dataset.addTab === mode));
+    $$("[data-add-panel]", root).forEach((p) => { p.hidden = p.dataset.addPanel !== mode; });
+  }
+  document.addEventListener("click", (ev) => {
+    const tab = ev.target.closest("[data-add-tab]");
+    if (!tab) return;
+    ev.preventDefault();
+    showAddTab(tab.closest("[data-add-tabs]"), tab.dataset.addTab);
+  });
+
+  // --- Screenshot-Upload: Auswahl, Ziehen & Ablegen, Einfuegen (Cmd/Strg+V) -----------------------
+  function setFiles(zone, files) {
+    const input = $("[data-drop-input]", zone);
+    const max = parseInt(zone.dataset.dropMax || "10", 10);
+    const images = Array.from(files).filter((f) => f.type.startsWith("image/")).slice(0, max);
+    if (!images.length) return;
+    const dt = new DataTransfer();
+    // Bereits gewaehlte Bilder behalten, neue anhaengen (z. B. mehrere Screenshots nacheinander einfuegen)
+    Array.from(input.files || []).forEach((f) => dt.items.add(f));
+    images.forEach((f) => { if (dt.items.length < max) dt.items.add(f); });
+    input.files = dt.files;
+    renderPreviews(zone);
+  }
+  function renderPreviews(zone) {
+    const box = $("[data-drop-previews]", zone);
+    const input = $("[data-drop-input]", zone);
+    box.replaceChildren();
+    Array.from(input.files || []).forEach((f, i) => {
+      const fig = document.createElement("span");
+      fig.className = "drop-thumb";
+      const img = document.createElement("img");
+      img.alt = "";
+      img.src = URL.createObjectURL(f);
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.textContent = "×"; btn.dataset.dropRemove = String(i);
+      btn.setAttribute("aria-label", `Bild ${i + 1} entfernen`);
+      fig.append(img, btn);
+      box.appendChild(fig);
+    });
+    zone.classList.toggle("has-files", (input.files || []).length > 0);
+  }
+  document.addEventListener("change", (ev) => {
+    const input = ev.target.closest("[data-drop-input]");
+    if (input) renderPreviews(input.closest("[data-dropzone]"));
+  });
+  document.addEventListener("click", (ev) => {
+    const rm = ev.target.closest("[data-drop-remove]");
+    if (!rm) return;
+    ev.preventDefault();
+    const zone = rm.closest("[data-dropzone]");
+    const input = $("[data-drop-input]", zone);
+    const dt = new DataTransfer();
+    Array.from(input.files).forEach((f, i) => { if (String(i) !== rm.dataset.dropRemove) dt.items.add(f); });
+    input.files = dt.files;
+    renderPreviews(zone);
+  });
+  ["dragenter", "dragover"].forEach((t) => document.addEventListener(t, (ev) => {
+    const zone = ev.target.closest && ev.target.closest("[data-dropzone]");
+    if (zone) { ev.preventDefault(); zone.classList.add("dragging"); }
+  }));
+  ["dragleave", "drop"].forEach((t) => document.addEventListener(t, (ev) => {
+    const zone = ev.target.closest && ev.target.closest("[data-dropzone]");
+    if (!zone) return;
+    zone.classList.remove("dragging");
+    if (t === "drop") { ev.preventDefault(); setFiles(zone, ev.dataTransfer.files); }
+  }));
+  // Bild aus der Zwischenablage: landet in der sichtbaren Ablage-Flaeche. Ist im Hinzufuegen-Sheet
+  // gerade der Link-Reiter offen, wird automatisch auf "Screenshot" umgeschaltet.
+  document.addEventListener("paste", (ev) => {
+    const files = Array.from(ev.clipboardData?.files || []).filter((f) => f.type.startsWith("image/"));
+    if (!files.length) return;
+    if (ev.target.closest && ev.target.closest("textarea, input:not([type=file])") && !$("dialog[open]")) return;
+    let scope = $("dialog[open]");
+    // Kein Sheet offen und keine sichtbare Ablage auf der Seite -> Hinzufuegen-Sheet oeffnen
+    const visible = $$("[data-dropzone]").find((z) => z.offsetParent !== null && !z.closest("dialog"));
+    // Auf der Galerie-Seite landen eingefuegte Bilder in der Galerie, sonst im Hinzufuegen-Sheet.
+    const target = document.getElementById("gallery-upload") ? "gallery-upload" : "add-dialog";
+    if (!scope && !visible && document.getElementById(target)) {
+      openDialog(target);
+      scope = $("#" + target);
+    }
+    scope = scope || document;
+    const tabs = $("[data-add-tabs]", scope);
+    if (tabs) showAddTab(tabs, "upload");
+    const zone = (scope === document && visible) || $$("[data-dropzone]", scope).find((z) => !z.closest("[hidden]")) || $("[data-dropzone]", scope);
+    if (!zone) return;
+    ev.preventDefault();
+    zone.closest("details")?.setAttribute("open", "");
+    setFiles(zone, files);
+    toast(files.length === 1 ? "Bild eingefügt" : `${files.length} Bilder eingefügt`);
+  });
+
+  // --- Galerie: Vollbild mit Blaettern, Wischen, Tastatur ---------------------------------
+  const lb = () => document.getElementById("lightbox");
+  let lbIndex = -1;
+  const galItems = () => $$("[data-gal-item]");
+  function lbShow(i) {
+    const items = galItems();
+    if (!items.length || !lb()) return;
+    lbIndex = (i + items.length) % items.length;
+    const a = items[lbIndex], box = lb();
+    const img = $("[data-lb-img]", box);
+    img.classList.remove("is-loaded");
+    img.onload = () => img.classList.add("is-loaded");
+    img.style.setProperty("--c", a.style.getPropertyValue("--c"));
+    img.src = a.dataset.full;
+    img.alt = a.dataset.title || "";
+    $("[data-lb-count]", box).textContent = `${lbIndex + 1} / ${items.length}`;
+    $("[data-lb-download]", box).href = a.dataset.full + "?download=1";
+    $("[data-lb-title]", box).textContent = a.dataset.title || "Ohne Titel";
+    $("[data-lb-title]", box).classList.toggle("is-empty", !a.dataset.title);
+    $("[data-lb-note]", box).textContent = a.dataset.note || "";
+    $("[data-lb-meta]", box).textContent = a.dataset.meta || "";
+    const cats = $("[data-lb-cats]", box);
+    cats.replaceChildren();
+    const names = (a.dataset.cats || "").split("|").filter(Boolean), tones = (a.dataset.tones || "").split("|");
+    names.forEach((n, k) => {
+      const c = document.createElement("span");
+      c.className = "lb-cat";
+      c.innerHTML = `<i class="dot tone-${tones[k] || 0}"></i>`;
+      c.append(n);
+      cats.appendChild(c);
+    });
+    const edit = $("[data-lb-edit]", box);
+    edit.setAttribute("hx-get", a.dataset.edit + "?back=" + encodeURIComponent(location.pathname.replace(root(), "") + location.search));
+    if (window.htmx) window.htmx.process(edit);
+    // Nachbarn vorladen - Blaettern fuehlt sich sofort an
+    [1, -1].forEach((d) => { const n = items[(lbIndex + d + items.length) % items.length]; if (n) new Image().src = n.dataset.full; });
+    if (!box.open) box.showModal();
+  }
+  document.addEventListener("click", (ev) => {
+    const item = ev.target.closest("[data-gal-item]");
+    if (item) { ev.preventDefault(); lbShow(galItems().indexOf(item)); return; }
+    const box = lb();
+    if (!box || !box.open) return;
+    if (ev.target.closest("[data-lb-next]")) lbShow(lbIndex + 1);
+    else if (ev.target.closest("[data-lb-prev]")) lbShow(lbIndex - 1);
+    else if (ev.target.closest("[data-lb-close]")) box.close();
+    else if (ev.target.closest("[data-lb-info]")) {
+      const on = box.classList.toggle("show-info");
+      $("[data-lb-info]", box).setAttribute("aria-pressed", String(on));
+    } else if (ev.target === box || ev.target.closest("[data-lb-stage]") && ev.target.tagName !== "IMG") box.close();
+  });
+  document.addEventListener("keydown", (ev) => {
+    const box = lb();
+    if (!box || !box.open || $("dialog.sheet[open]")) return;
+    if (ev.key === "ArrowRight") { ev.preventDefault(); lbShow(lbIndex + 1); }
+    else if (ev.key === "ArrowLeft") { ev.preventDefault(); lbShow(lbIndex - 1); }
+    else if (ev.key === "i") { $("[data-lb-info]", box).click(); }
+  });
+  let touchX = null, touchY = null;
+  document.addEventListener("touchstart", (ev) => {
+    if (!ev.target.closest || !ev.target.closest("[data-lb-stage]")) return;
+    touchX = ev.touches[0].clientX; touchY = ev.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener("touchend", (ev) => {
+    if (touchX === null) return;
+    const dx = ev.changedTouches[0].clientX - touchX, dy = ev.changedTouches[0].clientY - touchY;
+    touchX = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) lbShow(lbIndex + (dx < 0 ? 1 : -1));
+    else if (dy > 90 && Math.abs(dy) > Math.abs(dx)) lb()?.close();  // nach unten wischen = schliessen
+  }, { passive: true });
+
+  // --- Start ---------------------------------------------------------------------------------
+  function init(scope) {
+    $$("[data-autoclose]", scope).forEach(autoclose);
+    const form = $("#gen-form");
+    if (scope === document && form && form.dataset.focus) {
+      const field = $(`[name="${form.dataset.focus}"]`, form);
+      if (field) field.focus();
+    }
+  }
+  document.addEventListener("DOMContentLoaded", () => init(document));
+})();

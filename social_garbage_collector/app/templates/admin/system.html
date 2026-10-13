@@ -1,0 +1,78 @@
+{% extends "settings/base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}System & Sicherung{% endblock %}
+{% block settings %}
+<h1>System &amp; Sicherung</h1>
+<p class="sub">Was der Screenshot-Roboter tut, wie voll die Platte ist und wo die Sicherungen liegen.</p>
+
+<h2>Screenshot-Warteschlange</h2>
+<div class="setting-group">
+  <div class="setting-block stat-grid">
+    <div class="stat"><div class="v">{{ by_status.get('done', 0) }}</div><div class="l">fertig</div></div>
+    <div class="stat"><div class="v">{{ by_status.get('pending', 0) + by_status.get('running', 0) }}</div><div class="l">wartend / läuft</div></div>
+    <div class="stat"><div class="v" style="color:var(--danger)">{{ by_status.get('error', 0) }}</div><div class="l">mit Fehler</div></div>
+    <div class="stat"><div class="v">{{ 'an' if worker_on else 'aus' }}</div><div class="l">Roboter{% if worker_on %} · {{ queue_size }} in der Schlange{% endif %}</div></div>
+  </div>
+  {% if failed %}
+  <div class="setting-row stacked">
+    <div class="text"><div class="label">Zuletzt fehlgeschlagen</div></div>
+    <ul class="small" style="margin:0;padding-left:18px">
+      {% for p in failed %}<li><a href="{{ url('/posts/' ~ p.id) }}">@{{ p.author_handle or p.post_id }}</a> <span class="faint">– {{ p.status_message|truncate(90) }}</span></li>{% endfor %}
+    </ul>
+    <form method="post" action="{{ url('/admin/system/retry-failed') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn sm" type="submit">{{ icon('refresh', 15) }} Alle erneut versuchen</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="setting-group" style="margin-top:14px">
+  <div class="setting-row">
+    <div class="text"><div class="label">Alle Screenshots neu aufnehmen</div>
+      <div class="help">Erstellt alle Beleg-Screenshots neu – z. B. nach dem Wechsel auf dunkle Screenshots. Von Hand korrigierte Texte bleiben erhalten. Dauert je Aussage 5–25 Sekunden.</div></div>
+    <form method="post" action="{{ url('/admin/system/recapture-all') }}" data-confirm="Alle Screenshots neu aufnehmen? Das kann eine Weile dauern.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn-soft sm" type="submit">{{ icon('refresh', 15) }} Neu aufnehmen</button>
+    </form>
+  </div>
+</div>
+
+<h2>Speicher</h2>
+<div class="setting-group">
+  <div class="setting-block stat-grid">
+    <div class="stat"><div class="v">{{ (db_bytes / 1048576)|round(1) }} MB</div><div class="l">Datenbank</div></div>
+    <div class="stat"><div class="v">{{ (shots_bytes / 1048576)|round(1) }} MB</div><div class="l">{{ shots_count }} Screenshots</div></div>
+    <div class="stat"><div class="v">{{ (disk.free / 1073741824)|round(1) }} GB</div><div class="l">frei auf /share</div></div>
+  </div>
+</div>
+
+<h2>Sicherungen</h2>
+<div class="setting-group">
+  <div class="setting-row">
+    <div class="text"><div class="label">Jetzt sichern</div>
+      <div class="help">Sichert die Datenbank WAL-sicher nach <code>backups/</code>. Screenshots sichert das HA-Backup („Share“).</div></div>
+    <form method="post" action="{{ url('/admin/system/backup') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="btn-soft sm" type="submit">Sicherung erstellen</button>
+    </form>
+  </div>
+  {% for b in backups[:10] %}
+  <div class="setting-row">
+    <div class="text"><div class="label mono small">{{ b.name }}</div>
+      <div class="help">{{ (b.stat().st_size / 1048576)|round(2) }} MB</div></div>
+    <a class="btn-ghost sm" href="{{ url('/admin/backups/' ~ b.name) }}">{{ icon('download', 15) }} Laden</a>
+  </div>
+  {% else %}
+  <div class="setting-row"><div class="help">Noch keine Sicherung vorhanden.</div></div>
+  {% endfor %}
+</div>
+
+<h2>Add-on-Optionen</h2>
+<div class="setting-group">
+  {% for label, value in options %}
+  <div class="setting-row"><div class="text"><div class="label">{{ label }}</div></div><div class="muted small">{{ value }}</div></div>
+  {% endfor %}
+  <div class="setting-row"><div class="help">Ändern in Home Assistant → Einstellungen → Add-ons → {{ APP_NAME }} → Konfiguration.</div></div>
+</div>
+{% endblock %}

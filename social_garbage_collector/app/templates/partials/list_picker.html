@@ -1,0 +1,39 @@
+{# Listen-Auswahl im Fenster. mode "post": antippen = Aussage hinein/heraus (sofort gespeichert).
+   mode "bulk": antippen = alle markierten Aussagen dort ablegen. #}
+{% from "partials/icons.html" import icon %}
+<div class="sheet-inner list-picker" id="list-picker" data-list-picker>
+  <div class="sheet-head">
+    <h2 id="list-title">{{ 'Listen' if mode == 'post' else 'In Liste ablegen' }}</h2>
+    <button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close') }}</button>
+  </div>
+  <p class="muted small" style="margin:0">{% if mode == 'post' %}Antippen legt die Aussage in die Liste oder nimmt sie heraus.{% else %}Liste antippen – alle markierten Aussagen landen dort.{% endif %}</p>
+  <div class="search-input">
+    {{ icon('search') }}
+    <input type="search" placeholder="Liste suchen oder neue anlegen" aria-label="Liste suchen oder neu anlegen"
+           data-list-filter autocomplete="off" {% if not rows %}autofocus{% endif %}>
+  </div>
+  {% if mode == 'post' %}
+  <form data-list-new hidden hx-post="{{ url('/lists/picker/new') }}" hx-target="#list-picker" hx-swap="outerHTML">
+    <input type="hidden" name="post" value="{{ picker_post.id }}">
+    <input type="hidden" name="title" value="" data-list-new-title>
+    <button class="list-row is-new" type="submit">
+      <span class="list-check">{{ icon('plus', 16) }}</span><span class="list-name">„<span data-list-new-label></span>“ als neue Liste anlegen</span>
+    </button>
+  </form>
+  {% else %}
+  <input type="hidden" value="" data-list-new-title>
+  <div data-list-new hidden>
+    <button class="list-row is-new" type="button" data-bulk-new-list>
+      <span class="list-check">{{ icon('plus', 16) }}</span><span class="list-name">„<span data-list-new-label></span>“ als neue Liste anlegen</span>
+    </button>
+  </div>
+  {% endif %}
+  <ul class="list-pick">
+    {% for pl, count in rows %}
+      {% with member=pl.id in member %}{% include "partials/list_picker_row.html" %}{% endwith %}
+    {% else %}
+      <li class="list-pick-empty muted small">Noch keine Listen – oben einen Namen eingeben.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% if oob_chips %}{% include "partials/post_lists.html" %}{% endif %}

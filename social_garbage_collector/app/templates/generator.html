@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon, platform_icon %}
+{% set nav = 'generator' %}
+{% block title %}Suchgenerator{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Suchgenerator</h1>
+    <p class="sub">Kriterien eintragen – der fertige Suchbefehl erscheint sofort im Kasten „Suchbefehl“. Gemeinsame Felder bleiben beim Umschalten erhalten.</p>
+  </div>
+</div>
+
+{% set groups = [] %}
+{% for f in fields %}{% if f.group not in groups %}{% set _ = groups.append(f.group) %}{% endif %}{% endfor %}
+
+<form id="gen-form" class="gen-layout" method="post" action="{{ url('/generator/save') }}"
+      hx-get="{{ url('/generator/preview') }}" hx-target="#preview" hx-swap="innerHTML"
+      hx-trigger="input changed delay:150ms, change" hx-params="not csrf_token,search_name" data-focus="{{ focus }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+  <div class="gen-fields">
+    <div class="seg full platform-switch" role="radiogroup" aria-label="Plattform">
+      {% for key, pmod in platforms.items() %}
+      <label><input type="radio" name="platform" value="{{ key }}" {% if key == platform %}checked{% endif %} data-platform-switch>
+        <span>{{ pmod.LABEL }}</span></label>
+      {% endfor %}
+    </div>
+
+    {% for group in groups %}
+    {% set gfields = fields|selectattr('group', 'equalto', group)|list %}
+    {% set gplatforms = [] %}
+    {% for f in gfields %}{% for p in field_platforms[f.key] %}{% if p not in gplatforms %}{% set _ = gplatforms.append(p) %}{% endif %}{% endfor %}{% endfor %}
+    <fieldset class="card gen-group" data-platforms="{{ gplatforms|join(' ') }}" {% if platform not in gplatforms %}hidden{% endif %}>
+      <legend>{{ group }}</legend>
+      <div class="gen-grid">
+      {% for f in gfields %}
+        {% set fp = field_platforms[f.key] %}
+        <div class="gen-field" data-platforms="{{ fp|join(' ') }}" {% if platform not in fp %}hidden{% endif %}>
+          <label for="f-{{ f.key }}">{{ f.label }}
+            <span class="tip" tabindex="0" role="note" aria-label="{{ f.help }}" data-tip="{{ f.help }}">?</span>
+          </label>
+          {% if f.kind == 'lang' %}
+            <select id="f-{{ f.key }}" name="{{ f.key }}">
+              <option value="">egal</option>
+              {% for code, label, _s in languages %}<option value="{{ code }}" {% if values[f.key] == code %}selected{% endif %}>{{ label }} ({{ code }})</option>{% endfor %}
+            </select>
+          {% elif f.kind == 'select' %}
+            <select id="f-{{ f.key }}" name="{{ f.key }}">
+              {% for o in f.options %}<option value="{{ o.value }}" {% if values[f.key] == o.value %}selected{% endif %}>{{ o.label }}</option>{% endfor %}
+            </select>
+          {% elif f.kind == 'date' %}
+            <input id="f-{{ f.key }}" type="date" name="{{ f.key }}" value="{{ values[f.key] }}">
+          {% elif f.kind == 'min' %}
+            <input id="f-{{ f.key }}" type="number" min="0" step="1" inputmode="numeric" name="{{ f.key }}" value="{{ values[f.key] }}" placeholder="0">
+          {% else %}
+            <input id="f-{{ f.key }}" name="{{ f.key }}" value="{{ values[f.key] }}" placeholder="{{ f.placeholder }}" autocomplete="off" autocapitalize="off" maxlength="500">
+          {% endif %}
+        </div>
+      {% endfor %}
+      </div>
+    </fieldset>
+    {% endfor %}
+  </div>
+
+  <aside class="gen-side">
+    <div class="card" aria-live="polite">
+      <div class="card-head"><h2>Suchbefehl</h2></div>
+      <div class="seg sort-switch" data-platforms="{% for k, m in platforms.items() if m.SORT_IN_URL %}{{ k }} {% endfor %}" {% if not mod.SORT_IN_URL %}hidden{% endif %} role="radiogroup" aria-label="Sortierung">
+        <label><input type="radio" name="sort" value="latest" {% if sort != 'top' %}checked{% endif %}><span>Neueste</span></label>
+        <label><input type="radio" name="sort" value="top" {% if sort == 'top' %}checked{% endif %}><span>Top</span></label>
+      </div>
+      <div id="preview">{% include "partials/generator_preview.html" %}</div>
+
+      <div class="save-box">
+        <h3>Suche speichern</h3>
+        {% if save_error %}<div class="flash flash-error" role="alert">{{ save_error }}</div>{% endif %}
+        <div class="row">
+          <input name="search_name" placeholder="Name, z. B. Katzen-Content" maxlength="120" aria-label="Name der Suche" class="grow">
+          <button class="btn-soft" type="submit">Speichern</button>
+        </div>
+        <p class="faint xs" style="margin:8px 0 0">Gespeicherte Suchen sehen alle.</p>
+      </div>
+    </div>
+  </aside>
+</form>
+
+<div class="gen-bottom">
+  <section class="card">
+    <div class="card-head"><h2>Vorlagen</h2></div>
+    {% for key, plist in presets.items() %}
+    <div class="chips" data-platforms="{{ key }}" {% if key != platform %}hidden{% endif %}>
+      {% for p in plist %}<a class="chip" href="{{ url('/generator') }}?platform={{ key }}&preset={{ p.key }}">{{ icon('sparkles', 14) }} {{ p.name }}</a>{% endfor %}
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Gespeicherte Suchen</h2></div>
+    {% if saved %}
+    <ul class="saved-list">
+      {% for s in saved %}
+      <li>
+        <span class="platform platform-{{ s.platform }}">{{ platform_icon(s.platform) }}</span>
+        <a href="{{ url('/generator') }}?saved={{ s.id }}"><strong>{{ s.name }}</strong></a>
+        <span class="faint xs">{% if s.created_by %}{{ s.created_by.name }} · {% endif %}{{ s.created_at|ago }}</span>
+        <form method="post" action="{{ url('/generator/saved/' ~ s.id ~ '/delete') }}" class="inline" style="margin-left:auto"
+              data-confirm="Gespeicherte Suche „{{ s.name }}“ löschen?">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="icon-btn" type="submit" aria-label="Löschen" title="Löschen">{{ icon('trash', 16) }}</button>
+        </form>
+        <code class="mono xs">{{ s.query }}</code>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="muted small">Noch nichts gespeichert.</p>{% endif %}
+  </section>
+
+  <section class="card wide">
+    <div class="card-head"><h2>Gut zu wissen</h2></div>
+    <p class="muted small">Nicht jeder Operator funktioniert dauerhaft oder für alle Konten. X ändert seine Suche ohne Ankündigung,
+      und beide Plattformen verlangen fürs Suchen inzwischen meist einen Login.</p>
+    {% for key, pmod in platforms.items() %}
+    <details data-platforms="{{ key }}" {% if key != platform %}hidden{% endif %} class="small muted">
+      <summary style="cursor:pointer">Bewusst nicht angeboten bei {{ pmod.LABEL }}</summary>
+      <ul>{% for t in pmod.TODO %}<li>{{ t }}</li>{% endfor %}</ul>
+    </details>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% from "partials/icons.html" import icon %}
+{# Status des Hintergrund-Tasks. Solange er laeuft, fragt htmx alle 3 s nach. #}
+<div class="status-box" id="status"
+     {% if post.status in ('pending', 'running') %}
+     hx-get="{{ url('/posts/' ~ post.id ~ '/status') }}?poll=1" hx-trigger="every 3s" hx-swap="outerHTML"
+     {% endif %}>
+  <span class="badge status-{{ post.status }}">
+    {% if post.status == 'running' %}<span class="spinner" aria-hidden="true"></span>{% endif %}
+    {{ STATUS_LABELS[post.status] }}
+  </span>
+  {% if post.status == 'pending' %}<span class="muted small">wartet auf die Verarbeitung …</span>{% endif %}
+  {% if post.status == 'running' %}<span class="muted small">Wortlaut, Verfasser und Beleg werden geholt (Versuch {{ post.attempts }}) …</span>{% endif %}
+  {% if post.status in ('error', 'done') %}
+  <form method="post" action="{{ url('/posts/' ~ post.id ~ '/retry') }}" class="inline" style="margin-left:auto">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button class="{{ 'btn sm' if post.status == 'error' else 'btn-ghost sm' }}" type="submit">
+      {{ icon('refresh', 15) }} {% if post.status == 'error' %}Erneut versuchen{% else %}Neu erfassen{% endif %}
+    </button>
+  </form>
+  {% endif %}
+  {% if post.status_message %}<p class="status-msg {% if post.status == 'error' %}error{% endif %}">{{ post.status_message }}</p>{% endif %}
+</div>

@@ -1,0 +1,36 @@
+{% extends "settings/base.html" %}
+{% block title %}Über {{ APP_NAME }}{% endblock %}
+{% block settings %}
+<div class="setting-group">
+  <div class="setting-block about-hero">
+    <img src="{{ static('brand/apple-touch-icon.png') }}" alt="">
+    <div>
+      <h1 style="font-size:1.4rem">{{ APP_NAME }}</h1>
+      <p class="muted" style="margin:4px 0 0">Version {{ VERSION }}</p>
+      <p class="faint small" style="margin:4px 0 0">Quellenarchiv für öffentliche Aussagen. Dokumentiert, was gesagt wurde – im Wortlaut, mit Quelle und Beleg.</p>
+    </div>
+  </div>
+</div>
+
+<h2>Was ist neu</h2>
+<div class="setting-group">
+  <div class="setting-block">
+    <ul class="changelog">
+      {% for c in CHANGES %}
+      <li>
+        <strong>{{ c.version }} – {{ c.title }}</strong> <span class="faint xs">{{ c.date }}</span>
+        <ul>{% for item in c['items'] %}<li>{{ item }}</li>{% endfor %}</ul>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+<h2>Gut zu wissen</h2>
+<div class="setting-group">
+  <div class="setting-row"><div class="text"><div class="label">Tastenkürzel</div><div class="help">Schneller durchs Archiv.</div></div>
+    <button class="btn-soft sm" type="button" data-open="keys-dialog">Anzeigen</button></div>
+  <div class="setting-row"><div class="text"><div class="label">Aufs iPhone holen</div>
+    <div class="help">In Safari: Teilen → „Zum Home-Bildschirm“. Dann öffnet {{ APP_NAME }} wie eine App, ohne Browserleiste.</div></div></div>
+</div>
+{% endblock %}

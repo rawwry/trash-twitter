@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Ersteinrichtung{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <section class="auth-card">
+    <img class="logo" src="{{ static('brand/logo-192.png') }}" alt="">
+    <h1>Ersteinrichtung</h1>
+    <p class="muted">Noch gibt es keinen Benutzer. Leg jetzt das Admin-Konto an.</p>
+    <p class="faint small">Den <strong>Einrichtungscode</strong> findest du im Protokoll des Add-ons
+      (Home Assistant → Einstellungen → Add-ons → {{ APP_NAME }} → Protokoll).</p>
+    {% if error %}<div class="flash flash-error" role="alert" style="text-align:left">{{ error }}</div>{% endif %}
+    <form method="post" action="{{ url('/setup') }}" class="stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label>Einrichtungscode<input name="code" required autocomplete="off" autocapitalize="characters" maxlength="16" class="mono"></label>
+      <label>Benutzername<input name="username" value="{{ username or '' }}" required maxlength="64" autocomplete="username" autocapitalize="off"></label>
+      <label>Passwort <span class="hint">mindestens 5 Zeichen</span><input name="password" type="password" required minlength="5" autocomplete="new-password"></label>
+      <label>Passwort wiederholen<input name="password2" type="password" required minlength="5" autocomplete="new-password"></label>
+      <button class="btn lg" type="submit">Admin anlegen</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

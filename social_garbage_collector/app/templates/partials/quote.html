@@ -1,0 +1,40 @@
+{# Zitatkarte: jede Aussage gleich gewichtet, egal von welcher Plattform.
+   Profilbild und Name auf dem Stand der Archivierung; die Person dahinter ist verlinkt. #}
+{% set av = post_avatar(post) %}
+{% set person = post.account.person if post.account else None %}
+<article class="quote {{ 'quote-full' if full }}" data-post="{{ post.id }}">
+  {% if not plist %}<label class="select-box" aria-label="Auswählen"><input type="checkbox" name="ids" value="{{ post.id }}" form="bulk-form" data-select-item><span></span></label>{% endif %}
+  <header class="q-head">
+    {% if av %}<img class="q-avatar" src="{{ file_url(av) }}" alt="" width="40" height="40" loading="lazy" decoding="async">
+    {% else %}<span class="q-avatar q-avatar-empty" aria-hidden="true">{{ (post.author_display_name or post.author_handle or '?').lstrip('@')[:1] }}</span>{% endif %}
+    <div class="q-who">
+      {% if person %}<a class="q-name" href="{{ url('/personen/' ~ person.id) }}">{{ post.author_name }}</a>
+      {% else %}<span class="q-name">{{ post.author_name }}</span>{% endif %}
+      <span class="q-handle">{% if post.author_handle and post.author_display_name %}@{{ post.author_handle }} · {% endif %}{{ PLATFORM_LABELS[post.platform] }}</span>
+    </div>
+  </header>
+  <a class="q-body" href="{{ url('/posts/' ~ post.id) }}" aria-label="Aussage Nr. {{ archive_no(post) }} öffnen">
+    {% if post.text %}<blockquote class="q-text">{{ post.text }}</blockquote>
+    {% elif post.screenshot_path %}<img class="q-shot" src="{{ shot(post) }}" alt="Beleg-Screenshot (kein Text erfasst)" loading="lazy" decoding="async">
+    {% elif post.status in ('pending', 'running') %}<p class="q-text q-missing">Wortlaut wird abgerufen …</p>
+    {% else %}<p class="q-text q-missing">Kein Wortlaut erfasst.</p>{% endif %}
+  </a>
+  {% if post.thread_count or post.status != 'done' %}
+  <div class="q-flags">
+    {% if post.thread_count %}<span class="q-flag">Thread, {{ post.thread_count }} Teile</span>{% endif %}
+    {% if post.status == 'error' %}<span class="q-flag is-error">Fehler</span>
+    {% elif post.status != 'done' %}<span class="q-flag">{{ STATUS_LABELS[post.status] }}</span>{% endif %}
+  </div>
+  {% endif %}
+  {# Fusszeile immer einzeilig: links Datum + Nummer (kuerzt notfalls), rechts die Quelle #}
+  <footer class="q-foot">
+    <span class="q-meta">
+      <time datetime="{{ post.said_at.isoformat() }}Z" title="{{ said(post) if post.posted_at else 'Datum unbekannt – archiviert am ' ~ (post.created_at|localtime('%d.%m.%Y')) }}">{{ post.posted_at|localtime('%d.%m.%Y') if post.posted_at else 'Datum unbekannt' }}</time>
+      <span class="q-no" title="Archiv-Nummer">Nr.&nbsp;{{ archive_no(post) }}</span>
+    </span>
+    {% if post.url %}<a class="q-src" href="{{ post.url }}" target="_blank" rel="noopener noreferrer">Original&nbsp;↗</a>
+    {% else %}<span class="q-src is-missing" title="Archiviert aus einem eigenen Screenshot">ohne Link</span>{% endif %}
+  </footer>
+  {% if post.tags %}<div class="q-tags">{% for t in post.tags[:6] %}<a href="{{ url('/') }}?tags={{ t.name|urlencode }}">#{{ t.name }}</a>{% endfor %}{% if post.tags|length > 6 %}<span>+{{ post.tags|length - 6 }}</span>{% endif %}</div>{% endif %}
+  {% if plist %}{% include "partials/remove_from_list.html" %}{% endif %}
+</article>

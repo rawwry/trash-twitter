@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Anmelden{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <section class="auth-card">
+    <img class="logo" src="{{ static('brand/logo-192.png') }}" alt="">
+    <h1>Willkommen zurück</h1>
+    <p class="muted">Bitte anmelden.</p>
+    {% if error %}<div class="flash flash-error" role="alert" style="text-align:left">{{ error }}</div>{% endif %}
+    <form method="post" action="{{ url('/login') }}" class="stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+      <label>Benutzername
+        <input name="username" value="{{ username or '' }}" autocomplete="username" autocapitalize="off" required autofocus maxlength="64">
+      </label>
+      <label>Passwort
+        <input name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <button class="btn lg" type="submit">Anmelden</button>
+    </form>
+    <p class="faint xs" style="margin-top:18px">Konten vergibt der Admin – selbst registrieren geht nicht.</p>
+  </section>
+</div>
+{% endblock %}

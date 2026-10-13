@@ -1,0 +1,20 @@
+{% from "partials/icons.html" import icon, platform_icon %}
+{# Live-Pruefung beim Einfuegen: Plattform, Verfasser, Duplikat #}
+{% if check.state == 'ok' %}
+<div class="link-check ok" aria-live="polite">
+  {{ icon('check', 16) }}
+  <span class="platform platform-{{ check.platform }}">{{ platform_icon(check.platform) }} {{ PLATFORM_LABELS[check.platform] }}</span>
+  {% if check.handle %}<span>von <strong>@{{ check.handle }}</strong></span>{% endif %}
+  <span class="faint">· bereit</span>
+</div>
+{% elif check.state == 'duplicate' %}
+<div class="link-check duplicate" aria-live="polite">
+  Schon im Archiv (Nr. {{ archive_no(check.existing) }}
+  {%- if check.existing.added_by %}, archiviert von {{ check.existing.added_by.name }} {{ check.existing.created_at|ago }}{% endif %}).
+  <a href="{{ url('/posts/' ~ check.existing.id) }}">Ansehen →</a>
+</div>
+{% elif check.state == 'invalid' %}
+<div class="link-check invalid" aria-live="polite">{{ check.message }}</div>
+{% else %}
+<div class="link-check" aria-live="polite"></div>
+{% endif %}

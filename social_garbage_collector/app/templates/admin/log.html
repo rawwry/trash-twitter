@@ -1,0 +1,26 @@
+{% extends "settings/base.html" %}
+{% block title %}Protokoll{% endblock %}
+{% block settings %}
+<h1>Protokoll</h1>
+<p class="sub">Die letzten 500 Admin-Aktionen. Nur für Admins sichtbar.</p>
+<div class="setting-group">
+  {% if entries %}
+  <div class="table-wrap">
+  <table class="table table-cards">
+    <thead><tr><th>Zeitpunkt</th><th>Wer</th><th>Aktion</th><th>Betrifft</th><th>Details</th></tr></thead>
+    <tbody>
+    {% for e in entries %}
+      <tr>
+        <td class="cell-head faint small">{{ e.created_at|localtime('%d.%m.%Y %H:%M:%S') }}</td>
+        <td data-label="Wer">{{ e.actor_name }}</td>
+        <td data-label="Aktion">{{ labels.get(e.action, e.action) }}</td>
+        <td data-label="Betrifft">{{ e.target or '–' }}</td>
+        <td class="faint cell-wrap" data-label="Details">{{ e.details }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}<div class="setting-block muted">Noch keine Einträge.</div>{% endif %}
+</div>
+{% endblock %}
