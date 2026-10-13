@@ -11,11 +11,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import Settings, UnsafePathError, safe_path
-from ..models import STATUS_DONE, STATUS_ERROR, TEXT_MANUAL, ListPost, Person, Post, PostList, User
+from ..models import STATUS_DONE, STATUS_ERROR, TEXT_MANUAL, ListPost, Person, Post, PostList, PostRevision, User
 from ..prefs import get_prefs, update_prefs
 from ..security import get_db, get_settings, require_user
 from ..services import posts as post_service
-from ..services import shots
+from ..services import shots, uploads, revisions
 from ..services.capture import reset_for_retry
 from ..templating import redirect, render
 
@@ -159,16 +159,6 @@ async def add_post(request: Request, url: str = Form(""), note: str = Form(""), 
     return redirect(request, target, toast="Archiviert. Text, Verfasser und Beleg werden geholt …")
 
 
-async def _read_files(files: list[UploadFile]) -> list[bytes]:
-    from ..services.uploads import MAX_BYTES, MAX_FILES
-
-    blobs = []
-    for f in files[: MAX_FILES + 1]:
-        if f and f.filename:
-            blobs.append(await f.read(MAX_BYTES + 1))
-    return blobs
-
-
 @router.post("/posts/upload")
 async def add_upload(request: Request, files: list[UploadFile] = File(default=[]), link: str = Form(""),
                      platform: str = Form(""), handle: str = Form(""), posted: str = Form(""),
@@ -176,16 +166,20 @@ async def add_upload(request: Request, files: list[UploadFile] = File(default=[]
                      user: User = Depends(require_user), db: Session = Depends(get_db),
                      settings: Settings = Depends(get_settings)):
     """Beitrag aus eigenem Screenshot (z. B. geloeschte oder geschuetzte Tweets)."""
-    blobs = await _read_files(files)
+    prepared = None
     try:
-        post = await post_service.add_upload(db, user, settings, blobs, link=link[:500], platform=platform,
+        prepared = await uploads.prepare_files(files)
+        post = await post_service.add_upload(db, user, settings, prepared, link=link[:500], platform=platform,
                                              handle=handle[:100], posted=posted, text_=text, note=note,
                                              tags_raw=tags, network=settings.network_enabled)
-    except post_service.AddPostError as exc:
+    except (post_service.AddPostError, uploads.UploadError) as exc:
         db.rollback()
-        return render(request, "add.html", status_code=400, add_error=str(exc), existing=exc.existing,
+        return render(request, "add.html", status_code=400, add_error=str(exc), existing=getattr(exc, "existing", None),
                       mode="upload", form_link=link, form_platform=platform, form_handle=handle,
                       form_posted=posted, form_text=text, form_note=note, form_tags=tags, check=None)
+    finally:
+        if prepared:
+            prepared.close()
     _enqueue(request, post)
     target = "/" if get_prefs(user)["after_add"] == "archive" else f"/posts/{post.id}"
     return redirect(request, target, toast="Archiviert. Text wird aus dem Bild gelesen …")
@@ -193,13 +187,18 @@ async def add_upload(request: Request, files: list[UploadFile] = File(default=[]
 
 @router.post("/posts/{post_id}/screenshot")
 async def replace_shot(request: Request, post_id: int, files: list[UploadFile] = File(default=[]),
-                       db: Session = Depends(get_db), settings: Settings = Depends(get_settings)):
+                       db: Session = Depends(get_db), settings: Settings = Depends(get_settings),
+                       user: User = Depends(require_user)):
     post = _get_post(db, post_id)
-    blobs = await _read_files(files)
+    prepared = None
     try:
-        post_service.replace_screenshot(db, settings, post, blobs)
-    except post_service.AddPostError as exc:
+        prepared = await uploads.prepare_files(files)
+        await post_service.replace_screenshot(db, settings, post, prepared, user)
+    except (post_service.AddPostError, uploads.UploadError) as exc:
         return redirect(request, f"/posts/{post.id}#eigener-screenshot", toast=str(exc), kind="error")
+    finally:
+        if prepared:
+            prepared.close()
     _enqueue(request, post)
     return redirect(request, f"/posts/{post.id}", toast="Eigener Screenshot gespeichert")
 
@@ -210,11 +209,24 @@ async def replace_shot(request: Request, post_id: int, files: list[UploadFile] =
 
 @router.get("/posts/{post_id}")
 def post_detail(request: Request, post_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    if db.get(Post, post_id) is None and db.scalar(select(PostRevision.id).where(PostRevision.post_id == post_id)):
+        return post_history(request, post_id, db)
     post = _get_post(db, post_id)
     in_lists = {link.list_id for link in post.list_links}
     other_lists = [pl for pl in db.scalars(select(PostList).order_by(PostList.title)) if pl.id not in in_lists]
     newer, older = post_service.neighbors(db, post)
     return render(request, "post.html", post=post, other_lists=other_lists, newer=newer, older=older)
+
+
+@router.get("/posts/{post_id}/history")
+def post_history(request: Request, post_id: int, db: Session = Depends(get_db)):
+    deleted = db.get(Post, post_id) is None
+    entries = list(db.scalars(select(PostRevision).where(PostRevision.post_id == post_id)
+                             .order_by(PostRevision.id.desc()).limit(100)))
+    if deleted and not entries:
+        raise HTTPException(status_code=404)
+    return render(request, "post_history.html", post_id=post_id, entries=entries, deleted=deleted,
+                  status_code=410 if deleted else 200)
 
 
 @router.get("/posts/{post_id}/status")
@@ -236,11 +248,12 @@ def retry(request: Request, post_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/posts/{post_id}/auto")
-def back_to_auto(request: Request, post_id: int, db: Session = Depends(get_db)):
+def back_to_auto(request: Request, post_id: int, db: Session = Depends(get_db), user: User = Depends(require_user)):
     """Hochgeladenen Screenshot wieder durch eine automatische Aufnahme ersetzen lassen."""
     post = _get_post(db, post_id)
     if not post.url:
         raise HTTPException(status_code=404)
+    revisions.record(db, post, user, "auto")
     post.shot_source = "auto"
     reset_for_retry(db, post)
     _enqueue(request, post)
@@ -249,7 +262,7 @@ def back_to_auto(request: Request, post_id: int, db: Session = Depends(get_db)):
 
 @router.post("/posts/{post_id}/thread")
 def update_thread(request: Request, post_id: int, thread_extra: str = Form(""),
-                  db: Session = Depends(get_db)):
+                  db: Session = Depends(get_db), user: User = Depends(require_user)):
     """Thread-Einstellungen aendern und den Beitrag neu erfassen."""
     import json
 
@@ -258,6 +271,7 @@ def update_thread(request: Request, post_id: int, thread_extra: str = Form(""),
         extras = post_service.parse_thread_extra(thread_extra[:5000], post.platform)
     except post_service.AddPostError as exc:
         return redirect(request, f"/posts/{post.id}#thread", toast=str(exc), kind="error")
+    revisions.record(db, post, user, "thread")
     post.thread_mode = "off"  # automatische Erkennung seit 0.6.1 aus
     post.thread_extra = json.dumps(extras) if extras else ""
     reset_for_retry(db, post)
@@ -266,8 +280,10 @@ def update_thread(request: Request, post_id: int, thread_extra: str = Form(""),
 
 
 @router.post("/posts/{post_id}/text")
-def update_text(request: Request, post_id: int, text: str = Form(""), db: Session = Depends(get_db)):
+def update_text(request: Request, post_id: int, text: str = Form(""), db: Session = Depends(get_db),
+                user: User = Depends(require_user)):
     post = _get_post(db, post_id)
+    revisions.record(db, post, user, "text")
     post.text = text.strip()[:20000]
     post.text_source = TEXT_MANUAL
     db.commit()
@@ -276,7 +292,7 @@ def update_text(request: Request, post_id: int, text: str = Form(""), db: Sessio
 
 @router.post("/posts/{post_id}/date")
 def update_date(request: Request, post_id: int, day: str = Form(""), clock: str = Form(""),
-                db: Session = Depends(get_db)):
+                db: Session = Depends(get_db), user: User = Depends(require_user)):
     """Datum der Aussage von Hand setzen oder entfernen (leeres Feld)."""
     from ..services import dates
 
@@ -287,6 +303,7 @@ def update_date(request: Request, post_id: int, day: str = Form(""), clock: str 
         return redirect(request, f"/posts/{post.id}#datum", toast="Das Datum ist ungültig.", kind="error")
     if when is not None and dates._plausible(when) is None:
         return redirect(request, f"/posts/{post.id}#datum", toast="Das Datum liegt außerhalb des Möglichen.", kind="error")
+    revisions.record(db, post, user, "date")
     dates.set_date(post, when, dates.DATE_MANUAL, has_time)
     db.commit()
     return redirect(request, f"/posts/{post.id}", toast="Datum gespeichert" if when else "Datum entfernt")
@@ -294,8 +311,9 @@ def update_date(request: Request, post_id: int, day: str = Form(""), clock: str 
 
 @router.post("/posts/{post_id}/note")
 def update_note(request: Request, post_id: int, note: str = Form(""), tags: str = Form(""),
-                db: Session = Depends(get_db)):
+                db: Session = Depends(get_db), user: User = Depends(require_user)):
     post = _get_post(db, post_id)
+    revisions.record(db, post, user, "note")
     post.note = note.strip()[: post_service.MAX_NOTE]
     post_service.set_post_tags(db, post, tags)
     db.commit()
@@ -340,13 +358,9 @@ def delete_confirm(request: Request, post_id: int, db: Session = Depends(get_db)
 
 @router.post("/posts/{post_id}/delete")
 def delete_post(request: Request, post_id: int, db: Session = Depends(get_db),
-                settings: Settings = Depends(get_settings)):
+                settings: Settings = Depends(get_settings), user: User = Depends(require_user)):
     post = _get_post(db, post_id)
-    if post.screenshot_path:
-        try:
-            safe_path(settings.base_path, post.screenshot_path).unlink(missing_ok=True)
-        except (UnsafePathError, OSError):
-            pass
+    revisions.record(db, post, user, "delete")
     db.delete(post)
     db.flush()
     post_service.remove_orphan_tags(db)

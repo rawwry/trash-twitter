@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import os
 import secrets
 from pathlib import Path
 from urllib.parse import urlencode
@@ -16,7 +17,7 @@ from urllib.parse import urlencode
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from starlette.exceptions import HTTPException
 
 from . import APP_NAME, VERSION
@@ -28,6 +29,7 @@ from .routers import settings as settings_router
 from .security import (
     CSRF_COOKIE,
     LoginRequired,
+    LoginThrottle,
     PasswordChangeRequired,
     cookie_path,
     csrf_protect,
@@ -39,6 +41,50 @@ from .templating import redirect, render, root_path
 log = logging.getLogger("sgc")
 
 BACKUP_INTERVAL_S = 24 * 3600
+MAX_REQUEST_BYTES = 105 * 1024 * 1024
+
+
+class RequestSizeLimitMiddleware:
+    """Begrenzt auch Multipart/Chunked-Requests vor dem vollstaendigen Einlesen."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        headers = dict(scope.get("headers", []))
+        try:
+            too_large = int(headers.get(b"content-length", b"0")) > MAX_REQUEST_BYTES
+        except ValueError:
+            too_large = True
+        if too_large:
+            return await JSONResponse({"detail": "Upload zu groß (höchstens 100 MB plus Formulardaten)."},
+                                      status_code=413)(scope, receive, send)
+        size = 0
+        exceeded = rejected = False
+
+        async def limited_receive():
+            nonlocal size, exceeded
+            message = await receive()
+            size += len(message.get("body", b""))
+            if size > MAX_REQUEST_BYTES:
+                exceeded = True
+                raise HTTPException(status_code=413, detail="Upload zu groß.")
+            return message
+
+        async def limited_send(message):
+            nonlocal rejected
+            if exceeded:
+                if not rejected:
+                    await JSONResponse({"detail": "Upload zu groß."}, status_code=413)(scope, receive, send)
+                    rejected = True
+                return
+            await send(message)
+
+        # Multipart-Parser koennen einen Empfangsfehler als 400 behandeln.
+        # Die tatsaechliche Groessenueberschreitung bleibt nach aussen eine 413.
+        await self.app(scope, limited_receive, limited_send)
 
 
 class IngressMiddleware:
@@ -99,7 +145,7 @@ def _bootstrap_admin(app: FastAPI, settings: Settings) -> None:
             log.info("Admin '%s' aus der Add-on-Option angelegt. Passwort beim ersten Login aendern.", admin.username)
             app.state.setup_code = None
             return
-        code = secrets.token_hex(4).upper()
+        code = secrets.token_hex(16).upper()
         app.state.setup_code = code
         log.warning("=" * 64)
         log.warning("ERSTEINRICHTUNG: Noch kein Benutzer vorhanden.")
@@ -123,7 +169,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         prepare_storage(settings)
         engine = make_engine(settings.db_path)
-        init_db(engine)
+        init_db(engine, settings.backup_dir)
         app.state.engine = engine
         app.state.SessionLocal = make_sessionmaker(engine)
         with app.state.SessionLocal() as db:
@@ -162,6 +208,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.state.setup_code = None
+    app.state.setup_throttle = LoginThrottle()
 
     @app.middleware("http")
     async def csrf_cookie_and_setup(request: Request, call_next):
@@ -188,7 +235,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # HA-Ingress-Panel (iframe, gleicher Ursprung) nicht.
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Referrer-Policy", "same-origin")
-        response.headers.setdefault("Content-Security-Policy", "frame-ancestors 'self'")
+        response.headers.setdefault("Content-Security-Policy", "frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'")
         return response
 
     # --- Fehlerbehandlung ---------------------------------------------------
@@ -221,8 +268,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # --- Routen ---------------------------------------------------------------
     @app.get("/health", include_in_schema=False)
-    async def health() -> Response:
-        return JSONResponse({"status": "ok", "version": VERSION})
+    def health() -> Response:
+        try:
+            with app.state.engine.connect() as conn:
+                database = conn.execute(text("SELECT 1")).scalar() == 1
+        except Exception:
+            database = False
+        storage = settings.db_path.is_file() and all(path.is_dir() and os.access(path, os.R_OK | os.W_OK)
+                      for path in (settings.db_dir, settings.screenshot_dir, settings.gallery_dir))
+        worker = getattr(app.state, "worker", None)
+        worker_ok = not settings.worker_enabled or bool(worker and worker._task and not worker._task.done())
+        ok = database and storage and worker_ok
+        return JSONResponse({"status": "ok" if ok else "error", "version": VERSION,
+                             "checks": {"database": database, "storage": storage, "worker": worker_ok}},
+                            status_code=200 if ok else 503)
 
     @app.get("/manifest.webmanifest", include_in_schema=False)
     async def manifest(request: Request) -> Response:
@@ -257,6 +316,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                    imports.router, lists.router, gallery.router, generator.router, admin.router):
         app.include_router(router)
 
+    app.add_middleware(RequestSizeLimitMiddleware)
     # Ingress ganz aussen, damit root_path schon bei allem anderen gesetzt ist.
     app.add_middleware(IngressMiddleware)
     return app

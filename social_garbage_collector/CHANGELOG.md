@@ -1,6 +1,18 @@
 # Changelog
 
-## 0.9.0 – Galerie (14.10.2026)
+## 0.10.0 – Archivintegrität und Stabilität (13.10.2026)
+
+- Capture und Import: keine Netzwerk-/Browserarbeit in offenen Schreibtransaktionen; begrenzte parallele URL-Auflösung mit Gesamtzeitbudget.
+- Archiv-Snapshots bleiben bei erneuter Erfassung erhalten. Manuelle Texte, Daten (auch entfernte Daten) und zwischenzeitlich ersetzte Screenshots werden geschützt. Rohbilder bleiben bis nach OCR verfügbar.
+- Archivnummern werden dauerhaft reserviert. Änderungen an Text, Datum, Notiz/Tags, Thread und Beleg werden protokolliert. Entfernte Aussagen bleiben über ihren bisherigen Link als Löschvermerk mit Historie erreichbar (HTTP 410); frühere Belege bleiben erhalten.
+- Bilder werden einzeln verarbeitet: Screenshots zusammen maximal 50 MB, Galerie zusammen maximal 100 MB; 24 Megapixel je Eingabebild, 12 Megapixel je zusammengesetztem Beleg und 16.000 Pixel je Seite. Rechenintensive Bildarbeit läuft außerhalb des Event-Loops.
+- Galerie und Listen zeigen 60 Einträge je Seite; verbundene Daten werden gesammelt geladen. Importfortschritt zeigt alle maximal 500 neuen Aussagen.
+- Vor Schema-Upgrades entstehen separate Backups (drei behalten), anschließend Integritätsprüfung. `/health` prüft Datenbank, Speicherpfade und Worker.
+- Neue Passwörter: mindestens 12 Zeichen; bestehende Passwörter bleiben gültig. Setup-Code: 128 Bit und Versuchsbremse. Zusätzliche CSP-Regeln und sichere Bookmarklet-Kodierung.
+- Automatische Tests für Linux/Windows, manuell auslösbarer Container-Smoke-Test und read-only Medienprüfung (`python -m app.maintenance`).
+- Unbenutzte Dev-Abhängigkeit `cryptography` entfernt; Windows-Testumgebung um Zeitzonendaten ergänzt.
+
+## 0.9.0 – Galerie (13.10.2026)
 
 - **Galerie** (`/galerie`, Tab-Leiste): Bilder hochladen (auswählen, ziehen, ⌘V; bis 40 auf einmal, je 25 MB), frei anlegbare Kategorien. Raster im Blocksatz (alle Bilder einer Zeile gleich hoch, ohne Beschnitt-Lücken), Platzhalter in der Durchschnittsfarbe. Filter-Chips mit Anzahl, mehrere kombinierbar (= eine davon), „Ohne Kategorie“. Vollbild mit Blättern (← →, Wischen), Schließen per Esc oder Wischen nach unten, Infoleiste auf Knopf/Taste i. Bearbeiten (Titel, Notiz, Kategorien) für alle, Löschen nur für wer hochgeladen hat oder Admins. Kategorien umbenennen (gleicher Name = zusammenführen) und löschen (Bilder bleiben).
   - Speicherung: WebP, Ansicht ≤ 2400 px, Vorschau 720 px hoch, EXIF-Drehung angewendet, Metadaten (GPS) entfernt, Duplikate per SHA-256. Ordner `gallery/`, Tabellen `gallery_images`, `gallery_categories`.

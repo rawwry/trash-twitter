@@ -1,0 +1,41 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: social_garbage_collector/requirements-dev.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m pip install -r social_garbage_collector/requirements-dev.txt
+      - run: python -m pytest social_garbage_collector/tests -q
+      - run: node --check social_garbage_collector/app/static/app.js
+      - run: git diff --check
+
+  container-smoke:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t trashtwitter-smoke social_garbage_collector
+      - name: Chromium, OCR and database smoke test
+        run: docker run --rm -v "$PWD/social_garbage_collector/scripts:/checks:ro" trashtwitter-smoke python /checks/container_smoke.py

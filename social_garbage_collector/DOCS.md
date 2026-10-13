@@ -23,6 +23,16 @@ Bis 0.5 hieß das Add-on SocialGarbageCollector. Slug und Datenordner sind gleic
 
 Alles liegt unter `/share/SocialGarbageCollector` (`db/`, `screenshots/`, `authors/`, `avatars/`, `gallery/`, `backups/`). Beim HA-Backup **„Share“** mitsichern.
 
+Vor Datenbank-Upgrades wird zusätzlich ein `pre-upgrade`-Backup erstellt (drei bleiben erhalten, auch bei `backup_keep: 0`). Es enthält nur die Datenbank, keine Medien. Vor Wiederherstellung das Add-on stoppen und den aktuellen Datenordner separat sichern.
+
+## Archiv und Änderungen ab 0.10.0
+
+- Archivnummern bleiben dauerhaft reserviert. Neu erfassen schützt manuelle Korrekturen und den historischen Verfassernamen.
+- „Änderungsverlauf“ zeigt frühere Fassungen und Belege mit Zeitpunkt und Bearbeiter.
+- „Löschen“ entfernt eine Aussage aus Suche und Listen. **Text und Beleg bleiben im Verlauf erhalten**, erreichbar über den bisherigen Link. Das ist keine physische Datenlöschung.
+- Screenshot-Uploads: maximal 10 Dateien, je 15 MiB, zusammen 50 MiB. Galerie: maximal 40 Dateien, je 25 MiB, zusammen 100 MiB. Eingabebilder bis 24 Megapixel, zusammengesetzte Belege bis 12 Megapixel, jeweils höchstens 16.000 Pixel je Seite.
+- Neue Passwörter benötigen mindestens 12 Zeichen. Bestehende Anmeldungen bleiben gültig.
+
 ## Suchgenerator
 
 Nicht jeder Such-Operator funktioniert dauerhaft oder für alle Konten. Die Operatoren stehen zentral in `app/services/search/operators_x.py` und `operators_bluesky.py`.

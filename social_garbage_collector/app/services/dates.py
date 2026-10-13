@@ -165,12 +165,13 @@ def from_text(text: str) -> tuple[datetime, bool] | None:
 
 def set_date(post: Post, when: datetime | None, source: str | None, has_time: bool = True) -> None:
     post.posted_at = when
-    post.date_source = source if when else None
+    # Auch bewusst entfernte Daten bleiben eine manuelle Entscheidung.
+    post.date_source = source if when or source == DATE_MANUAL else None
     post.date_has_time = bool(has_time) if when else True
 
 
 def fill_from_id(post: Post) -> bool:
-    if post.posted_at is not None:
+    if post.posted_at is not None or post.date_source == DATE_MANUAL:
         return False
     when = from_id(post.platform, post.post_id)
     if when:

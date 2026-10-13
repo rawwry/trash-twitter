@@ -14,8 +14,8 @@
     </form>
   {% else %}
     <h1>Aussage Nr. {{ archive_no(post) }} löschen?</h1>
-    <p class="muted" style="margin-top:10px">Die Aussage von <strong>{{ post.author_name }}</strong> verschwindet samt Beleg-Screenshot,
-      Anmerkung und Listen-Zuordnungen – für alle. Die Archiv-Nummer wird nicht neu vergeben. Das lässt sich nicht rückgängig machen.</p>
+    <p class="muted" style="margin-top:10px">Die Aussage von <strong>{{ post.author_name }}</strong> wird aus Suche und Listen entfernt – für alle.
+      Die Archiv-Nummer bleibt reserviert. Text, Notiz und Beleg bleiben im Änderungsverlauf erhalten und sind über den bisherigen Link erreichbar.</p>
     <form method="post" action="{{ url('/posts/' ~ post.id ~ '/delete') }}" class="row wrap">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <button class="btn-danger" type="submit">Ja, löschen</button>

@@ -16,6 +16,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 from ..config import Settings, UnsafePathError, safe_path
 from ..models import User
+from .image_limits import validate_size
 
 log = logging.getLogger("sgc.avatars")
 
@@ -23,7 +24,6 @@ MAX_BYTES = 8 * 1024 * 1024
 SIZE = 256
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP", "GIF"}
 # Schutz vor "Dekompressionsbomben" (winzige Datei, riesiges Bild).
-Image.MAX_IMAGE_PIXELS = 40_000_000
 
 
 class AvatarError(ValueError):
@@ -37,6 +37,7 @@ def process(data: bytes) -> bytes:
         raise AvatarError("Das Bild ist zu groß (höchstens 8 MB).")
     try:
         with Image.open(io.BytesIO(data)) as img:
+            validate_size(img.width, img.height)
             if img.format not in ALLOWED_FORMATS:
                 raise AvatarError("Bitte ein JPG-, PNG-, WebP- oder GIF-Bild hochladen.")
             img.seek(0)
@@ -45,7 +46,7 @@ def process(data: bytes) -> bytes:
             out = io.BytesIO()
             img.save(out, "WEBP", quality=85, method=4)
             return out.getvalue()
-    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
+    except (ValueError, UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
         raise AvatarError("Das ist kein lesbares Bild.") from exc
 
 
@@ -64,12 +65,10 @@ def save(settings: Settings, user: User, data: bytes) -> None:
     # Zufallsteil im Namen = neue URL bei jedem Wechsel -> Browser-Cache passt immer.
     name = f"{user.id}-{secrets.token_hex(4)}.webp"
     (settings.avatar_dir / name).write_bytes(webp)
-    _remove_file(settings, user.avatar_path)
     user.avatar_path = f"avatars/{name}"
 
 
 def remove(settings: Settings, user: User) -> None:
-    _remove_file(settings, user.avatar_path)
     user.avatar_path = None
 
 
@@ -80,10 +79,20 @@ def save_person_photo(settings: Settings, person, data: bytes) -> None:
     settings.avatar_dir.mkdir(parents=True, exist_ok=True)
     name = f"p{person.id}-{secrets.token_hex(4)}.webp"
     (settings.avatar_dir / name).write_bytes(webp)
-    _remove_file(settings, person.photo_path)
     person.photo_path = f"avatars/{name}"
 
 
 def remove_person_photo(settings: Settings, person) -> None:
-    _remove_file(settings, person.photo_path)
     person.photo_path = None
+
+
+def commit_change(db, settings: Settings, old: str | None, new: str | None) -> None:
+    try:
+        db.commit()
+    except BaseException:
+        db.rollback()
+        if new != old:
+            _remove_file(settings, new)
+        raise
+    if old != new:
+        _remove_file(settings, old)

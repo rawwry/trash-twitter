@@ -91,10 +91,13 @@ def test_recapture_all_admin_only(user_client, admin_client, harness):
 
 # --- Passwortlaenge ----------------------------------------------------------------------
 
-def test_password_min_length_is_5(user_client, harness):
-    assert password_problem("1234") and not password_problem("12345")
+def test_password_min_length_is_12(user_client, harness):
+    assert password_problem("12345678901") and not password_problem("123456789012")
     r = user_client.post("/settings/konto/passwort", data={"current": USER_PW, "new": "kurz5", "new2": "kurz5",
                                                           "csrf_token": user_client.csrf})
+    assert r.status_code == 400
+    r = user_client.post("/settings/konto/passwort", data={"current": USER_PW, "new": "langes-passwort-12",
+                         "new2": "langes-passwort-12", "csrf_token": user_client.csrf})
     assert r.status_code == 200
 
 

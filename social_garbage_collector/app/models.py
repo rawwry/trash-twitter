@@ -18,6 +18,8 @@ from sqlalchemy import (
     Table,
     Text,
     UniqueConstraint,
+    event,
+    insert,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -119,6 +121,27 @@ post_tags = Table(
 )
 
 
+class ArchiveNumber(Base):
+    """Nummern bleiben auch nach dem Entfernen einer Aussage reserviert."""
+
+    __tablename__ = "archive_numbers"
+    __table_args__ = {"sqlite_autoincrement": True}
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+
+class PostRevision(Base):
+    """Unveraenderliche Momentaufnahme vor einer manuellen Aenderung."""
+
+    __tablename__ = "post_revisions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # Absichtlich kein FK auf posts: die Historie ueberlebt eine Loeschung.
+    post_id: Mapped[int] = mapped_column(Integer, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    actor_name: Mapped[str] = mapped_column(String(64))
+    action: Mapped[str] = mapped_column(String(32))
+    snapshot: Mapped[str] = mapped_column(Text)
+
+
 class Post(Base):
     __tablename__ = "posts"
 
@@ -170,6 +193,8 @@ class Post(Base):
     status: Mapped[str] = mapped_column(String(16), default=STATUS_PENDING, index=True)
     status_message: Mapped[str] = mapped_column(Text, default="")
     attempts: Mapped[int] = mapped_column(Integer, default=0)
+    capture_generation: Mapped[int] = mapped_column(Integer, default=0)
+    snapshot_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
     added_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -218,6 +243,12 @@ class Post(Base):
     def date_only(self) -> bool:
         """Datum ohne Uhrzeit (von Hand nur der Tag, oder im Screenshot stand keine)."""
         return not self.date_has_time
+
+
+@event.listens_for(Post, "before_insert")
+def _allocate_archive_number(_mapper, connection, post: Post) -> None:
+    if post.id is None:
+        post.id = connection.execute(insert(ArchiveNumber).values()).inserted_primary_key[0]
 
 
 class Tag(Base):

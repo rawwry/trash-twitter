@@ -9,6 +9,7 @@
 <div class="detail-toolbar">
   <a class="back-link" href="{{ url('/') }}" aria-label="Zurück zum Archiv">{{ icon('chev-left', 18) }}<span class="label-hide">Archiv</span></a>
   <span class="spacer"></span>
+  <a class="btn-ghost sm" href="{{ url('/posts/' ~ post.id ~ '/history') }}">Änderungsverlauf</a>
   <a class="icon-btn {{ 'is-disabled' if not newer }}" {% if newer %}href="{{ url('/posts/' ~ newer) }}"{% endif %} data-nav="newer" title="Neuere Aussage (←)" aria-label="Neuere Aussage">{{ icon('chev-up') }}</a>
   <a class="icon-btn {{ 'is-disabled' if not older }}" {% if older %}href="{{ url('/posts/' ~ older) }}"{% endif %} data-nav="older" title="Ältere Aussage (→)" aria-label="Ältere Aussage">{{ icon('chev-down') }}</a>
   {% if post.url %}

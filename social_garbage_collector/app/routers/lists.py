@@ -43,12 +43,20 @@ def _faces(db: Session, list_ids: list[int]) -> dict[int, list]:
     """Bis zu 5 Personen je Liste (fuer die Gesichter auf der Kachel)."""
     from ..models import Person
 
-    out: dict[int, list] = {}
-    for lid in list_ids:
-        out[lid] = list(db.scalars(
-            select(Person).join(Account, Account.person_id == Person.id).join(Post, Post.account_id == Account.id)
-            .join(ListPost, ListPost.post_id == Post.id).where(ListPost.list_id == lid)
-            .group_by(Person.id).order_by(func.count().desc()).limit(5)))
+    if not list_ids:
+        return {}
+    ranked = (select(ListPost.list_id.label("list_id"), Person.id.label("person_id"),
+                     func.row_number().over(partition_by=ListPost.list_id,
+                         order_by=(func.count().desc(), Person.id)).label("rank"))
+              .select_from(Person).join(Account, Account.person_id == Person.id)
+              .join(Post, Post.account_id == Account.id).join(ListPost, ListPost.post_id == Post.id)
+              .where(ListPost.list_id.in_(list_ids)).group_by(ListPost.list_id, Person.id).subquery())
+    out: dict[int, list] = {lid: [] for lid in list_ids}
+    rows = db.execute(select(ranked.c.list_id, Person).join(Person, Person.id == ranked.c.person_id)
+                      .where(ranked.c.rank <= 5).order_by(ranked.c.list_id, ranked.c.rank)
+                      .options(selectinload(Person.accounts)))
+    for lid, person in rows:
+        out[lid].append(person)
     return out
 
 
@@ -149,14 +157,20 @@ def describe(request: Request, list_id: int, description: str = Form(""), db: Se
 @router.get("/lists/{list_id}")
 def detail(request: Request, list_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
     pl = _get_list(db, list_id)
+    try:
+        page = max(1, min(100_000, int(request.query_params.get("page", "1"))))
+    except ValueError:
+        page = 1
+    total = db.scalar(select(func.count()).select_from(ListPost).where(ListPost.list_id == pl.id)) or 0
     posts = list(db.scalars(
         select(Post).join(ListPost, ListPost.post_id == Post.id)
         .where(ListPost.list_id == pl.id)
         .options(selectinload(Post.tags), selectinload(Post.added_by),
                  selectinload(Post.account).selectinload(Account.person))
         .order_by(func.coalesce(Post.posted_at, Post.created_at).asc(), Post.id.asc())
+        .offset((page - 1) * 60).limit(60)
     ))
-    return render(request, "list.html", plist=pl, posts=posts)
+    return render(request, "list.html", plist=pl, posts=posts, total=total, page=page, has_next=page * 60 < total)
 
 
 @router.post("/lists/{list_id}/rename")

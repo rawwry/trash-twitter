@@ -11,10 +11,10 @@
     {% if error %}<div class="flash flash-error" role="alert" style="text-align:left">{{ error }}</div>{% endif %}
     <form method="post" action="{{ url('/setup') }}" class="stack">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      <label>Einrichtungscode<input name="code" required autocomplete="off" autocapitalize="characters" maxlength="16" class="mono"></label>
+      <label>Einrichtungscode<input name="code" required autocomplete="off" autocapitalize="characters" maxlength="32" class="mono"></label>
       <label>Benutzername<input name="username" value="{{ username or '' }}" required maxlength="64" autocomplete="username" autocapitalize="off"></label>
-      <label>Passwort <span class="hint">mindestens 5 Zeichen</span><input name="password" type="password" required minlength="5" autocomplete="new-password"></label>
-      <label>Passwort wiederholen<input name="password2" type="password" required minlength="5" autocomplete="new-password"></label>
+      <label>Passwort <span class="hint">mindestens {{ min_password_length }} Zeichen</span><input name="password" type="password" required minlength="{{ min_password_length }}" autocomplete="new-password"></label>
+      <label>Passwort wiederholen<input name="password2" type="password" required minlength="{{ min_password_length }}" autocomplete="new-password"></label>
       <button class="btn lg" type="submit">Admin anlegen</button>
     </form>
   </section>

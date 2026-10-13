@@ -14,6 +14,7 @@ Jede Aussage gehoert zu einem Account, jeder Account zu einer Person.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import io
 import logging
@@ -21,10 +22,11 @@ import logging
 import httpx
 from PIL import Image, ImageOps, UnidentifiedImageError
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from ..config import Settings
 from ..models import PLATFORM_BLUESKY, Account, AccountChange, Person, Post, utcnow
+from .image_limits import validate_size
 
 log = logging.getLogger("sgc.accounts")
 
@@ -253,6 +255,7 @@ def _allowed_avatar_url(url: str) -> bool:
 def process_avatar(data: bytes) -> bytes:
     """Prueft das Bild und speichert es klein und quadratisch als WebP neu."""
     with Image.open(io.BytesIO(data)) as img:
+        validate_size(img.width, img.height)
         img.seek(0)
         img = ImageOps.exif_transpose(img).convert("RGB")
         img = ImageOps.fit(img, (AVATAR_SIZE, AVATAR_SIZE), Image.Resampling.LANCZOS)
@@ -267,15 +270,22 @@ async def download_avatar(client: httpx.AsyncClient, settings: Settings, url: st
     if not _allowed_avatar_url(url):
         return None
     try:
-        resp = await client.get(url, timeout=10)
+        async with client.stream("GET", url, timeout=10, follow_redirects=False) as resp:
+            if resp.status_code != 200:
+                return None
+            data = bytearray()
+            async for chunk in resp.aiter_bytes():
+                data.extend(chunk)
+                if len(data) > AVATAR_MAX_BYTES:
+                    return None
     except httpx.HTTPError as exc:
         log.info("Profilbild nicht ladbar: %s", exc)
         return None
-    if resp.status_code != 200 or not resp.content or len(resp.content) > AVATAR_MAX_BYTES:
+    if not data:
         return None
     try:
-        webp = process_avatar(resp.content)
-    except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+        webp = await asyncio.to_thread(process_avatar, bytes(data))
+    except (ValueError, UnidentifiedImageError, OSError, Image.DecompressionBombError):
         return None
     name = hashlib.sha256(webp).hexdigest()[:24] + ".webp"
     settings.author_dir.mkdir(parents=True, exist_ok=True)
@@ -295,14 +305,18 @@ async def apply_metadata(db: Session, settings: Settings, client: httpx.AsyncCli
     """Nach dem Abruf der Metadaten: Account bestimmen, Profilbild sichern,
     Aussage anhaengen. Das Profilbild der Aussage bleibt auf dem Stand der
     ersten Archivierung - spaetere Wechsel stehen nur im Account-Verlauf."""
+    rel = await download_avatar(client, settings, meta.avatar_url) if client is not None and meta.avatar_url else None
+    return apply_prepared_metadata(db, post, meta, rel)
+
+
+def apply_prepared_metadata(db: Session, post: Post, meta, avatar: str | None = None) -> Account | None:
+    """Nur Datenbankarbeit; Netzwerk/Bildaufbereitung sind bereits abgeschlossen."""
     stable = meta.author_id or (meta.did if post.platform == PLATFORM_BLUESKY else None)
     acc = resolve(db, post.platform, stable, meta.handle or post.author_handle,
                   meta.display_name or post.author_display_name, candidate=post.account)
     if acc is None:
         return None
-    if client is not None and meta.avatar_url:
-        rel = await download_avatar(client, settings, meta.avatar_url)
-        set_avatar(db, acc, rel)
+    set_avatar(db, acc, avatar)
     acc.checked_at = utcnow()
     attach(db, post, acc)
     if post.author_avatar_path is None and acc.avatar_path:
@@ -348,7 +362,7 @@ def person_stats(db: Session, person_ids: list[int]) -> dict[int, dict]:
 
 
 def list_persons(db: Session, q: str = "") -> list[Person]:
-    stmt = select(Person).order_by(func.lower(func.ltrim(Person.name, "@")))
+    stmt = select(Person).options(selectinload(Person.accounts)).order_by(func.lower(func.ltrim(Person.name, "@")))
     q = (q or "").strip().lstrip("@").lower()
     if q:
         like = f"%{q}%"

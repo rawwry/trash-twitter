@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Änderungsverlauf · {{ '%06d'|format(post_id) }}{% endblock %}
+{% block content %}
+<h1>Änderungsverlauf · Nr. {{ '%06d'|format(post_id) }}</h1>
+{% if deleted %}<p>Diese Aussage wurde aus dem aktiven Archiv entfernt. Ihre Nummer bleibt reserviert. Der letzte Stand und frühere Belege bleiben hier nachvollziehbar.</p>
+{% else %}<p><a href="{{ url('/posts/' ~ post_id) }}">Zur aktuellen Aussage</a></p>{% endif %}
+<p class="muted">Die neuesten 100 Änderungen. Jeder Eintrag zeigt den Stand unmittelbar vor der genannten Änderung.</p>
+{% for entry in entries %}
+{% set data = entry.snapshot|fromjson %}
+<details class="card">
+  <summary>{{ entry.created_at|localtime('%d.%m.%Y %H:%M') }} · {{ entry.actor_name }} · {{ {'text':'Textkorrektur','date':'Datumsänderung','note':'Notiz/Tags','screenshot':'Screenshot ersetzt','capture':'Neu erfasst','delete':'Gelöscht','thread':'Thread geändert','auto':'Automatische Aufnahme'}.get(entry.action, entry.action) }}</summary>
+  <p>{{ data.author_display_name or data.author_handle }}{% if data.posted_at %} · {{ data.posted_at }} UTC{% endif %}</p>
+  <p style="white-space:pre-wrap">{{ data.text }}</p>
+  {% if data.note %}<p style="white-space:pre-wrap">Notiz: {{ data.note }}</p>{% endif %}
+  {% if data.tags %}<p>Tags: {{ data.tags|join(', ') }}</p>{% endif %}
+  {% if data.screenshot_path %}<a href="{{ url('/media/' ~ data.screenshot_path) }}">Früheren Beleg ansehen</a>{% endif %}
+</details>
+{% else %}<p>Noch keine Änderungen protokolliert.</p>{% endfor %}
+{% endblock %}

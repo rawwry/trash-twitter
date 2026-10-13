@@ -24,7 +24,8 @@ from ..models import (
     post_tags,
     utcnow,
 )
-from . import accounts
+from . import accounts, revisions
+from .image_limits import run_image_job
 from .platforms import detect
 from .platforms.base import USER_AGENT
 
@@ -340,7 +341,7 @@ def archive_query(f: ArchiveFilter) -> Select:
     said = func.coalesce(Post.posted_at, Post.created_at)
     if f.date_from:
         conds.append(said >= datetime.combine(f.date_from, time.min))
-    if f.date_to:
+    if f.date_to and f.date_to < date.max:
         conds.append(said < datetime.combine(f.date_to + timedelta(days=1), time.min))
     if f.status:
         conds.append(Post.status == f.status)
@@ -467,7 +468,7 @@ def _posted_at(raw: str) -> datetime | None:
         raise AddPostError("Das Datum ist ungültig.") from None
 
 
-async def add_upload(db: Session, user: User, settings, blobs: list[bytes], link: str = "", platform: str = "",
+async def add_upload(db: Session, user: User, settings, prepared, link: str = "", platform: str = "",
                      handle: str = "", posted: str = "", text_: str = "", note: str = "", tags_raw: str = "",
                      network: bool = True) -> Post:
     """Beitrag aus eigenem Screenshot. Mit Link: Duplikat-Pruefung und Metadaten
@@ -476,10 +477,7 @@ async def add_upload(db: Session, user: User, settings, blobs: list[bytes], link
     from . import shots, uploads
     from .capture import CaptureWorker
 
-    try:
-        images = uploads.load_images(blobs)
-    except uploads.UploadError as exc:
-        raise AddPostError(str(exc)) from exc
+    images = prepared.images
     link = (link or "").strip()
     did = None
     if link:
@@ -500,7 +498,7 @@ async def add_upload(db: Session, user: User, settings, blobs: list[bytes], link
     else:
         if platform not in PLATFORMS:
             raise AddPostError("Bitte auswählen, ob der Screenshot von X oder Bluesky stammt.")
-        fp = uploads.fingerprint(blobs)
+        fp = prepared.digest
         key = f"upload:{fp}"
         dup = db.scalar(select(Post).where(Post.dedup_key == key))
         if dup:
@@ -517,43 +515,50 @@ async def add_upload(db: Session, user: User, settings, blobs: list[bytes], link
     text_ = (text_ or "").strip()[:20000]
     if text_:
         post.text, post.text_source = text_, "manual"
-    db.add(post)
-    db.flush()
-    set_post_tags(db, post, tags_raw)
-    accounts.ensure_for_post(db, post)
     rel = CaptureWorker._screenshot_rel(post)
     target = safe_path(settings.base_path, rel)
-    uploads.save(images, target)
-    post.screenshot_path = rel
-    shots.apply(post, target)
-    db.commit()
+    try:
+        await run_image_job(uploads.save, images, target)
+        post.screenshot_path = rel
+        post.shot_w, post.shot_h, post.shot_bg = await run_image_job(shots.measure, target)
+        db.add(post)
+        db.flush()
+        set_post_tags(db, post, tags_raw)
+        accounts.ensure_for_post(db, post)
+        db.commit()
+    except BaseException:
+        db.rollback()
+        target.unlink(missing_ok=True)
+        raise
     return post
 
 
-def replace_screenshot(db: Session, settings, post: Post, blobs: list[bytes]) -> None:
+async def replace_screenshot(db: Session, settings, post: Post, prepared, user: User | None = None) -> None:
     """Eigenen Screenshot fuer einen vorhandenen Beitrag hochladen (z. B. wenn das
     Original geloescht ist). Die App nimmt danach nie wieder selbst auf."""
     from ..config import safe_path
     from . import shots, uploads
     from .capture import CaptureWorker
 
-    try:
-        images = uploads.load_images(blobs)
-    except uploads.UploadError as exc:
-        raise AddPostError(str(exc)) from exc
     rel = CaptureWorker._screenshot_rel(post)
     target = safe_path(settings.base_path, rel)
-    uploads.save(images, target)
-    if post.screenshot_path and post.screenshot_path != rel:
-        try:
-            safe_path(settings.base_path, post.screenshot_path).unlink(missing_ok=True)
-        except Exception:
-            pass
-    post.screenshot_path = rel
-    post.shot_source = "upload"
-    post.shot_reconstructed = False
-    post.thread_count, post.thread_parts = 0, ""
-    shots.apply(post, target)
-    post.status, post.status_message = STATUS_PENDING, ""  # Worker liest den Text neu
-    post.updated_at = utcnow()
-    db.commit()
+    try:
+        await run_image_job(uploads.save, prepared.images, target)
+        measures = await run_image_job(shots.measure, target)
+        db.commit()  # bisher nur Lesezugriffe; jetzt kurzen Writer reservieren
+        db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+        db.refresh(post)
+        revisions.record(db, post, user, "screenshot")
+        post.screenshot_path = rel
+        post.shot_source = "upload"
+        post.shot_reconstructed = False
+        post.thread_count, post.thread_parts = 0, ""
+        post.shot_w, post.shot_h, post.shot_bg = measures
+        post.status, post.status_message = STATUS_PENDING, ""
+        post.capture_generation = (post.capture_generation or 0) + 1
+        post.updated_at = utcnow()
+        db.commit()
+    except BaseException:
+        db.rollback()
+        target.unlink(missing_ok=True)
+        raise

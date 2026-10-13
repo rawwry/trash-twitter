@@ -1,6 +1,7 @@
 """Galerie: Bilder hochladen, nach selbst angelegten Kategorien ordnen und filtern."""
 
 from __future__ import annotations
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
@@ -43,28 +44,40 @@ def gallery(request: Request, user: User = Depends(require_user), db: Session = 
     raw = request.query_params.getlist("k")
     uncategorized = "ohne" in raw
     selected = _ids(raw)
-    images = gallery_service.query_images(db, selected, uncategorized)
+    try:
+        page = max(1, min(100_000, int(request.query_params.get("page", "1"))))
+    except ValueError:
+        page = 1
+    images = gallery_service.query_images(db, selected, uncategorized, page)
+    has_next = len(images) > gallery_service.PAGE_SIZE
+    images = images[:gallery_service.PAGE_SIZE]
+    def page_url(n):
+        return "/galerie?" + urlencode([("k", k) for k in raw] + [("page", n)])
     counts = gallery_service.category_counts(db)
     total = db.scalar(select(func.count()).select_from(GalleryImage)) or 0
     without = db.scalar(select(func.count()).select_from(GalleryImage).where(~GalleryImage.categories.any())) or 0
     ctx = dict(images=images, counts=counts, selected=set(selected), uncategorized=uncategorized,
-               total=total, without=without, me=user)
+               total=total, without=without, me=user, page=page,
+               previous=page_url(page - 1) if page > 1 else None,
+               next_page=page_url(page + 1) if has_next else None)
     if request.headers.get("hx-request") and request.headers.get("hx-target") == "gallery-body":
         return render(request, "partials/gallery_body.html", **ctx)
     return render(request, "gallery.html", **ctx)
 
 
 @router.post("/galerie/hochladen")
-async def upload(request: Request, files: list[UploadFile] = File(default=[]), kategorien: list[str] = Form(default=[]),
+def upload(request: Request, files: list[UploadFile] = File(default=[]), kategorien: list[str] = Form(default=[]),
                  neue_kategorien: str = Form(""), user: User = Depends(require_user), db: Session = Depends(get_db),
                  settings: Settings = Depends(get_settings)):
-    blobs = []
-    for f in files[: gallery_service.MAX_FILES + 1]:
-        if f and f.filename:
-            blobs.append((f.filename, await f.read(gallery_service.MAX_BYTES + 1)))
     try:
-        cats = gallery_service.get_or_create_categories(db, user, _ids(kategorien), neue_kategorien)
-        result = gallery_service.add_images(db, settings, user, blobs, cats)
+        selected_files = [f for f in files if f and f.filename]
+        if len(selected_files) > gallery_service.MAX_FILES:
+            raise gallery_service.GalleryError(f"Höchstens {gallery_service.MAX_FILES} Bilder auf einmal.")
+        if sum(f.size or 0 for f in selected_files) > gallery_service.MAX_TOTAL_BYTES:
+            raise gallery_service.GalleryError("Zusammen höchstens 100 MB pro Upload.")
+        # Sync-Route: Lesen und Pillow laufen im Threadpool; nur eine Datei im RAM.
+        blobs = ((f.filename, f.file.read(gallery_service.MAX_BYTES + 1)) for f in selected_files)
+        result = gallery_service.add_images(db, settings, user, blobs, _ids(kategorien), neue_kategorien)
     except gallery_service.GalleryError as exc:
         db.rollback()
         return redirect(request, "/galerie", toast=str(exc), kind="error")

@@ -25,7 +25,7 @@
   <textarea name="description" rows="3" maxlength="2000" placeholder="Worum geht es in dieser Liste?">{{ plist.description }}</textarea>
   <div class="row"><button class="btn sm" type="submit">Speichern</button><button class="btn-ghost sm" type="button" data-edit-cancel="desc">Abbrechen</button></div>
 </form>
-<p class="muted small" style="margin-top:-8px">{{ posts|length }} {{ 'Aussage' if posts|length == 1 else 'Aussagen' }}, nach Datum geordnet
+<p class="muted small" style="margin-top:-8px">{{ total }} {{ 'Aussage' if total == 1 else 'Aussagen' }}, nach Datum geordnet
   {% if plist.created_by %}· angelegt von {{ plist.created_by.name }}{% endif %}
   · Aussagen legst du über „Listen wählen“ auf ihrer Detailseite oder per Mehrfachauswahl im Archiv ab.</p>
 
@@ -38,5 +38,12 @@
   <h2>Diese Liste ist leer</h2>
   <p>Öffne eine Aussage und lege sie unter „Listen“ hier ab.</p>
 </div>
+{% endif %}
+{% if page > 1 or has_next %}
+<nav class="row wrap" aria-label="Listenseiten">
+  {% if page > 1 %}<a class="btn-ghost" href="{{ url('/lists/' ~ plist.id) }}?page={{ page - 1 }}">Zurück</a>{% endif %}
+  <span>Seite {{ page }}</span>
+  {% if has_next %}<a class="btn-ghost" href="{{ url('/lists/' ~ plist.id) }}?page={{ page + 1 }}">Weiter</a>{% endif %}
+</nav>
 {% endif %}
 {% endblock %}

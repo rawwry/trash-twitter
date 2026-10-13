@@ -201,7 +201,8 @@ def system(request: Request, db: Session = Depends(get_db), settings: Settings =
     by_status = {status: n for status, n in db.execute(select(Post.status, func.count()).group_by(Post.status))}
     shots_bytes, shots_count = _dir_size(settings.screenshot_dir)
     db_bytes = sum(p.stat().st_size for p in settings.db_dir.glob("archiv.sqlite*") if p.is_file())
-    backups = sorted(settings.backup_dir.glob("archiv-*.sqlite"), reverse=True)
+    backups = sorted([*settings.backup_dir.glob("archiv-*.sqlite"),
+                      *settings.backup_dir.glob("pre-upgrade-*.sqlite")], key=lambda p: p.stat().st_mtime, reverse=True)
     disk = shutil.disk_usage(settings.base_path)
     worker = getattr(request.app.state, "worker", None)
     failed = list(db.scalars(select(Post).where(Post.status == STATUS_ERROR).order_by(Post.updated_at.desc()).limit(20)))
@@ -230,6 +231,7 @@ def retry_failed(request: Request, admin: User = Depends(require_admin), db: Ses
     for post in failed:
         post.status = STATUS_PENDING
         post.status_message = ""
+        post.capture_generation = (post.capture_generation or 0) + 1
     db.commit()
     if worker:
         for post in failed:
@@ -245,6 +247,7 @@ def recapture_all(request: Request, admin: User = Depends(require_admin), db: Se
     for post in posts:
         post.status = STATUS_PENDING
         post.status_message = ""
+        post.capture_generation = (post.capture_generation or 0) + 1
     db.commit()
     worker = getattr(request.app.state, "worker", None)
     if worker:
@@ -269,6 +272,6 @@ def download_backup(name: str, settings: Settings = Depends(get_settings)):
         path = safe_path(settings.backup_dir, name)
     except UnsafePathError:
         raise HTTPException(status_code=404)
-    if not path.is_file() or not path.name.startswith("archiv-") or path.suffix != ".sqlite":
+    if not path.is_file() or not path.name.startswith(("archiv-", "pre-upgrade-")) or path.suffix != ".sqlite":
         raise HTTPException(status_code=404)
     return FileResponse(path, media_type="application/vnd.sqlite3", filename=path.name)

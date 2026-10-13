@@ -231,6 +231,8 @@ SocialGarbageCollector/                 ← Projektordner = Add-on-Repository (N
 
 ## Entwicklung und Tests
 
+Die Änderungen für 0.10.0 und die durchgeführten Prüfungen sind in [OozeToRawwry.MD](OozeToRawwry.MD) beschrieben.
+
 ```bash
 cd social_garbage_collector
 python3 -m venv .venv && . .venv/bin/activate
@@ -245,6 +247,41 @@ Die Tests brauchen weder Netz noch Chromium noch Tesseract: Worker und DID-Looku
 - Passwörter liegen nur als argon2-Hash vor – niemand kann sie einsehen, auch kein Admin.
 - CSRF, Login-Sperre, Ablauf von Sitzungen, Schutz vor Pfad-Manipulation.
 - Generator für beide Plattformen: Sonderzeichen, leere Felder, OR, Ausschlüsse, Plattformwechsel.
+- Gleichzeitige Bearbeitung während Capture/Import, dauerhafte Archivnummern, Upload-Grenzen und Migration inklusive Wiederherstellung des Vorab-Backups.
+
+GitHub Actions führt die Tests unter Python 3.12 auf Linux und Windows aus. Der zusätzliche Container-Smoke-Test läuft bei manuellem Start des Workflows und prüft Chromium, Tesseract, App-Start und Health-Check ohne externe Plattformzugriffe.
+
+### Archivverhalten ab 0.10.0
+
+Die Verfasserdaten werden nach der ersten Erfassung als historischer Snapshot behandelt; aktuelle Account-Daten werden weiterhin separat aktualisiert. Manuelle Texte und Datumsangaben (auch ein bewusst entferntes Datum) bleiben bei neuer Erfassung erhalten.
+
+Unter „Änderungsverlauf“ stehen die vorherigen Fassungen von Text, Datum, Notiz/Tags, Thread und Beleg mit Zeitpunkt und Bearbeiter. Beim Entfernen einer Aussage verschwinden Suche und Listenzuordnungen; der bisherige Link zeigt einen Löschvermerk mit Historie. **Text und Belege werden dabei nicht physisch gelöscht.** Historie und frühere Screenshots benötigen zusätzlichen Speicher. Die Nummer bleibt reserviert, auch wenn die höchste Aussage entfernt wird. Vor dem Upgrade bereits gelöschte oder wiederverwendete Nummern lassen sich nachträglich nicht rekonstruieren.
+
+Galerie und Listen zeigen jeweils 60 Einträge je Seite. Die Galerie-Vollbildansicht blättert innerhalb der geladenen Seite.
+
+### Bildgrenzen
+
+| Bereich | Dateien | Bytes je Datei | Zusammen |
+| --- | ---: | ---: | ---: |
+| Beleg-Upload | 10 | 15 MiB | 50 MiB |
+| Galerie | 40 | 25 MiB | 100 MiB |
+
+Eingabebilder dürfen höchstens 24 Megapixel und 16.000 Pixel je Seite haben. Ein zusammengesetzter Beleg darf höchstens 12 Megapixel und 16.000 Pixel je Seite haben; längere Threads müssen gegebenenfalls geteilt werden. Zusätzlich gilt ein Request-Limit von 105 MiB einschließlich Formulardaten. Komprimierte Dateigröße und dekodierte Bildgröße werden unabhängig geprüft.
+
+### Upgrade und Wiederherstellung
+
+Vor einem Schema-Upgrade wird die vorhandene Datenbank per SQLite-Backup unter `backups/pre-upgrade-*.sqlite` gesichert (die letzten drei bleiben erhalten, unabhängig von `backup_keep`). Bei unverändertem Schema entstehen keine neuen Vorab-Backups. Die Dateien sind unter Einstellungen → System herunterladbar. Anschließend werden Datenbankintegrität und Fremdschlüssel geprüft. Der Start mit einer neueren als der unterstützten Schemaversion wird abgelehnt.
+
+Diese Backups enthalten **nur die Datenbank**. Screenshots, Galerie und Profilbilder benötigen weiterhin das HA-Backup inklusive „Share“. Für eine Wiederherstellung das Add-on stoppen, den aktuellen Datenordner separat sichern und Datenbank plus Medien aus einem zueinander passenden Backup zurückspielen. Alte `archiv.sqlite-wal`/`archiv.sqlite-shm` gehören zur alten Datenbank und dürfen nicht mit einer zurückgespielten Datei kombiniert werden. Ein Downgrade benötigt sowohl die passende ältere App-Version als auch deren Vorab-Backup.
+
+Eine Medienprüfung verändert keine Dateien und sollte für einen ruhigen Bestand bei gestopptem Add-on ausgeführt werden:
+
+```bash
+cd social_garbage_collector
+python -m app.maintenance --base-path /share/SocialGarbageCollector
+```
+
+Sie meldet fehlende und nicht referenzierte Bilder; Revisionsbelege zählen als gültige Referenzen. Nicht referenzierte Dateien werden niemals automatisch gelöscht. Ein unterbrochener Schreibvorgang kann trotz kompensierender Fehlerbehandlung Dateien hinterlassen, da Datenbank und Dateisystem keine gemeinsame Transaktion besitzen.
 
 Lokal starten (Daten in einen Testordner):
 

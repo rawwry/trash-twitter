@@ -33,7 +33,7 @@ SESSION_COOKIE = "sgc_session"
 CSRF_COOKIE = "sgc_csrf"
 CSRF_FIELD = "csrf_token"
 CSRF_HEADER = "x-csrf-token"
-MIN_PASSWORD_LENGTH = 5
+MIN_PASSWORD_LENGTH = 12
 
 _hasher = PasswordHasher()
 # Fuer unbekannte Benutzernamen trotzdem einmal argon2 rechnen, damit man an
@@ -56,12 +56,13 @@ def verify_password(password_hash: str, plaintext: str) -> bool:
         return False
 
 
-def generate_password(length: int = 10) -> str:
+def generate_password(length: int = MIN_PASSWORD_LENGTH) -> str:
     """Zufaelliges Passwort ohne leicht verwechselbare Zeichen (0/O, 1/l/I).
 
-    10 Zeichen aus ~60 Symbolen (~59 Bit) - gut abtippbar und fuer ein
+    12 Zeichen aus ~60 Symbolen (~71 Bit) - gut abtippbar und fuer ein
     Anfangspasswort, das ohnehin geaendert werden muss, mehr als genug.
     """
+    length = max(length, MIN_PASSWORD_LENGTH)
     alphabet = "".join(c for c in string.ascii_letters + string.digits if c not in "0O1lI") + "-_!?#+"
     while True:
         pw = "".join(secrets.choice(alphabet) for _ in range(length))
@@ -258,6 +259,12 @@ def get_db(request: Request) -> Iterator[Session]:
 
 
 def load_session(request: Request, db: Session = Depends(get_db)) -> UserSession | None:
+    path = request.scope["path"]
+    root = request.scope.get("root_path", "")
+    if root and path.startswith(root):
+        path = path[len(root):]
+    if path == "/health":
+        return None  # Health muss auch mit Cookie und kaputter DB antworten.
     token = request.cookies.get(SESSION_COOKIE)
     if not token:
         return None

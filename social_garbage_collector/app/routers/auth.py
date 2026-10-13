@@ -88,8 +88,14 @@ def setup(request: Request, code: str = Form(""), username: str = Form(""), pass
     if not _setup_open(request, db):
         return redirect(request, "/login")
     username = username.strip()
+    throttle = request.app.state.setup_throttle
+    ip = client_ip(request)
+    if throttle.blocked(ip, settings):
+        return render(request, "setup.html", status_code=429,
+                      error="Zu viele falsche Einrichtungscodes. Bitte später erneut versuchen.", username=username)
     error = None
-    if not hmac.compare_digest(code.strip().upper(), request.app.state.setup_code):
+    if not hmac.compare_digest(code.strip().upper().encode("utf-8"), request.app.state.setup_code.encode("ascii")):
+        throttle.fail(ip)
         error = "Der Einrichtungscode stimmt nicht. Du findest ihn im Protokoll des Add-ons."
     elif not username or len(username) > 64:
         error = "Bitte einen Benutzernamen (bis 64 Zeichen) angeben."
@@ -106,6 +112,7 @@ def setup(request: Request, code: str = Form(""), username: str = Form(""), pass
     admin_log.record(db, admin, "setup_admin", admin.username, "Ersteinrichtung")
     db.commit()
     request.app.state.setup_code = None
+    throttle.reset(ip)
     token = create_session(db, settings, admin)
     response = redirect(request, "/", toast="Willkommen! Du bist jetzt Admin.")
     set_session_cookie(response, request, settings, token)

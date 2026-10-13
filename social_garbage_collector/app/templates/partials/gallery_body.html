@@ -45,4 +45,11 @@
     <button class="btn" type="button" data-open="gallery-upload">{{ icon('plus', 18) }} Erste Bilder hinzufügen</button>
   </div>
   {% endif %}
+  {% if previous or next_page %}
+  <nav class="row wrap" aria-label="Galerieseiten">
+    {% if previous %}<a class="btn-ghost" href="{{ url(previous) }}" hx-get="{{ url(previous) }}" hx-target="#gallery-body" hx-swap="outerHTML" hx-push-url="true">Zurück</a>{% endif %}
+    <span>Seite {{ page }}</span>
+    {% if next_page %}<a class="btn-ghost" href="{{ url(next_page) }}" hx-get="{{ url(next_page) }}" hx-target="#gallery-body" hx-swap="outerHTML" hx-push-url="true">Weiter</a>{% endif %}
+  </nav>
+  {% endif %}
 </div>

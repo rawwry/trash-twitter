@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import secrets
 from datetime import datetime
 from pathlib import Path
 
@@ -34,7 +35,7 @@ from ..models import (
     Post,
     utcnow,
 )
-from . import accounts, dates, ocr, shots
+from . import accounts, dates, ocr, shots, revisions
 from .platforms import get_service
 from .platforms.base import (
     MAX_THREAD_PARTS,
@@ -61,6 +62,7 @@ class CaptureWorker:
         self.session_factory = session_factory
         self.queue: asyncio.Queue[int] = asyncio.Queue()
         self._queued: set[int] = set()
+        self._rerun: set[int] = set()
         self._task: asyncio.Task | None = None
         self._playwright = None
         self._browser = None
@@ -94,6 +96,10 @@ class CaptureWorker:
     async def stop(self) -> None:
         if getattr(self, "_refresh_task", None):
             self._refresh_task.cancel()
+            try:
+                await self._refresh_task
+            except asyncio.CancelledError:
+                pass
         if self._task:
             self._task.cancel()
             try:
@@ -103,7 +109,9 @@ class CaptureWorker:
         await self._close_browser()
 
     def enqueue(self, post_id: int) -> None:
-        if post_id not in self._queued:
+        if post_id in self._queued:
+            self._rerun.add(post_id)
+        else:
             self._queued.add(post_id)
             self.queue.put_nowait(post_id)
 
@@ -112,7 +120,13 @@ class CaptureWorker:
         while True:
             post_id = await self.queue.get()
             try:
-                await asyncio.wait_for(self.process(post_id), timeout=JOB_TIMEOUT_S)
+                with self.session_factory() as db:
+                    extra = db.scalar(select(Post.thread_extra).where(Post.id == post_id))
+                try:
+                    part_count = min(MAX_THREAD_PARTS, 1 + len(json.loads(extra or "[]")))
+                except (ValueError, TypeError):
+                    part_count = 1
+                await asyncio.wait_for(self.process(post_id), timeout=JOB_TIMEOUT_S + 60 * (part_count - 1))
             except asyncio.TimeoutError:
                 self._mark_error(post_id, "Zeitüberschreitung beim Verarbeiten. Bitte erneut versuchen.")
             except asyncio.CancelledError:
@@ -123,6 +137,9 @@ class CaptureWorker:
             finally:
                 self._queued.discard(post_id)
                 self.queue.task_done()
+                if post_id in self._rerun:
+                    self._rerun.discard(post_id)
+                    self.enqueue(post_id)
             if self.queue.empty():
                 await self._close_browser()
             else:
@@ -131,7 +148,7 @@ class CaptureWorker:
     def _mark_error(self, post_id: int, message: str) -> None:
         with self.session_factory() as db:
             post = db.get(Post, post_id)
-            if post:
+            if post and post.status == STATUS_RUNNING:
                 post.status = STATUS_ERROR
                 post.status_message = message
                 db.commit()
@@ -165,6 +182,8 @@ class CaptureWorker:
     # --- Ein Beitrag --------------------------------------------------------
     async def process(self, post_id: int) -> None:
         db = self.session_factory()
+        target = None
+        saved = committed = False
         try:
             post = db.get(Post, post_id)
             if post is None or post.status not in (STATUS_PENDING, STATUS_RUNNING):
@@ -173,9 +192,13 @@ class CaptureWorker:
             post.status_message = ""
             post.attempts = (post.attempts or 0) + 1
             db.commit()
+            # Ab jetzt nur ein abgetrennter Schnappschuss: keine Transaktion
+            # bleibt waehrend Netzwerk, Chromium oder OCR offen.
+            db.expunge(post)
+            db.close()
 
             if post.shot_source == "upload":
-                await self._process_upload(db, post)
+                await self._process_upload(post)
                 return
 
             service = get_service(post.platform)
@@ -183,13 +206,12 @@ class CaptureWorker:
                                 canonical_url=post.url, author_did=post.author_did)
             problems: list[str] = []
             not_found: str | None = None
+            avatar = None
 
             async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, follow_redirects=True) as client:
                 # 1) Thread-Teile bestimmen (automatisch + von Hand ergaenzt)
                 parts = await self._thread_parts(service, parsed, post, client)
                 main = parts[0]
-                if main.post_id != post.post_id:
-                    self._switch_main(db, service, post, main, problems)
 
                 # 2) Metadaten/Text je Teil ueber die API (ohne Login)
                 metas: list[PostMetadata | None] = []
@@ -209,13 +231,12 @@ class CaptureWorker:
                         metas.append(None)
                         problems.append(f"Netzwerkfehler: {type(exc).__name__}")
                 if metas and metas[0]:
-                    self._apply_metadata(db, post, main, metas[0])
+                    self._apply_metadata(post, main, metas[0])
                     if metas[0].long_post and not metas[0].text_complete:
                         problems.append("Langer Beitrag: X liefert nur den Anfang, der Wortlaut ist gekürzt – bitte ergänzen.")
                     # Wer hat das gesagt? Account + Profilbild sichern.
-                    await accounts.apply_metadata(db, self.settings, client, post, metas[0])
-            if post.account_id is None:
-                accounts.ensure_for_post(db, post)
+                    if metas[0].avatar_url:
+                        avatar = await accounts.download_avatar(client, self.settings, metas[0].avatar_url)
             alt = [a for m in metas if m for a in m.alt_texts]
             if len(parts) > 1 and alt:
                 post.alt_texts = "\n".join(alt)
@@ -248,17 +269,11 @@ class CaptureWorker:
                             raise
                         captures.append(None)
                         problems.append(f"Thread-Teil {i + 1}: {exc}")
-                old = post.screenshot_path
                 post.shot_reconstructed = any(c is not None and c.reconstructed for c in captures)
-                shots.finalize(raws, target)
+                await self._finalize(raws, target)
                 saved = True
                 post.screenshot_path = rel
-                shots.apply(post, target)
-                if old and old != rel:  # z. B. alte PNG aus Versionen vor 0.4.0
-                    try:
-                        safe_path(self.settings.base_path, old).unlink(missing_ok=True)
-                    except UnsafePathError:
-                        pass
+                post.shot_w, post.shot_h, post.shot_bg = await asyncio.to_thread(shots.measure, target)
             except PostNotFound as exc:
                 not_found = not_found or str(exc)
             except PlatformError as exc:
@@ -266,9 +281,6 @@ class CaptureWorker:
             except Exception as exc:
                 log.warning("Screenshot fuer Beitrag %s fehlgeschlagen: %s", post_id, exc)
                 problems.append(f"Screenshot fehlgeschlagen: {type(exc).__name__}")
-            finally:
-                for raw in target.parent.glob(f"{target.stem}.teil*.png"):
-                    raw.unlink(missing_ok=True)
 
             # Thread-Infos fuer die Oberflaeche
             done_parts = [p for p, c in zip(parts, captures) if c] if len(parts) > 1 else []
@@ -302,18 +314,26 @@ class CaptureWorker:
             else:
                 post.status = STATUS_ERROR
                 post.status_message = not_found or "; ".join(dict.fromkeys(problems)) or "Unbekannter Fehler."
-            db.commit()
+            committed = self._commit_result(post, metas[0] if metas else None, avatar)
             log.info("Beitrag %s: %s (%d Teile) %s", post_id, post.status, max(1, post.thread_count),
                      post.status_message)
         finally:
             db.close()
+            if target is not None:
+                # Rohbilder bleiben bis nach OCR erhalten.
+                for raw in target.parent.glob(f"{target.stem}.teil*.png"):
+                    raw.unlink(missing_ok=True)
+                target.with_name(target.name + ".tmp").unlink(missing_ok=True)
+                if not committed or not saved:
+                    target.unlink(missing_ok=True)
 
-    async def _process_upload(self, db: Session, post: Post) -> None:
+    async def _process_upload(self, post: Post) -> None:
         """Hochgeladener Screenshot: KEINE Aufnahme. Nur Metadaten (wenn ein Link
         da ist) und Text (API bzw. Texterkennung aus dem hochgeladenen Bild)."""
         service = get_service(post.platform)
         problems: list[str] = []
         meta: PostMetadata | None = None
+        avatar = None
         if post.url:
             parsed = ParsedPost(platform=post.platform, post_id=post.post_id, author_handle=post.author_handle,
                                 canonical_url=post.url, author_did=post.author_did)
@@ -325,10 +345,9 @@ class CaptureWorker:
                 except (PlatformError, httpx.HTTPError) as exc:
                     problems.append(f"Original nicht erreichbar ({type(exc).__name__}).")
                 if meta:
-                    self._apply_metadata(db, post, parsed, meta)
-                    await accounts.apply_metadata(db, self.settings, client, post, meta)
-        if post.account_id is None:
-            accounts.ensure_for_post(db, post)
+                    self._apply_metadata(post, parsed, meta)
+                    if meta.avatar_url:
+                        avatar = await accounts.download_avatar(client, self.settings, meta.avatar_url)
         if post.text_source != TEXT_MANUAL and post.screenshot_path:
             try:
                 path = safe_path(self.settings.base_path, post.screenshot_path)
@@ -341,8 +360,55 @@ class CaptureWorker:
         await self._fill_date(post)
         post.status = STATUS_DONE
         post.status_message = "; ".join(problems)
-        db.commit()
+        self._commit_result(post, meta, avatar)
         log.info("Beitrag %s (Upload): fertig %s", post.id, post.status_message)
+
+    async def _finalize(self, raws: list[Path], target: Path) -> None:
+        # to_thread laeuft bei Cancellation weiter. Erst den Encoder beenden,
+        # dann darf process() seine temporaeren Dateien aufraeumen.
+        task = asyncio.create_task(asyncio.to_thread(shots.finalize, raws, target))
+        try:
+            await asyncio.shield(task)
+        except asyncio.CancelledError:
+            try:
+                await task
+            except Exception:
+                pass
+            raise
+
+    def _commit_result(self, result: Post, meta: PostMetadata | None, avatar: str | None) -> bool:
+        with self.session_factory() as db:
+            # SQLite besitzt kein SELECT FOR UPDATE. Vor dem erneuten Lesen
+            # den Writer reservieren; diese kurze Phase enthaelt keinerlei I/O.
+            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+            post = db.get(Post, result.id)
+            if post is None or post.capture_generation != result.capture_generation:
+                return False
+            if post.screenshot_path and post.screenshot_path != result.screenshot_path:
+                revisions.record(db, post, None, "capture")
+            if post.snapshot_at is None:
+                post.author_display_name = result.author_display_name
+                post.author_handle = result.author_handle
+                if meta is not None or result.status == STATUS_DONE:
+                    post.snapshot_at = utcnow()
+            if post.text_source != TEXT_MANUAL:
+                post.text, post.text_source = result.text, result.text_source
+            if post.date_source != dates.DATE_MANUAL:
+                post.posted_at, post.date_source, post.date_has_time = result.posted_at, result.date_source, result.date_has_time
+            for name in ("alt_texts", "long_post", "shot_reconstructed", "screenshot_path", "shot_w", "shot_h",
+                         "shot_bg", "thread_count", "thread_parts", "status", "status_message"):
+                setattr(post, name, getattr(result, name))
+            if result.author_did and not post.author_did:
+                post.author_did = result.author_did
+                key = f"{post.platform}:{result.author_did}:{post.post_id}"
+                if db.scalar(select(Post.id).where(Post.dedup_key == key, Post.id != post.id)) is None:
+                    post.dedup_key = key
+            if meta is not None:
+                accounts.apply_prepared_metadata(db, post, meta, avatar)
+            if post.account_id is None:
+                accounts.ensure_for_post(db, post)
+            db.commit()
+            return True
 
     async def _thread_parts(self, service, parsed: ParsedPost, post: Post,
                             client: httpx.AsyncClient) -> list[ParsedPost]:
@@ -365,24 +431,12 @@ class CaptureWorker:
                 seen.add(extra.post_id)
         return parts[:MAX_THREAD_PARTS]
 
-    def _switch_main(self, db: Session, service, post: Post, main: ParsedPost, problems: list[str]) -> None:
-        """Der Thread beginnt frueher als der eingefuegte Beitrag -> der Anfang
-        wird zum Hauptbeitrag (URL, ID, Duplikat-Schluessel)."""
-        key = service.dedup_key(main)
-        clash = db.scalar(select(Post.id).where(Post.dedup_key == key, Post.id != post.id))
-        if clash:
-            problems.append(f"Der Anfang dieses Threads ist schon im Archiv (Beitrag #{clash}).")
-            return
-        post.post_id, post.url, post.dedup_key = main.post_id, main.canonical_url, key
-        if main.author_did:
-            post.author_did = main.author_did
-
-    def _apply_metadata(self, db: Session, post: Post, parsed: ParsedPost, meta: PostMetadata) -> None:
-        if meta.display_name:
+    def _apply_metadata(self, post: Post, parsed: ParsedPost, meta: PostMetadata) -> None:
+        if meta.display_name and post.snapshot_at is None:
             post.author_display_name = meta.display_name[:255]
-        if meta.handle:
+        if meta.handle and post.snapshot_at is None:
             post.author_handle = meta.handle[:255]
-        if meta.posted_at:
+        if meta.posted_at and post.date_source != dates.DATE_MANUAL and post.snapshot_at is None:
             dates.set_date(post, meta.posted_at, dates.DATE_API)
         if meta.alt_texts:
             post.alt_texts = "\n".join(meta.alt_texts)
@@ -390,10 +444,6 @@ class CaptureWorker:
         did = meta.did or parsed.author_did
         if did and not post.author_did:
             post.author_did = did
-            new_key = f"{post.platform}:{did}:{post.post_id}"
-            clash = db.scalar(select(Post.id).where(Post.dedup_key == new_key, Post.id != post.id))
-            if clash is None:
-                post.dedup_key = new_key
         parsed.author_did = post.author_did
         if post.author_handle:
             parsed.author_handle = post.author_handle
@@ -420,7 +470,7 @@ class CaptureWorker:
     async def _fill_date(self, post: Post) -> None:
         """Datum fehlt: erst aus der Beitrags-ID (exakt), sonst per Texterkennung
         aus dem Screenshot. Fehlt Tesseract, bleibt es einfach leer."""
-        if post.posted_at is not None or dates.fill_from_id(post) or not post.screenshot_path:
+        if post.date_source == dates.DATE_MANUAL or post.posted_at is not None or dates.fill_from_id(post) or not post.screenshot_path:
             return
         try:
             path = safe_path(self.settings.base_path, post.screenshot_path)
@@ -445,13 +495,21 @@ class CaptureWorker:
                     Post.status != STATUS_RUNNING).order_by(Post.id).limit(20)))
                 if not batch:
                     return done
-                for post in batch:
-                    await self._fill_date(post)
-                    if post.date_source is None:  # z. B. Tesseract fehlt: nicht endlos versuchen
-                        post.date_source = "none"
-                    done += post.posted_at is not None
-                    db.commit()
-                    await asyncio.sleep(pause_s)
+                db.expunge_all()
+            for post in batch:
+                await self._fill_date(post)
+                with self.session_factory() as db:
+                    db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+                    fresh = db.get(Post, post.id)
+                    if (fresh and fresh.date_source is None and fresh.posted_at is None
+                            and fresh.screenshot_path == post.screenshot_path
+                            and fresh.capture_generation == post.capture_generation):
+                        fresh.posted_at = post.posted_at
+                        fresh.date_source = post.date_source or "none"
+                        fresh.date_has_time = post.date_has_time
+                        done += fresh.posted_at is not None
+                        db.commit()
+                await asyncio.sleep(pause_s)
 
     async def refresh_accounts(self, pause_s: float = 1.0) -> int:
         """Accounts ohne Profilbild (z. B. aus der Zeit vor 0.6) einmal bei der
@@ -463,31 +521,43 @@ class CaptureWorker:
                     batch = accounts.needing_refresh(db, limit=20)
                     if not batch:
                         return done
-                    for acc in batch:
-                        acc.checked_at = utcnow()
+                    account_ids = [acc.id for acc in batch]
+                for account_id in account_ids:
+                    with self.session_factory() as db:
+                        acc = db.get(accounts.Account, account_id)
+                        if acc is None:
+                            continue
                         post = db.scalar(select(Post).where(Post.account_id == acc.id, Post.url != "")
                                          .order_by(Post.id.desc()).limit(1))
+                        acc.checked_at = utcnow()
+                        db.commit()
                         if post is None:
                             continue
-                        service = get_service(post.platform)
-                        parsed = ParsedPost(platform=post.platform, post_id=post.post_id,
-                                            author_handle=post.author_handle, canonical_url=post.url,
-                                            author_did=post.author_did)
-                        try:
-                            meta = await service.fetch_metadata(parsed, client)
-                        except (PlatformError, httpx.HTTPError):
-                            meta = None
-                        if meta:
-                            await accounts.apply_metadata(db, self.settings, client, post, meta)
-                            done += 1
-                        db.commit()
-                        await asyncio.sleep(pause_s)
-                    db.commit()
+                        db.expunge(post)
+                    service = get_service(post.platform)
+                    parsed = ParsedPost(platform=post.platform, post_id=post.post_id,
+                                        author_handle=post.author_handle, canonical_url=post.url,
+                                        author_did=post.author_did)
+                    try:
+                        meta = await service.fetch_metadata(parsed, client)
+                    except (PlatformError, httpx.HTTPError):
+                        meta = None
+                    avatar = await accounts.download_avatar(client, self.settings, meta.avatar_url) if meta and meta.avatar_url else None
+                    if meta:
+                        with self.session_factory() as db:
+                            db.connection().exec_driver_sql("BEGIN IMMEDIATE")
+                            fresh = db.get(Post, post.id)
+                            if fresh and fresh.account_id == account_id:
+                                accounts.apply_prepared_metadata(db, fresh, meta, avatar)
+                                db.commit()
+                                done += 1
+                    await asyncio.sleep(pause_s)
 
     @staticmethod
     def _screenshot_rel(post: Post) -> str:
         year = (post.created_at or datetime.now()).year
-        name = safe_filename(post.author_handle or post.author_did or "unbekannt", post.post_id) + ".webp"
+        name = safe_filename(post.author_handle or post.author_did or "unbekannt", post.post_id)
+        name += "-" + secrets.token_hex(8) + ".webp"
         return f"screenshots/{post.platform}/{year}/{name}"
 
 
@@ -495,4 +565,5 @@ def reset_for_retry(db: Session, post: Post) -> None:
     post.status = STATUS_PENDING
     post.status_message = ""
     post.updated_at = utcnow()
+    post.capture_generation = (post.capture_generation or 0) + 1
     db.commit()

@@ -39,8 +39,8 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
   <div class="setting-block stack">
     <label>Aktuelles Passwort<input name="current" type="password" required autocomplete="current-password"></label>
-    <label>Neues Passwort <span class="hint">mindestens 5 Zeichen</span><input name="new" type="password" required minlength="5" autocomplete="new-password"></label>
-    <label>Neues Passwort wiederholen<input name="new2" type="password" required minlength="5" autocomplete="new-password"></label>
+    <label>Neues Passwort <span class="hint">mindestens {{ min_password_length }} Zeichen</span><input name="new" type="password" required minlength="{{ min_password_length }}" autocomplete="new-password"></label>
+    <label>Neues Passwort wiederholen<input name="new2" type="password" required minlength="{{ min_password_length }}" autocomplete="new-password"></label>
     <div class="row wrap"><button class="btn" type="submit">Passwort speichern</button>
       <span class="faint xs">Andere Geräte werden dabei abgemeldet.</span></div>
   </div>

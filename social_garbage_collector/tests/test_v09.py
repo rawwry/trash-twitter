@@ -57,7 +57,7 @@ def test_old_password_copies_and_key_removed(tmp_path):
 def test_every_user_can_change_own_password(user_client, harness):
     assert "/settings/konto#passwort" in user_client.get("/").text  # im Kontomenue
     assert "Passwort ändern" in user_client.get("/settings/konto").text
-    r = user_client.post("/settings/konto/passwort", data={"current": USER_PW, "new": "neu-12345", "new2": "neu-12345",
+    r = user_client.post("/settings/konto/passwort", data={"current": USER_PW, "new": "neu-passwort-12345", "new2": "neu-passwort-12345",
                                                            "csrf_token": user_client.csrf})
     assert r.status_code == 200 and "Passwort geändert" in r.text
 

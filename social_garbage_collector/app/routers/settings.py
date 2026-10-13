@@ -5,6 +5,7 @@ Admin-Router mit require_admin und nutzen nur dasselbe Layout.
 """
 
 from __future__ import annotations
+import re
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from ..config import Settings
 from ..models import Tag, User
+from ..services.image_limits import run_image_job
 from ..prefs import PREFS, get_prefs, section_prefs, update_prefs
 from ..security import (
     SESSION_COOKIE,
@@ -82,17 +84,18 @@ async def save_profile(request: Request, display_name: str = Form(""), avatar: U
                        db: Session = Depends(get_db), settings: Settings = Depends(get_settings)):
     name = " ".join(display_name.split())[:40]
     user.display_name = "" if name == user.username else name
+    old_avatar = user.avatar_path
     if remove_avatar:
         avatars.remove(settings, user)
     elif avatar is not None and avatar.filename:
         data = await avatar.read(avatars.MAX_BYTES + 1)
         try:
-            avatars.save(settings, user, data)
+            await run_image_job(avatars.save, settings, user, data)
         except avatars.AvatarError as exc:
             db.rollback()
             return render(request, "settings/konto.html", status_code=400, section="konto",
                           profile_error=str(exc), forced=False)
-    db.commit()
+    avatars.commit_change(db, settings, old_avatar, user.avatar_path)
     return redirect(request, "/settings/konto", toast="Profil gespeichert")
 
 
@@ -108,6 +111,13 @@ def logout_others(request: Request, user: User = Depends(require_user), db: Sess
 def _base_url(request: Request) -> str:
     host = request.headers.get("x-forwarded-host") or request.headers.get("host") or "homeassistant.local:8780"
     scheme = request.headers.get("x-forwarded-proto") or request.url.scheme
+    # Ausschliesslich Host/Port, keine Steuerzeichen, Benutzerinfo oder JS-Syntax.
+    if not re.fullmatch(r"(?:[A-Za-z0-9.-]+|\[[0-9A-Fa-f:]+\])(?::[0-9]{1,5})?", host):
+        host = request.url.netloc
+    if not re.fullmatch(r"(?:[A-Za-z0-9.-]+|\[[0-9A-Fa-f:]+\])(?::[0-9]{1,5})?", host):
+        host = "homeassistant.local:8780"
+    if scheme not in ("http", "https"):
+        scheme = request.url.scheme if request.url.scheme in ("http", "https") else "http"
     return f"{scheme}://{host}{root_path(request)}"
 
 

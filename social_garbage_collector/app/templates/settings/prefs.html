@@ -54,7 +54,7 @@
   <div class="setting-row stacked">
     <div class="text"><div class="label">Computer – Lesezeichen</div>
       <div class="help">Den Knopf in die Lesezeichenleiste ziehen. Auf einer Aussage bei X oder Bluesky anklicken – fertig.</div></div>
-    <div><a class="bookmarklet" href="javascript:(()=>{location.href='{{ base_url }}/teilen?url='+encodeURIComponent(location.href)})()" data-bookmarklet>In {{ APP_NAME }} archivieren</a></div>
+    <div><a class="bookmarklet" href="javascript:(()=>{location.href={{ (base_url ~ '/teilen?url=')|tojson|forceescape }}+encodeURIComponent(location.href)})()" data-bookmarklet>In {{ APP_NAME }} archivieren</a></div>
   </div>
   <div class="setting-row stacked">
     <div class="help">Tipp: Für deine Freunde funktioniert das nur mit der Adresse, unter der sie die App öffnen

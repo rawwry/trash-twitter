@@ -8,6 +8,7 @@ Duplikate werden dreifach abgefangen - nichts wird doppelt archiviert:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import secrets
@@ -75,6 +76,33 @@ async def import_links(db: Session, user: User, raw: str, tags_raw: str = "", ta
     if len(candidates) > MAX_LINKS:
         raise BulkError(f"Höchstens {MAX_LINKS} Links auf einmal ({len(candidates)} gefunden). Bitte aufteilen.")
 
+    # Alle externen Lookups vor dem ersten INSERT/flush. Begrenzte Parallelitaet
+    # und ein Gesamtzeitbudget halten grosse Imports innerhalb eines Requests.
+    resolved = []
+    for cand in candidates:
+        found = detect(cand.url)
+        if found:
+            resolved.append((cand, *found))
+        else:
+            invalid.append(cand.url[:200])
+    if network:
+        semaphore = asyncio.Semaphore(4)
+        async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}) as client:
+            async def resolve_one(item):
+                cand, service, parsed = item
+                async with semaphore:
+                    return cand, service, await service.resolve(parsed, client)
+            try:
+                async with asyncio.timeout(45):
+                    async with asyncio.TaskGroup() as group:
+                        tasks = [group.create_task(resolve_one(item)) for item in resolved]
+                resolved = [task.result() for task in tasks]
+            except (TimeoutError, ExceptionGroup) as exc:
+                raise BulkError("Links konnten nicht rechtzeitig aufgelöst werden. Bitte erneut versuchen oder den Import aufteilen.") from exc
+
+    if target_list is not None and target_list.id is None:
+        db.add(target_list)
+        db.flush()
     batch = ImportBatch(id=secrets.token_hex(6), created_by_id=user.id, total_links=len(candidates))
     db.add(batch)
     result = BulkResult(batch=batch)
@@ -82,43 +110,30 @@ async def import_links(db: Session, user: User, raw: str, tags_raw: str = "", ta
     existing: list[dict] = []
     repeated: list[str] = []
 
-    client = httpx.AsyncClient(headers={"User-Agent": USER_AGENT}) if network else None
-    try:
-        for cand in candidates:
-            found = detect(cand.url)
-            if not found:
-                invalid.append(cand.url[:200])
-                continue
-            service, parsed = found
-            if client is not None:
-                parsed = await service.resolve(parsed, client)  # Bluesky: Handle -> DID
-            key = service.dedup_key(parsed)
-            # Bluesky: gleicher Beitrag per Handle und per DID -> auch ueber post_id abgleichen
-            short = f"{parsed.platform}:{parsed.post_id}"
-            if key in seen or short in seen:
-                repeated.append(cand.url)
-                continue
-            seen.update({key, short})
-            dup = find_duplicate(db, parsed.platform, key, parsed.post_id, parsed.author_handle, parsed.author_did)
-            if dup:
-                existing.append({"url": cand.url, "post_id": dup.id})
-                continue
-            post = Post(
-                platform=parsed.platform, url=parsed.canonical_url, dedup_key=key, post_id=parsed.post_id,
-                author_handle=parsed.author_handle, author_did=parsed.author_did, status=STATUS_PENDING,
-                added_by_id=user.id, thread_mode="off", import_batch=batch.id,
-            )
-            db.add(post)
-            db.flush()
-            set_post_tags(db, post, tags_raw)
-            accounts.ensure_for_post(db, post)
-            if target_list is not None:
-                db.add(ListPost(list_id=target_list.id, post_id=post.id, added_by_id=user.id))
-            result.created.append(post)
-    finally:
-        if client is not None:
-            await client.aclose()
-
+    for cand, service, parsed in resolved:
+        key = service.dedup_key(parsed)
+        # Bluesky: gleicher Beitrag per Handle und per DID -> auch ueber post_id abgleichen
+        short = f"{parsed.platform}:{parsed.post_id}"
+        if key in seen or short in seen:
+            repeated.append(cand.url)
+            continue
+        seen.update({key, short})
+        dup = find_duplicate(db, parsed.platform, key, parsed.post_id, parsed.author_handle, parsed.author_did)
+        if dup:
+            existing.append({"url": cand.url, "post_id": dup.id})
+            continue
+        post = Post(
+            platform=parsed.platform, url=parsed.canonical_url, dedup_key=key, post_id=parsed.post_id,
+            author_handle=parsed.author_handle, author_did=parsed.author_did, status=STATUS_PENDING,
+            added_by_id=user.id, thread_mode="off", import_batch=batch.id,
+        )
+        db.add(post)
+        db.flush()
+        set_post_tags(db, post, tags_raw)
+        accounts.ensure_for_post(db, post)
+        if target_list is not None:
+            db.add(ListPost(list_id=target_list.id, post_id=post.id, added_by_id=user.id))
+        result.created.append(post)
     batch.created_count = len(result.created)
     batch.existing = json.dumps(existing)
     batch.repeated = json.dumps(repeated)

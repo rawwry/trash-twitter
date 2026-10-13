@@ -16,7 +16,7 @@ from ..templating import redirect, render
 
 router = APIRouter(dependencies=[Depends(require_user)])
 
-PROGRESS_LIST = 300
+PROGRESS_LIST = bulk.MAX_LINKS
 
 
 def _get_batch(db: Session, batch_id: str) -> ImportBatch:
@@ -44,8 +44,6 @@ async def start_import(request: Request, links: str = Form(""), tags: str = Form
     title = " ".join(new_list.split())[:120]
     if title:
         target = PostList(title=title, created_by_id=user.id)
-        db.add(target)
-        db.flush()
     elif list_id:
         target = db.get(PostList, list_id)
     try:

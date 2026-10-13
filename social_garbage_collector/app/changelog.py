@@ -2,8 +2,19 @@
 
 CHANGES = [
     {
+        "version": "0.10.0",
+        "date": "13.10.2026",
+        "title": "Archivintegrität und Stabilität",
+        "items": [
+            "Dauerhaft reservierte Archivnummern und Änderungsverlauf mit früheren Belegen",
+            "Manuelle Korrekturen und historische Verfasserdaten bleiben bei neuer Erfassung erhalten",
+            "Kurze Datenbanktransaktionen, begrenzte Bildimporte und Seitennavigation in Galerie und Listen",
+            "Sicherung vor Datenbank-Upgrades, erweiterter Health-Check und stärkere neue Passwörter",
+        ],
+    },
+    {
         "version": "0.9.0",
-        "date": "14.10.2026",
+        "date": "13.10.2026",
         "title": "Galerie",
         "items": [
             "Neue Galerie: Bilder hochladen, eigene Kategorien vergeben, filtern – Raster im Blocksatz, Vollbild mit Blättern",

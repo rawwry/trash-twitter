@@ -227,6 +227,9 @@ def toast_header(response: Response, message: str, kind: str = "ok") -> Response
 # --- Rendern -----------------------------------------------------------------
 
 def render(request: Request, name: str, status_code: int = 200, **context) -> HTMLResponse:
+    from .security import MIN_PASSWORD_LENGTH
+
+    context.setdefault("min_password_length", MIN_PASSWORD_LENGTH)
     user = context.setdefault("user", getattr(request.state, "user", None))
     context.setdefault("csrf_token", getattr(request.state, "csrf_token", "") or getattr(request.state, "anon_csrf", ""))
     prefs = context.setdefault("prefs", get_prefs(user))

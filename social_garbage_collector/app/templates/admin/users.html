@@ -18,10 +18,10 @@
       </select>
     </label>
     <div class="pw-field" style="display:flex;flex-direction:column;gap:6px">
-      <label for="create-pw">Anfangspasswort <span class="hint">min. 5 Zeichen</span></label>
+      <label for="create-pw">Anfangspasswort <span class="hint">min. {{ min_password_length }} Zeichen</span></label>
       <div class="row">
         <div class="grow" id="create-pw-slot">
-          <input id="create-pw" name="password" type="text" required minlength="5" autocomplete="off" class="mono">
+          <input id="create-pw" name="password" type="text" required minlength="{{ min_password_length }}" autocomplete="off" class="mono">
         </div>
         <button type="button" class="btn-soft" title="Zufälliges Passwort erzeugen"
                 hx-get="{{ url('/admin/users/generate-password') }}?name=password"
@@ -82,7 +82,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <div class="row">
                   <div class="grow" id="reset-slot-{{ u.id }}">
-                    <input name="new_password" type="text" required minlength="5" class="mono" autocomplete="off" aria-label="Neues Passwort für {{ u.username }}">
+                    <input name="new_password" type="text" required minlength="{{ min_password_length }}" class="mono" autocomplete="off" aria-label="Neues Passwort für {{ u.username }}">
                   </div>
                   <button type="button" class="btn-soft sm" hx-get="{{ url('/admin/users/generate-password') }}?name=new_password"
                           hx-target="#reset-slot-{{ u.id }}" hx-swap="innerHTML" title="Zufällig erzeugen">🎲</button>

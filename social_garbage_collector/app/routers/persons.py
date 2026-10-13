@@ -74,18 +74,20 @@ async def edit(request: Request, person_id: int, name: str = Form(""), note: str
     """Nur Darstellung: Name, Kurzbeschreibung, Beschreibung, eigenes Foto.
     Die archivierten Aussagen (Wortlaut, Original-Profilbild) bleiben unveraendert."""
     from ..services import avatars
+    from ..services.image_limits import run_image_job
 
     person = _get_person(db, person_id)
+    old_photo = person.photo_path
     account_service.rename_person(person, name, note, subtitle)
     if remove_photo:
         avatars.remove_person_photo(settings, person)
     elif photo is not None and photo.filename:
         try:
-            avatars.save_person_photo(settings, person, await photo.read(avatars.MAX_BYTES + 1))
+            await run_image_job(avatars.save_person_photo, settings, person, await photo.read(avatars.MAX_BYTES + 1))
         except avatars.AvatarError as exc:
             db.rollback()
             return redirect(request, f"/personen/{person.id}", toast=str(exc), kind="error")
-    db.commit()
+    avatars.commit_change(db, settings, old_photo, person.photo_path)
     return redirect(request, f"/personen/{person.id}", toast="Gespeichert")
 
 

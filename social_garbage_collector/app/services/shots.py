@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 
 from ..config import Settings, UnsafePathError, safe_path
 from ..models import Post
+from .image_limits import MAX_CANVAS_PIXELS, validate_size
 
 log = logging.getLogger("sgc.shots")
 
@@ -131,6 +132,10 @@ def edge_color(img: Image.Image) -> tuple[int, int, int]:
 def stitch(images: list[Image.Image], gap: int = THREAD_GAP) -> Image.Image:
     """Klebt Thread-Teile untereinander. Die Luecke bekommt die Hintergrundfarbe
     des ersten Teils, schmalere Teile werden mittig gesetzt."""
+    if not images:
+        raise ValueError("Keine Bilder zum Zusammensetzen.")
+    validate_size(max(i.width for i in images), sum(i.height for i in images) + gap * (len(images) - 1),
+                  pixels=MAX_CANVAS_PIXELS)
     if len(images) == 1:
         return images[0].convert("RGB")
     bg = edge_color(images[0])
@@ -148,14 +153,26 @@ def finalize(pngs: list[Path], target: Path) -> None:
     """Rohaufnahmen (PNG von Playwright) -> Raender bereinigen -> ggf. zusammenkleben
     -> als WebP speichern. Schreibt atomar (erst .tmp, dann umbenennen)."""
     images = []
-    for path in pngs:
-        trim_edges(path)
-        with Image.open(path) as img:
-            images.append(img.convert("RGB"))
-    out = stitch(images)
     tmp = target.with_name(target.name + ".tmp")
-    out.save(tmp, "WEBP", quality=WEBP_QUALITY, method=4)
-    os.replace(tmp, target)
+    try:
+        sizes = []
+        for path in pngs:
+            with Image.open(path) as img:
+                validate_size(img.width, img.height)
+                sizes.append(img.size)
+        validate_size(max(w for w, h in sizes), sum(h for w, h in sizes) + THREAD_GAP * (len(sizes) - 1),
+                      pixels=MAX_CANVAS_PIXELS)
+        for path in pngs:
+            trim_edges(path)
+            with Image.open(path) as img:
+                images.append(img.convert("RGB"))
+        with stitch(images) as out:
+            out.save(tmp, "WEBP", quality=WEBP_QUALITY, method=4)
+        os.replace(tmp, target)
+    finally:
+        for img in images:
+            img.close()
+        tmp.unlink(missing_ok=True)
 
 
 def as_jpeg(path: Path) -> bytes:
