@@ -61,7 +61,7 @@ async def start_import(request: Request, links: str = Form(""), tags: str = Form
             worker.enqueue(post.id)
     n = len(result.created)
     return redirect(request, f"/import/{result.batch.id}",
-                    toast=f"{n} {'Aussage' if n == 1 else 'Aussagen'} in der Warteschlange" if n else "Nichts Neues dabei")
+                    toast=f"{n} {'Posting' if n == 1 else 'Postings'} in der Warteschlange" if n else "Nichts Neues dabei")
 
 
 @router.get("/import")

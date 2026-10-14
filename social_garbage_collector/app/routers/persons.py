@@ -46,8 +46,9 @@ def overview(request: Request, q: str = "", user: User = Depends(require_user), 
         db.commit()
     persons = account_service.list_persons(db, q[:100])
     stats = account_service.person_stats(db, [p.id for p in persons])
-    # Personen ohne archivierte Aussage stehen hinten.
-    persons.sort(key=lambda p: (stats.get(p.id, {}).get("count", 0) == 0, p.name.lstrip("@").lower()))
+    # Personen ohne archiviertes Posting erscheinen nicht (z. B. nach dem Loeschen).
+    persons = [p for p in persons if stats.get(p.id, {}).get("count", 0)]
+    persons.sort(key=lambda p: p.name.lstrip("@").lower())
     tpl = "partials/person_rows.html" if request.headers.get("hx-request") else "persons.html"
     return render(request, tpl, persons=persons, stats=stats, q=q, pview=get_prefs(user)["persons_view"])
 
@@ -72,7 +73,7 @@ async def edit(request: Request, person_id: int, name: str = Form(""), note: str
                user: User = Depends(require_user), db: Session = Depends(get_db),
                settings: Settings = Depends(get_settings)):
     """Nur Darstellung: Name, Kurzbeschreibung, Beschreibung, eigenes Foto.
-    Die archivierten Aussagen (Wortlaut, Original-Profilbild) bleiben unveraendert."""
+    Die archivierten Postings (Wortlaut, Original-Profilbild) bleiben unveraendert."""
     from ..services import avatars
 
     person = _get_person(db, person_id)

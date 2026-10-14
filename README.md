@@ -1,6 +1,6 @@
 # TrashTwitter
 
-Quellenarchiv für öffentliche Aussagen von **X** und **Bluesky**, als Home-Assistant-Add-on für den Raspberry Pi 5.
+Quellenarchiv für öffentliche Postingn von **X** und **Bluesky**, als Home-Assistant-Add-on für den Raspberry Pi 5.
 Wortlaut, Verfasser, Datum und ein Beleg-Screenshot werden dauerhaft gesichert, nach Personen geordnet und durchsuchbar gemacht. TrashTwitter ist kein soziales Netzwerk: keine Likes, kein Feed, keine Reichweite. Es geht um Nachvollziehbarkeit, Quellenbezug und Einordnung.
 
 > Bis Version 0.5 hieß die App **SocialGarbageCollector** und war ein Spaß-Archiv, in 0.6.0 kurz „Wortlaut“. Der Add-on-Slug (`social_garbage_collector`) und der Datenordner (`/share/SocialGarbageCollector`) behalten den alten Namen, damit bestehende Installationen ihre Daten und Einstellungen behalten.
@@ -25,23 +25,25 @@ Wortlaut, Verfasser, Datum und ein Beleg-Screenshot werden dauerhaft gesichert, 
 
 | Bereich | Was es macht |
 |---|---|
-| Aussage archivieren | Plus-Knopf, Taste `n` oder Teilen aus anderen Apps öffnet ein Sheet. Beim Einfügen prüft die App live Plattform, Verfasser und Duplikate. Unterstützt: X (x.com, twitter.com) und Bluesky (bsky.app, auch `at://`). |
+| Posting archivieren | Plus-Knopf, Taste `n` oder Teilen aus anderen Apps öffnet ein Sheet. Beim Einfügen prüft die App live Plattform, Verfasser und Duplikate. Unterstützt: X (x.com, twitter.com) und Bluesky (bsky.app, auch `at://`). |
 | Wortlaut | Wörtlich von der Plattform: Bluesky über die öffentliche API, X über das Embed-Backend (`cdn.syndication.twimg.com`), mit ausgeschriebenen Links und ohne vorangestellte @Antwort-Namen. Texterkennung (Tesseract) nur als Rückfall. Korrekturen sind möglich und werden als „manuell“ markiert. |
-| Personen gestalten | Eigenes Foto, Kurzbeschreibung und Beschreibung je Person – nur Darstellung, die Aussagen bleiben original. Übersicht als Kacheln oder Liste. |
-| Personen & Accounts | Jede Aussage hängt an einem Account, jeder Account an einer Person. Accounts werden über ihre **feste ID** erkannt (Bluesky-DID, X-User-ID). Ändert jemand Handle, Anzeigename oder Profilbild, bleibt es derselbe Account; die Änderung steht im Verlauf. Mehrere Accounts eines Menschen führst du auf der Personenseite zusammen, Zuordnungen lassen sich jederzeit ändern oder trennen. |
-| Profilbilder | Die Profilbilder der Verfasser werden lokal gesichert (200-px-WebP, gleiche Bilder nur einmal). Jede Aussage zeigt das Bild vom Zeitpunkt der Archivierung. |
-| Zitatkarte | Jede Aussage sieht gleich aus, egal ob X oder Bluesky: Verfasser, Wortlaut in einer Buchschrift, Datum, Archiv-Nummer, Link zum Original. Der Plattform-Screenshot ist nur noch **Beleg** auf der Detailseite. |
+| Personen gestalten | Eigenes Foto, Kurzbeschreibung und Beschreibung je Person – nur Darstellung, die Postingn bleiben original. Übersicht als Kacheln oder Liste. |
+| Personen & Accounts | Jedes Posting hängt an einem Account, jeder Account an einer Person. Accounts werden über ihre **feste ID** erkannt (Bluesky-DID, X-User-ID). Ändert jemand Handle, Anzeigename oder Profilbild, bleibt es derselbe Account; die Änderung steht im Verlauf. Mehrere Accounts eines Menschen führst du auf der Personenseite zusammen, Zuordnungen lassen sich jederzeit ändern oder trennen. |
+| Profilbilder | Die Profilbilder der Verfasser werden lokal gesichert (200-px-WebP, gleiche Bilder nur einmal). Jedes Posting zeigt das Bild vom Zeitpunkt der Archivierung. |
+| Zitatkarte | Jedes Posting sieht gleich aus, egal ob X oder Bluesky: Verfasser, Wortlaut in einer Buchschrift, Datum, Archiv-Nummer, Link zum Original. Der Plattform-Screenshot ist nur noch **Beleg** auf der Detailseite. |
 | Lange X-Beiträge | Über 280 Zeichen liefert X nur den Anfang. Die App lädt den vollen Wortlaut über die öffentliche fxtwitter-API nach (nur in diesem Fall). Der Beleg-Screenshot bekommt den vollen Text eingesetzt und ist dann als „Text ergänzt“ gekennzeichnet. |
 | Datum | Kommt von der Plattform. Fehlt es, liest die App es aus der Beitrags-ID (X und Bluesky haben den Zeitpunkt darin, sekundengenau) oder per Texterkennung aus dem Screenshot. Die Herkunft steht in den Angaben, korrigieren geht von Hand. |
 | Quellenangabe | Zitierfertig zum Kopieren, z. B. *Maria Müller (@mmueller): „…“ X, 04.03.2019, 10:12. https://x.com/… – archiviert am 13.10.2026 in TrashTwitter, Archiv-Nr. 000001.* Die Archiv-Nummer ändert sich nie. |
 | Beleg-Screenshot | Läuft im Hintergrund mit Playwright/Chromium und erfasst nur den Beitrag. Threads: weitere Teile per Link ergänzen (beim Hinzufügen oder später), sie werden zu einem Beleg zusammengesetzt. Die automatische Thread-Erkennung ist seit 0.6.1 abgeschaltet. Eigene Screenshots (z. B. von gelöschten Beiträgen) lassen sich hochladen, ziehen oder mit ⌘V einfügen. |
-| Archiv | Volltextsuche (FTS5), Plattform, Verfasser, Person, Tags, Liste, Zeitraum der Aussage, archiviert von, Status. Sortiert standardmäßig nach dem **Datum der Aussage**. |
-| Darstellungen | **Karten** (Zitate nebeneinander), **Liste** (eine Zeile pro Aussage), **Zeitachse** (nach Monaten, in voller Länge). Wird pro Person gemerkt. |
+| Archiv | Volltextsuche (FTS5), Plattform, Verfasser, Person, Tags, Liste, Zeitraum des Postings, archiviert von, Status. Sortiert standardmäßig nach dem **Datum des Postings**. |
+| Darstellungen | **Karten** (Zitate mit allen Angaben), **Raster** (gleich große Kacheln, nur Name, Text, Datum), **Liste** (eine Zeile pro Posting), **Zeitachse** (nach Monaten, in voller Länge). Wird pro Person gemerkt. Tags oben antippen zum Filtern. |
+| Medien | Bilder, GIFs und Videos aus Postings werden mitgesichert (X: MP4/Originalbild, Bluesky: Originaldatei vom Server des Accounts). Grenze je Datei über `media_max_mb`, abschaltbar mit `save_media`. |
+| Schnell löschen | Mülleimer beim Drüberfahren und „Löschen“ in der Mehrfachauswahl, immer mit Rückfrage. |
 | Massenimport | Reiter „Viele Links“: bis zu 500 Links von X und Bluesky auf einmal, auch mitten in Text. Doppelte, schon archivierte und schon als Thread-Teil erfasste Beiträge werden übersprungen. Fortschrittsseite mit Zusammenfassung, frühere Importe unter `/import`. |
 | Galerie | Eigene Bilder hochladen (auch ⌘V, bis 40 auf einmal) und selbst angelegten Kategorien zuordnen. Raster im Blocksatz ohne weitere Infos, Filter nach Kategorien (mehrere kombinierbar), Vollbild mit Blättern, Wischen und Infoleiste auf Wunsch. Bilder werden verkleinert, ohne Standortdaten gespeichert, Duplikate erkannt. |
-| Mehrfachauswahl | Aussagen markieren und gesammelt in eine Liste legen. |
+| Mehrfachauswahl | Postingn markieren und gesammelt in eine Liste legen. |
 | Listen | Gemeinsame Sammlungen zu einem Thema, mit Beschreibung, für alle bearbeitbar. Ablegen über ein Auswahlfenster: antippen, suchen, neue Liste direkt anlegen – einzeln oder per Mehrfachauswahl. |
-| Suchgenerator | Baut Suchbefehle für X und Bluesky, um Aussagen auf den Plattformen selbst zu finden. |
+| Suchgenerator | Baut Suchbefehle für X und Bluesky, um Postingn auf den Plattformen selbst zu finden. |
 | Teilen | Android: als App installieren, dann im Teilen-Menü. iPhone: Kurzbefehl „Archivieren“. Computer: Lesezeichen. |
 | Benutzer | Rollen Admin und Mitglied. Jede:r ändert das eigene Passwort selbst (Einstellungen → Konto), niemand kann Passwörter einsehen. Konten legt nur der Admin an. Admin-Funktionen sind für Mitglieder unsichtbar und antworten mit 404. Zusammenführungen von Personen stehen im Protokoll. |
 
@@ -51,7 +53,7 @@ Bewusst **nicht** (mehr) enthalten: Reaktionen, Favoriten, „Neu für dich“, 
 
 Sachlich: Papier und Tinte, eine Akzentfarbe (Tinte, Blau, Grün, Bordeaux), keine Verläufe und kein Glow. Zitate stehen in einer Buchschrift (Iowan Old Style auf Apple-Geräten, sonst Georgia), die Bedienung in der Systemschrift. Hell, Dunkel und System, zwei Dichten, reduzierte Bewegung, alles pro Person.
 
-Am Handy gibt es eine Tab-Leiste (Archiv, Personen, +, Listen, Mehr) und Sheets von unten. Auf der Detailseite stehen dort Aussage, Quellenangabe und Beleg ganz oben.
+Am Handy gibt es eine Tab-Leiste (Archiv, Personen, +, Listen, Mehr) und Sheets von unten. Auf der Detailseite stehen dort Posting, Quellenangabe und Beleg ganz oben.
 
 Das Icon (typografisches Anführungszeichen auf Tinte) erzeugt `branding/icons_erzeugen.py` in allen Größen.
 
@@ -131,6 +133,8 @@ Danach legst du unter **Benutzer** die Konten deiner Freunde an. Das Anfangspass
 | `login_max_attempts` | `5` | Fehlversuche bis zur Sperre eines Kontos |
 | `login_lock_minutes` | `15` | Dauer der Sperre |
 | `backup_keep` | `7` | Anzahl täglicher DB-Sicherungen in `backups/` (0 = aus) |
+| `save_media` | `true` | Bilder, GIFs und Videos aus Postings mitsichern |
+| `media_max_mb` | `150` | Höchstgröße je Medien-Datei in MB |
 | `screenshot_theme` | `dark` | Screenshots von X und Bluesky dunkel oder hell aufnehmen. Vorhandene Beiträge holst du unter Einstellungen → System → „Alle Screenshots neu aufnehmen“ nach. |
 | `timezone` | `Europe/Berlin` | Zeitzone für die Anzeige |
 | `log_level` | `info` | Ausführlichkeit des Protokolls |
@@ -145,12 +149,13 @@ Alles Dauerhafte liegt in **einem** Ordner:
 
 ```
 /share/SocialGarbageCollector/
-├── db/archiv.sqlite        ← Datenbank (Aussagen, Personen, Accounts, Tags, Listen, Nutzer, Protokoll)
+├── db/archiv.sqlite        ← Datenbank (Postingn, Personen, Accounts, Tags, Listen, Nutzer, Protokoll)
 ├── screenshots/            ← Beleg-Screenshots als WebP (Pfade in der DB sind relativ → Ordner ist verschiebbar)
 ├── authors/                ← Profilbilder der Verfasser (Name = Prüfsumme)
 ├── avatars/                ← Profilbilder der Mitglieder
 ├── backups/                ← tägliche DB-Sicherungen (sqlite backup, WAL-sicher)
 ├── gallery/                ← Galerie-Bilder (WebP, je Bild Ansicht + Vorschau)
+├── media/                  ← Bilder, GIFs, Videos aus den Postings
 ```
 
 - **Home-Assistant-Backup:** Beim Teil-Backup den Haken bei **„Share“** setzen. Ein volles Backup enthält `/share` ohnehin.
@@ -215,7 +220,7 @@ SocialGarbageCollector/                 ← Projektordner = Add-on-Repository (N
     └── tests/                          ← pytest, ohne Netz/Browser
 ```
 
-**Datenmodell:** `users` (Rolle, Status, argon2-Hash, Sperre, letzter Login, `prefs` als JSON), `sessions` (nur Token-Hash), `admin_log`, `persons` (Name, Beschreibung, `name_locked`), `accounts` (Plattform, feste ID, aktueller Handle/Name/Profilbild, Person), `account_changes` (Verlauf), `posts` = Aussagen (Plattform, URL, `dedup_key`, Handle und Anzeigename **zum Zeitpunkt der Archivierung**, Profilbild-Stand, Account, Zeitpunkt, Wortlaut, Textquelle, Alt-Texte, Anmerkung, Beleg-Screenshot, Status), `tags`, `post_tags`, `lists`, `list_posts`, `saved_searches` und die virtuelle Tabelle `posts_fts`. Die Spalten `disco`, `seen_until`, `last_visit_at` sind seit 0.6 ungenutzt; die Tabelle `reactions` wird beim Start entfernt.
+**Datenmodell:** `users` (Rolle, Status, argon2-Hash, Sperre, letzter Login, `prefs` als JSON), `sessions` (nur Token-Hash), `admin_log`, `persons` (Name, Beschreibung, `name_locked`), `accounts` (Plattform, feste ID, aktueller Handle/Name/Profilbild, Person), `account_changes` (Verlauf), `posts` = Postingn (Plattform, URL, `dedup_key`, Handle und Anzeigename **zum Zeitpunkt der Archivierung**, Profilbild-Stand, Account, Zeitpunkt, Wortlaut, Textquelle, Alt-Texte, Anmerkung, Beleg-Screenshot, Status), `tags`, `post_tags`, `lists`, `list_posts`, `saved_searches` und die virtuelle Tabelle `posts_fts`. Die Spalten `disco`, `seen_until`, `last_visit_at` sind seit 0.6 ungenutzt; die Tabelle `reactions` wird beim Start entfernt.
 
 **Neue Plattform ergänzen:** Ein Modul in `services/platforms/` schreiben, das `PlatformService` aus `base.py` erfüllt (URL parsen, Duplikat-Schlüssel, Metadaten, Screenshot), und es in `platforms/__init__.py` eintragen. Worker, Suche und Oberfläche bleiben gleich.
 

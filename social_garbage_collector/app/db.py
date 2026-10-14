@@ -111,6 +111,7 @@ _ADDED_COLUMNS = {
         ("long_post", "BOOLEAN NOT NULL DEFAULT 0"),
         ("shot_reconstructed", "BOOLEAN NOT NULL DEFAULT 0"),
         ("import_batch", "VARCHAR(16)"),
+        ("media_checked", "BOOLEAN NOT NULL DEFAULT 0"),
     ],
     "lists": [
         ("description", "TEXT NOT NULL DEFAULT ''"),

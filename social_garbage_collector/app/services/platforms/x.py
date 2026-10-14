@@ -295,6 +295,7 @@ def metadata_from_syndication(data: dict) -> PostMetadata:
     )
     meta.alt_texts = [m.get("ext_alt_text", "").strip() for m in data.get("mediaDetails") or []
                       if (m.get("ext_alt_text") or "").strip()]
+    meta.media = x_media(data)
     if note:  # "note_tweet" = langer Beitrag; steckt der Text nicht mit drin, ist er gekuerzt
         has_full = bool((((note.get("note_tweet_results") or {}).get("result") or {}).get("text")))
         meta.long_post, meta.text_complete = True, has_full
@@ -333,6 +334,26 @@ async def complete_long_text(client: httpx.AsyncClient, tweet_id: str, meta: Pos
         meta.long_post, meta.text_complete = True, True
     elif meta.long_post:
         meta.text_complete = False
+
+
+def x_media(data: dict) -> list:
+    """Bilder (Originalgroesse), Videos und GIFs (bei X: stumme MP4-Schleife)."""
+    from .base import MediaRef
+
+    out = []
+    for m in data.get("mediaDetails") or []:
+        kind = {"photo": "photo", "video": "video", "animated_gif": "gif"}.get(m.get("type"))
+        info = m.get("original_info") or {}
+        size = dict(width=info.get("width"), height=info.get("height"))
+        alt = (m.get("ext_alt_text") or "").strip()
+        if kind == "photo" and m.get("media_url_https"):
+            out.append(MediaRef("photo", m["media_url_https"] + "?name=orig", alt, **size))
+        elif kind in ("video", "gif"):
+            mp4 = [v for v in (m.get("video_info") or {}).get("variants") or [] if v.get("content_type") == "video/mp4"]
+            if mp4:
+                best = max(mp4, key=lambda v: v.get("bitrate") or 0)
+                out.append(MediaRef(kind, best["url"], alt, **size))
+    return out
 
 
 def tweet_text(data: dict) -> str:

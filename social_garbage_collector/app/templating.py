@@ -66,6 +66,18 @@ def _post_avatar(post) -> str | None:
 
 
 @pass_context
+def _tag_choices(ctx, limit: int = 200) -> list[tuple[str, int]]:
+    """Alle Tags mit Anzahl, die meistgenutzten zuerst (fuer die Schnellauswahl)."""
+    db = getattr(ctx["request"].state, "db", None)
+    if db is None:
+        return []
+    from .services.posts import tag_counts
+
+    rows = sorted(((t.name, n) for t, n in tag_counts(db) if n), key=lambda r: (-r[1], r[0]))
+    return rows[:limit]
+
+
+@pass_context
 def _all_lists(ctx) -> list:
     """Alle Listen (fuer Auswahlfelder, die auf jeder Seite stehen, z. B. im Massenimport)."""
     db = getattr(ctx["request"].state, "db", None)
@@ -180,6 +192,7 @@ env.globals.update(
     CHANGE_LABELS={"handle": "Handle", "display_name": "Anzeigename", "avatar_path": "Profilbild"},
     file_url=_file_url,
     list_choices=_all_lists,
+    tag_choices=_tag_choices,
     post_avatar=_post_avatar,
     citation=citation,
     archive_no=archive_no,

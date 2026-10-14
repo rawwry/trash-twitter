@@ -154,6 +154,15 @@ def _delete_account(db: Session, acc: Account) -> None:
         _cleanup_person(db, person)
 
 
+def prune_empty(db: Session) -> int:
+    """Nach dem Loeschen von Postings: Accounts ohne Postings entfernen, dann
+    Personen ohne Accounts (ausser jemand hat sie bearbeitet - Foto, Name, Text)."""
+    empty = list(db.scalars(select(Account).where(~Account.posts.any())))
+    for acc in empty:
+        _delete_account(db, acc)
+    return len(empty)
+
+
 def _cleanup_person(db: Session, person: Person) -> None:
     """Personen ohne Accounts verschwinden - ausser jemand hat sie bearbeitet."""
     db.refresh(person)

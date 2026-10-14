@@ -1,4 +1,4 @@
-"""Aussagen: hinzufuegen, Duplikate erkennen, Tags, Archivsuche."""
+"""Postings: hinzufuegen, Duplikate erkennen, Tags, Archivsuche."""
 
 from __future__ import annotations
 
@@ -129,7 +129,7 @@ def _like_escape(value: str) -> str:
 
 
 def find_as_thread_part(db: Session, platform: str, post_id: str) -> Post | None:
-    """Steckt der Beitrag schon als Teil eines Threads in einer anderen Aussage?
+    """Steckt der Beitrag schon als Teil eines Threads in eines anderen Postings?
     (zusammengeklebte Teile in thread_parts, von Hand ergaenzte in thread_extra)"""
     if not post_id:
         return None
@@ -188,7 +188,7 @@ async def add_post(db: Session, user: User, url: str, note: str, tags_raw: str,
     key = service.dedup_key(parsed)
     dup = find_duplicate(db, parsed.platform, key, parsed.post_id, parsed.author_handle, parsed.author_did)
     if dup:
-        raise AddPostError("Diese Aussage ist schon im Archiv.", existing=dup)
+        raise AddPostError("Dieses Posting ist schon im Archiv.", existing=dup)
 
     post = Post(
         platform=parsed.platform,
@@ -262,12 +262,12 @@ class ArchiveFilter:
     @property
     def advanced_count(self) -> int:
         """Anzahl aktiver Filter im aufklappbaren Filterbereich (fuer das Zaehler-Badge)."""
-        return sum(bool(x) for x in (self.tags, self.author, self.list_id, self.user_id,
+        return sum(bool(x) for x in (self.author, self.list_id, self.user_id,
                                      self.date_from or self.date_to, self.status, self.person_id,
                                      self.account_id))
 
 
-# posted: nach Datum der Aussage (Standard), new/old: nach Archivierung.
+# posted: nach Datum des Postings (Standard), new/old: nach Archivierung.
 SORTS = {"posted", "posted_old", "new", "old"}
 
 
@@ -336,7 +336,7 @@ def archive_query(f: ArchiveFilter) -> Select:
         conds.append(exists().where(ListPost.post_id == Post.id, ListPost.list_id == f.list_id))
     if f.user_id:
         conds.append(Post.added_by_id == f.user_id)
-    # Zeitraum = wann die Aussage gemacht wurde (Rueckfall: Archivierung).
+    # Zeitraum = wann das Posting gemacht wurde (Rueckfall: Archivierung).
     said = func.coalesce(Post.posted_at, Post.created_at)
     if f.date_from:
         conds.append(said >= datetime.combine(f.date_from, time.min))
@@ -393,7 +393,7 @@ def check_url(db: Session, url: str) -> LinkCheck:
 
 
 def neighbors(db: Session, post: Post) -> tuple[int | None, int | None]:
-    """(neuere, aeltere) Aussage - nach dem Datum der Aussage, wie im Archiv."""
+    """(neuere, aeltere) Posting - nach dem Datum des Postings, wie im Archiv."""
     said = func.coalesce(Post.posted_at, Post.created_at)
     mine = post.said_at
     newer = db.scalar(select(Post.id).where(
@@ -493,7 +493,7 @@ async def add_upload(db: Session, user: User, settings, blobs: list[bytes], link
         key = service.dedup_key(parsed)
         dup = find_duplicate(db, parsed.platform, key, parsed.post_id, parsed.author_handle, parsed.author_did)
         if dup:
-            raise AddPostError("Diese Aussage ist schon im Archiv – dort kannst du den Beleg-Screenshot ersetzen.",
+            raise AddPostError("Dieses Posting ist schon im Archiv – dort kannst du den Beleg-Screenshot ersetzen.",
                                existing=dup)
         platform, post_id, url, did = parsed.platform, parsed.post_id, parsed.canonical_url, parsed.author_did
         handle = parsed.author_handle or handle
@@ -557,3 +557,27 @@ def replace_screenshot(db: Session, settings, post: Post, blobs: list[bytes]) ->
     post.status, post.status_message = STATUS_PENDING, ""  # Worker liest den Text neu
     post.updated_at = utcnow()
     db.commit()
+
+
+# --------------------------------------------------------------------------
+# Loeschen (einzeln und per Mehrfachauswahl)
+# --------------------------------------------------------------------------
+
+def delete_posts(db: Session, settings, posts: list[Post]) -> int:
+    """Loescht Postings samt Beleg und gesicherten Medien. Danach verschwinden
+    leere Tags, Accounts ohne Postings und unbearbeitete Personen ohne Accounts."""
+    from ..config import UnsafePathError, safe_path
+
+    for post in posts:
+        files = [post.screenshot_path] + [m.path for m in getattr(post, "media", [])]
+        for rel in filter(None, files):
+            try:
+                safe_path(settings.base_path, rel).unlink(missing_ok=True)
+            except (UnsafePathError, OSError):
+                pass
+        db.delete(post)
+    db.flush()
+    remove_orphan_tags(db)
+    accounts.prune_empty(db)
+    db.commit()
+    return len(posts)

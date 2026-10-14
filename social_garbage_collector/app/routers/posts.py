@@ -1,4 +1,4 @@
-"""Archiv: Aussagen hinzufuegen, ansehen, korrigieren, suchen; Screenshots und Profilbilder ausliefern."""
+"""Archiv: Postings hinzufuegen, ansehen, korrigieren, suchen; Screenshots und Profilbilder ausliefern."""
 
 from __future__ import annotations
 
@@ -123,7 +123,7 @@ def bulk_to_list(request: Request, ids: list[int] = Form(default=[]), list_id: i
     back = safe_next(back)
     ids = list(dict.fromkeys(ids))[:500]
     if not ids:
-        return redirect(request, back, toast="Keine Aussagen ausgewählt.", kind="error")
+        return redirect(request, back, toast="Keine Postings ausgewählt.", kind="error")
     title = " ".join(new_list.split())[:120]
     if title:
         target = PostList(title=title, created_by_id=user.id)
@@ -134,7 +134,7 @@ def bulk_to_list(request: Request, ids: list[int] = Form(default=[]), list_id: i
         if target is None:
             return redirect(request, back, toast="Bitte eine Liste auswählen.", kind="error")
     added, already = post_service.add_many_to_list(db, user, ids, target)
-    message = f"{added} {'Aussage' if added == 1 else 'Aussagen'} in „{target.title}“ abgelegt"
+    message = f"{added} {'Posting' if added == 1 else 'Postings'} in „{target.title}“ abgelegt"
     if already:
         message += f" ({already} waren schon drin)"
     return redirect(request, back, toast=message)
@@ -277,7 +277,7 @@ def update_text(request: Request, post_id: int, text: str = Form(""), db: Sessio
 @router.post("/posts/{post_id}/date")
 def update_date(request: Request, post_id: int, day: str = Form(""), clock: str = Form(""),
                 db: Session = Depends(get_db)):
-    """Datum der Aussage von Hand setzen oder entfernen (leeres Feld)."""
+    """Datum des Postings von Hand setzen oder entfernen (leeres Feld)."""
     from ..services import dates
 
     post = _get_post(db, post_id)
@@ -333,6 +333,20 @@ def remove_from_list(request: Request, post_id: int, list_id: int, back: str = F
                     toast="Aus der Liste entfernt")
 
 
+@router.post("/posts/bulk/delete")
+def bulk_delete(request: Request, ids: list[int] = Form(default=[]), back: str = Form("/"),
+                db: Session = Depends(get_db), settings: Settings = Depends(get_settings)):
+    """Mehrfachauswahl: alle markierten Postings loeschen (nach Rueckfrage im Browser)."""
+    from .auth import safe_next
+
+    ids = list(dict.fromkeys(ids))[:500]
+    posts = list(db.scalars(select(Post).where(Post.id.in_(ids)))) if ids else []
+    if not posts:
+        return redirect(request, safe_next(back), toast="Keine Postings ausgewählt.", kind="error")
+    n = post_service.delete_posts(db, settings, posts)
+    return redirect(request, safe_next(back), toast=f"{n} {'Posting' if n == 1 else 'Postings'} gelöscht")
+
+
 @router.get("/posts/{post_id}/delete")
 def delete_confirm(request: Request, post_id: int, db: Session = Depends(get_db)):
     return render(request, "confirm_delete.html", post=_get_post(db, post_id))
@@ -342,16 +356,13 @@ def delete_confirm(request: Request, post_id: int, db: Session = Depends(get_db)
 def delete_post(request: Request, post_id: int, db: Session = Depends(get_db),
                 settings: Settings = Depends(get_settings)):
     post = _get_post(db, post_id)
-    if post.screenshot_path:
-        try:
-            safe_path(settings.base_path, post.screenshot_path).unlink(missing_ok=True)
-        except (UnsafePathError, OSError):
-            pass
-    db.delete(post)
-    db.flush()
-    post_service.remove_orphan_tags(db)
-    db.commit()
-    return redirect(request, "/", toast="Aussage aus dem Archiv gelöscht")
+    post_service.delete_posts(db, settings, [post])
+    if request.headers.get("hx-request") and request.headers.get("hx-target", "").startswith("post-"):
+        # Schnell-Loeschen im Archiv: Karte verschwindet, Seite bleibt.
+        from ..templating import toast_header
+
+        return toast_header(Response(status_code=200), "Posting gelöscht")
+    return redirect(request, "/", toast="Posting aus dem Archiv gelöscht")
 
 
 @router.get("/tags/suggest")
@@ -387,6 +398,25 @@ def author_avatar(name: str, settings: Settings = Depends(get_settings)):
         raise HTTPException(status_code=404)
     # Name = Pruefsumme des Inhalts -> aendert sich nie.
     return FileResponse(file, media_type="image/webp", headers={"Cache-Control": "private, max-age=31536000, immutable"})
+
+
+@router.get("/medien/{path:path}")
+def post_media_file(path: str, download: int = 0, settings: Settings = Depends(get_settings)):
+    """Gesicherte Bilder/GIFs/Videos aus Postings - nur eingeloggt, nur aus media/.
+    FileResponse beantwortet Range-Anfragen, damit Videos (auch in Safari) spulen."""
+    from ..services.media import guess_mime
+
+    try:
+        file = safe_path(settings.base_path, path)
+        file.relative_to(settings.media_dir.resolve())
+    except (UnsafePathError, ValueError):
+        raise HTTPException(status_code=404)
+    if not file.is_file():
+        raise HTTPException(status_code=404)
+    headers = {"Cache-Control": "private, max-age=31536000, immutable"}
+    if download:
+        return FileResponse(file, media_type=guess_mime(file.name), filename=file.name, headers=headers)
+    return FileResponse(file, media_type=guess_mime(file.name), headers=headers)
 
 
 @router.get("/media/{path:path}")

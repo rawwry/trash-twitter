@@ -1,12 +1,12 @@
-{# Listen-Auswahl im Fenster. mode "post": antippen = Aussage hinein/heraus (sofort gespeichert).
-   mode "bulk": antippen = alle markierten Aussagen dort ablegen. #}
+{# Listen-Auswahl im Fenster. mode "post": antippen = Posting hinein/heraus (sofort gespeichert).
+   mode "bulk": antippen = alle markierten Postings dort ablegen. #}
 {% from "partials/icons.html" import icon %}
 <div class="sheet-inner list-picker" id="list-picker" data-list-picker>
   <div class="sheet-head">
     <h2 id="list-title">{{ 'Listen' if mode == 'post' else 'In Liste ablegen' }}</h2>
     <button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close') }}</button>
   </div>
-  <p class="muted small" style="margin:0">{% if mode == 'post' %}Antippen legt die Aussage in die Liste oder nimmt sie heraus.{% else %}Liste antippen – alle markierten Aussagen landen dort.{% endif %}</p>
+  <p class="muted small" style="margin:0">{% if mode == 'post' %}Antippen legt das Posting in die Liste oder nimmt es heraus.{% else %}Liste antippen – alle markierten Postings landen dort.{% endif %}</p>
   <div class="search-input">
     {{ icon('search') }}
     <input type="search" placeholder="Liste suchen oder neue anlegen" aria-label="Liste suchen oder neu anlegen"

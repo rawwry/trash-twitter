@@ -239,7 +239,8 @@ def test_person_photo_subtitle_and_tiles(user_client, harness):
         # Die Aussage behaelt ihr Original (kein Profilbild gesetzt -> bleibt leer)
         assert db.get(Post, pid).author_avatar_path is None
     with Image.open(harness.settings.base_path / photo) as img:
-        assert img.size == (256, 256) and img.format == "WEBP"
+        # 0.10.0: hochkant 4:5 fuer die Kachel, kleine Bilder werden nicht aufgeblasen
+        assert img.size == (240, 300) and img.format == "WEBP"
     tiles = user_client.get("/personen").text
     assert "Bundesminister a. D." in tiles and photo in tiles
     # Liste umschalten wird gemerkt

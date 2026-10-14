@@ -75,8 +75,34 @@ def remove(settings: Settings, user: User) -> None:
 
 # --- Eigenes Foto fuer eine Person (nur Darstellung, 0.7.0) -----------------------
 
+PORTRAIT = (720, 900)  # 4:5 - fuellt die Personen-Kachel komplett
+
+
+def process_portrait(data: bytes) -> bytes:
+    """Wie process(), aber hochkant 4:5 und groesser - fuer Personenfotos."""
+    if not data:
+        raise AvatarError("Keine Datei ausgewählt.")
+    if len(data) > MAX_BYTES:
+        raise AvatarError("Das Bild ist zu groß (höchstens 8 MB).")
+    try:
+        with Image.open(io.BytesIO(data)) as img:
+            if img.format not in ALLOWED_FORMATS:
+                raise AvatarError("Bitte ein JPG-, PNG-, WebP- oder GIF-Bild hochladen.")
+            img.seek(0)
+            img = ImageOps.exif_transpose(img).convert("RGB")
+            # Kleine Bilder nicht kuenstlich aufblasen
+            w = min(PORTRAIT[0], img.width, int(img.height * 0.8))
+            size = (max(w, 64), max(int(w * 1.25), 80))
+            img = ImageOps.fit(img, size, Image.Resampling.LANCZOS, centering=(0.5, 0.35))
+            out = io.BytesIO()
+            img.save(out, "WEBP", quality=84, method=4)
+            return out.getvalue()
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
+        raise AvatarError("Das ist kein lesbares Bild.") from exc
+
+
 def save_person_photo(settings: Settings, person, data: bytes) -> None:
-    webp = process(data)
+    webp = process_portrait(data)
     settings.avatar_dir.mkdir(parents=True, exist_ok=True)
     name = f"p{person.id}-{secrets.token_hex(4)}.webp"
     (settings.avatar_dir / name).write_bytes(webp)

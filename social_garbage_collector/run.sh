@@ -32,6 +32,8 @@ setze("SGC_LOGIN_MAX_ATTEMPTS",  "login_max_attempts",  5)
 setze("SGC_LOGIN_LOCK_MINUTES",  "login_lock_minutes",  15)
 setze("SGC_BACKUP_KEEP",         "backup_keep",         7)
 setze("SGC_SCREENSHOT_THEME",    "screenshot_theme",    "dark")
+setze("SGC_SAVE_MEDIA",          "save_media",          True)
+setze("SGC_MEDIA_MAX_MB",        "media_max_mb",        150)
 setze("TZ",                      "timezone",            "Europe/Berlin")
 setze("SGC_LOG_LEVEL",           "log_level",           "info")
 PY

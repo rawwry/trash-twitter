@@ -5,7 +5,7 @@
 <section class="card" style="max-width:520px;margin:40px auto">
   {% if plist %}
     <h1>Liste „{{ plist.title }}“ löschen?</h1>
-    <p class="muted" style="margin-top:10px">Die Aussagen selbst bleiben im Archiv. Nur die Liste und ihre Zuordnungen verschwinden.</p>
+    <p class="muted" style="margin-top:10px">Die Postings selbst bleiben im Archiv. Nur die Liste und ihre Zuordnungen verschwinden.</p>
     <form method="post" action="{{ url('/lists/' ~ plist.id ~ '/delete') }}" class="row wrap">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="confirm" value="ja">
@@ -13,8 +13,8 @@
       <a class="btn-ghost" href="{{ url('/lists/' ~ plist.id) }}">Abbrechen</a>
     </form>
   {% else %}
-    <h1>Aussage Nr. {{ archive_no(post) }} löschen?</h1>
-    <p class="muted" style="margin-top:10px">Die Aussage von <strong>{{ post.author_name }}</strong> verschwindet samt Beleg-Screenshot,
+    <h1>Posting Nr. {{ archive_no(post) }} löschen?</h1>
+    <p class="muted" style="margin-top:10px">Das Posting von <strong>{{ post.author_name }}</strong> verschwindet samt Beleg-Screenshot,
       Anmerkung und Listen-Zuordnungen – für alle. Die Archiv-Nummer wird nicht neu vergeben. Das lässt sich nicht rückgängig machen.</p>
     <form method="post" action="{{ url('/posts/' ~ post.id ~ '/delete') }}" class="row wrap">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

@@ -8,7 +8,7 @@
 #
 # "version" muss mit VERSION in app/__init__.py uebereinstimmen.
 name: TrashTwitter
-version: "0.9.0"
+version: "0.10.0"
 slug: social_garbage_collector
 description: >-
   Quellenarchiv fuer oeffentliche Aussagen von X und Bluesky: Wortlaut,
@@ -58,6 +58,8 @@ options:
   login_lock_minutes: 15
   backup_keep: 7
   screenshot_theme: dark
+  save_media: true
+  media_max_mb: 150
   timezone: Europe/Berlin
   log_level: info
 
@@ -71,5 +73,7 @@ schema:
   login_lock_minutes: int(1,1440)
   backup_keep: int(0,365)
   screenshot_theme: list(dark|light)
+  save_media: bool
+  media_max_mb: int(5,2000)
   timezone: str
   log_level: list(debug|info|warning|error)

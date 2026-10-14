@@ -6,7 +6,7 @@
 <div class="page-head archive-head">
   <div>
     <h1>Archiv</h1>
-    <p class="sub">Öffentliche Aussagen von X und Bluesky – im Wortlaut, mit Quelle und Beleg.</p>
+    <p class="sub">Öffentliche Postings von X und Bluesky – im Wortlaut, mit Quelle und Beleg.</p>
   </div>
 </div>
 
@@ -27,7 +27,7 @@
       <label><input type="radio" name="platform" value="bluesky" {% if f.platform == 'bluesky' %}checked{% endif %}><span>Bluesky</span></label>
     </div>
     <select name="sort" aria-label="Sortierung">
-      {% for key, label in [('posted', 'Aussage: neueste'), ('posted_old', 'Aussage: älteste'), ('new', 'Archiviert: neueste'), ('old', 'Archiviert: älteste')] %}
+      {% for key, label in [('posted', 'Posting: neueste'), ('posted_old', 'Posting: älteste'), ('new', 'Archiviert: neueste'), ('old', 'Archiviert: älteste')] %}
       <option value="{{ key }}" {% if f.sort == key %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
@@ -37,11 +37,22 @@
     </button>
   </div>
 
+  {# Tags antippen statt eintippen. Mehrere = alle muessen passen. #}
+  {% set all_tags = tag_choices() %}
+  {% if all_tags %}
+  <input type="hidden" name="tags" value="{{ f.tags|join(',') }}" data-tag-filter>
+  <div class="tag-bar {{ 'is-open' if f.tags|length and f.tags|select('in', (all_tags[18:]|map(attribute=0)|list))|list }}" data-tag-bar>
+    {% for name, n in all_tags %}
+    <button type="button" class="tag-pill {{ 'is-extra' if loop.index > 18 }}" data-tag-toggle="{{ name }}" aria-pressed="{{ 'true' if name in f.tags else 'false' }}">#{{ name }} <span>{{ n }}</span></button>
+    {% endfor %}
+    {% if all_tags|length > 18 %}<button type="button" class="tag-pill tag-more" data-tag-more>+{{ all_tags|length - 18 }} weitere</button>{% endif %}
+  </div>
+  {% endif %}
+
   <div class="card filter-panel" id="filter-panel" {% if not f.advanced_count %}hidden{% endif %}>
     <label>Verfasser<input name="author" value="{{ f.author }}" placeholder="Name oder @handle"></label>
-    {% with field_value=f.tags|join(', '), field_label='Tags (alle müssen passen)' %}{% include "partials/tag_input.html" %}{% endwith %}
-    <label>Aussage vom<input type="date" name="from" value="{{ f.date_from or '' }}"></label>
-    <label>Aussage bis<input type="date" name="to" value="{{ f.date_to or '' }}"></label>
+    <label>Posting vom<input type="date" name="from" value="{{ f.date_from or '' }}"></label>
+    <label>Posting bis<input type="date" name="to" value="{{ f.date_to or '' }}"></label>
     <label>Liste
       <select name="list">
         <option value="">alle</option>
@@ -82,6 +93,8 @@
   <input type="hidden" name="new_list" value="" data-bulk-new-name>
   <button class="btn sm" type="button" disabled data-bulk-submit data-open="list-dialog"
           hx-get="{{ url('/lists/picker') }}" hx-target="#list-dialog-body" hx-swap="innerHTML">{{ icon('lists', 16) }} In Liste ablegen …</button>
+  <button class="btn-danger sm" type="submit" formaction="{{ url('/posts/bulk/delete') }}" data-bulk-delete disabled
+          data-confirm="Alle markierten Postings löschen? Belege und Anmerkungen verschwinden für alle.">{{ icon('trash', 15) }}<span class="label-m"> Löschen</span></button>
   <button type="button" class="icon-btn" data-select-cancel aria-label="Auswahl beenden">{{ icon('close', 18) }}</button>
 </form>
 {% endblock %}

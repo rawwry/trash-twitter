@@ -30,7 +30,7 @@
 <div class="setting-group" style="margin-top:14px">
   <div class="setting-row">
     <div class="text"><div class="label">Alle Screenshots neu aufnehmen</div>
-      <div class="help">Erstellt alle Beleg-Screenshots neu – z. B. nach dem Wechsel auf dunkle Screenshots. Von Hand korrigierte Texte bleiben erhalten. Dauert je Aussage 5–25 Sekunden.</div></div>
+      <div class="help">Erstellt alle Beleg-Screenshots neu – z. B. nach dem Wechsel auf dunkle Screenshots. Von Hand korrigierte Texte bleiben erhalten. Dauert je Posting 5–25 Sekunden.</div></div>
     <form method="post" action="{{ url('/admin/system/recapture-all') }}" data-confirm="Alle Screenshots neu aufnehmen? Das kann eine Weile dauern.">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <button class="btn-soft sm" type="submit">{{ icon('refresh', 15) }} Neu aufnehmen</button>

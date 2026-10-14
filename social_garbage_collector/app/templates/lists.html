@@ -6,7 +6,7 @@
 <div class="page-head">
   <div>
     <h1>Listen</h1>
-    <p class="sub">Gemeinsame Sammlungen von Aussagen zu einem Thema – alle Mitglieder können sie bearbeiten.</p>
+    <p class="sub">Gemeinsame Sammlungen von Postings zu einem Thema – alle Mitglieder können sie bearbeiten.</p>
   </div>
   <form method="post" action="{{ url('/lists') }}" class="row">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -27,7 +27,7 @@
       {% if persons > 5 %}<span class="faces-more">+{{ persons - 5 }}</span>{% endif %}
     </span>
     <span class="list-tile-meta">
-      <span><strong>{{ count }}</strong> {{ 'Aussage' if count == 1 else 'Aussagen' }} · {{ persons }} {{ 'Person' if persons == 1 else 'Personen' }}</span>
+      <span><strong>{{ count }}</strong> {{ 'Posting' if count == 1 else 'Postings' }} · {{ persons }} {{ 'Person' if persons == 1 else 'Personen' }}</span>
       {% if first %}<span>{{ first|localtime('%Y') }}{% if (last|localtime('%Y')) != (first|localtime('%Y')) %}–{{ last|localtime('%Y') }}{% endif %}</span>{% endif %}
     </span>
   </a>

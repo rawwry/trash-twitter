@@ -2,7 +2,7 @@
 <section id="results" aria-live="polite">
   <div class="results-bar">
     <div class="active-filters">
-      <span class="result-count"><strong>{{ total }}</strong> {{ 'Aussage' if total == 1 else 'Aussagen' }}{% if f.active %} gefunden{% endif %}</span>
+      <span class="result-count"><strong>{{ total }}</strong> {{ 'Posting' if total == 1 else 'Postings' }}{% if f.active %} gefunden{% endif %}</span>
       {% if f.active %}
       {% if f.q %}<span class="chip neutral">„{{ f.q }}“</span>{% endif %}
       {% if f.platform %}<span class="chip neutral">{{ PLATFORM_LABELS[f.platform] }}</span>{% endif %}
@@ -15,13 +15,13 @@
       {% endif %}
     </div>
     {% if posts %}
-    <button type="button" class="btn-ghost sm select-toggle" data-select-toggle aria-pressed="false" title="Mehrere Aussagen auswählen">
+    <button type="button" class="btn-ghost sm select-toggle" data-select-toggle aria-pressed="false" title="Mehrere Postings auswählen">
       {{ icon('check', 16) }}<span>Auswählen</span>
     </button>
     {% endif %}
     {# Darstellung umschalten - wird pro Person gemerkt #}
     <nav class="seg view-switch" aria-label="Darstellung">
-      {% for key, ico, label in [('cards', 'grid', 'Karten'), ('list', 'rows', 'Liste'), ('timeline', 'timeline', 'Zeitachse')] %}
+      {% for key, ico, label in [('cards', 'cards', 'Karten'), ('raster', 'grid', 'Raster'), ('list', 'rows', 'Liste'), ('timeline', 'timeline', 'Zeitachse')] %}
       <a href="{{ url('/') }}?{{ query_string }}{{ '&' if query_string }}view={{ key }}" title="{{ label }}" aria-label="{{ label }}"
          {% if view == key %}aria-current="true"{% endif %}><span>{{ icon(ico, 18) }}<span class="label">{{ label }}</span></span></a>
       {% endfor %}
@@ -40,8 +40,8 @@
       <p>Weniger Filter oder andere Suchbegriffe versuchen.</p>
     {% else %}
       <h2>Das Archiv ist leer</h2>
-      <p>Die erste Aussage archivierst du über „Aussage“ oder die Taste <kbd>n</kbd>: Link von X oder Bluesky einfügen, Wortlaut, Verfasser und Beleg kommen automatisch.</p>
-      <button class="btn" type="button" data-open="add-dialog">{{ icon('plus', 18) }} Erste Aussage archivieren</button>
+      <p>Die erstes Posting archivierst du über „Posting“ oder die Taste <kbd>n</kbd>: Link von X oder Bluesky einfügen, Wortlaut, Verfasser und Beleg kommen automatisch.</p>
+      <button class="btn" type="button" data-open="add-dialog">{{ icon('plus', 18) }} Erstes Posting archivieren</button>
     {% endif %}
   </div>
   {% endif %}

@@ -105,7 +105,7 @@ def test_bulk_picker_and_list_tiles(user_client, harness):
         lid = db.query(PostList).one().id
     user_client.post(f"/lists/{lid}/describe", data={"description": "Worum es geht", "csrf_token": user_client.csrf})
     tiles = user_client.get("/lists").text
-    assert 'class="list-tile"' in tiles and "Worum es geht" in tiles and "2</strong> Aussagen" in tiles
+    assert 'class="list-tile"' in tiles and "Worum es geht" in tiles and "2</strong> Postings" in tiles
 
 
 # --- Galerie ---------------------------------------------------------------------------------------

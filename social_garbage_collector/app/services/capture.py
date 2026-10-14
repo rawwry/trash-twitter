@@ -34,7 +34,7 @@ from ..models import (
     Post,
     utcnow,
 )
-from . import accounts, dates, ocr, shots
+from . import accounts, dates, media, ocr, shots
 from .platforms import get_service
 from .platforms.base import (
     MAX_THREAD_PARTS,
@@ -82,10 +82,13 @@ class CaptureWorker:
         try:
             n = await self.fill_missing_dates()
             if n:
-                log.info("Datum fuer %d Aussagen aus dem Screenshot gelesen.", n)
+                log.info("Datum fuer %d Postings aus dem Screenshot gelesen.", n)
             n = await self.refresh_accounts()
             if n:
                 log.info("%d Accounts nachgeschlagen (Profilbild, Name).", n)
+            n = await self.fill_missing_media()
+            if n:
+                log.info("%d Medien aus aelteren Postings nachtraeglich gesichert.", n)
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -214,6 +217,10 @@ class CaptureWorker:
                         problems.append("Langer Beitrag: X liefert nur den Anfang, der Wortlaut ist gekürzt – bitte ergänzen.")
                     # Wer hat das gesagt? Account + Profilbild sichern.
                     await accounts.apply_metadata(db, self.settings, client, post, metas[0])
+                # Bilder, GIFs, Videos aller Teile sichern (0.10.0)
+                refs = [r for m in metas if m for r in m.media]
+                if any(m is not None for m in metas):
+                    problems += await media.save_media(db, self.settings, client, post, refs)
             if post.account_id is None:
                 accounts.ensure_for_post(db, post)
             alt = [a for m in metas if m for a in m.alt_texts]
@@ -327,6 +334,7 @@ class CaptureWorker:
                 if meta:
                     self._apply_metadata(db, post, parsed, meta)
                     await accounts.apply_metadata(db, self.settings, client, post, meta)
+                    problems += await media.save_media(db, self.settings, client, post, meta.media)
         if post.account_id is None:
             accounts.ensure_for_post(db, post)
         if post.text_source != TEXT_MANUAL and post.screenshot_path:
@@ -435,7 +443,7 @@ class CaptureWorker:
             post.date_source = "none"  # gesucht, nichts gefunden - nicht bei jedem Start erneut
 
     async def fill_missing_dates(self, pause_s: float = 0.3) -> int:
-        """Einmal im Hintergrund: Aussagen ohne Datum (z. B. aus der Zeit vor 0.6)
+        """Einmal im Hintergrund: Postings ohne Datum (z. B. aus der Zeit vor 0.6)
         aus ihrem Screenshot lesen. Die ID-Variante laeuft schon beim Start."""
         done = 0
         while True:
@@ -453,9 +461,39 @@ class CaptureWorker:
                     db.commit()
                     await asyncio.sleep(pause_s)
 
+    async def fill_missing_media(self, pause_s: float = 1.5) -> int:
+        """Einmal im Hintergrund: Postings aus der Zeit vor 0.10 nach Bildern,
+        GIFs und Videos durchsehen und diese nachtraeglich sichern."""
+        if not self.settings.save_media:
+            return 0
+        found = 0
+        async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, follow_redirects=True) as client:
+            while True:
+                with self.session_factory() as db:
+                    batch = list(db.scalars(select(Post).where(
+                        Post.media_checked.is_(False), Post.url != "", Post.status == STATUS_DONE)
+                        .order_by(Post.id).limit(10)))
+                    if not batch:
+                        return found
+                    for post in batch:
+                        service = get_service(post.platform)
+                        parsed = ParsedPost(platform=post.platform, post_id=post.post_id,
+                                            author_handle=post.author_handle, canonical_url=post.url,
+                                            author_did=post.author_did)
+                        try:
+                            meta = await service.fetch_metadata(parsed, client)
+                        except (PlatformError, httpx.HTTPError):
+                            meta = None
+                        if meta and meta.media:
+                            await media.save_media(db, self.settings, client, post, meta.media)
+                            found += len(post.media)
+                        post.media_checked = True
+                        db.commit()
+                        await asyncio.sleep(pause_s)
+
     async def refresh_accounts(self, pause_s: float = 1.0) -> int:
         """Accounts ohne Profilbild (z. B. aus der Zeit vor 0.6) einmal bei der
-        Plattform nachschlagen - ueber ihre neueste Aussage mit Link."""
+        Plattform nachschlagen - ueber ihr neuestes Posting mit Link."""
         done = 0
         async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, follow_redirects=True) as client:
             while True:

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.10.0 – Medien, Raster, schnell aufräumen (14.10.2026)
+
+- **Medien sichern** (`services/media.py`, Tabelle `post_media`, Ordner `media/`): Bilder (Originalgröße), GIFs und Videos aus Postings.
+  - X: Bilder `pbs.twimg.com …?name=orig`, Videos/GIFs als MP4 der höchsten Bitrate von `video.twimg.com` (GIFs sind bei X stumme MP4-Schleifen).
+  - Bluesky: Bilder vom CDN, Videos als **Originaldatei vom PDS** des Accounts (`com.atproto.sync.getBlob`, PDS über das DID-Dokument) – kein ffmpeg nötig. GIFs (Tenor/Giphy-Links) von dort.
+  - Sicherheit: nur https, nur bekannte Medien-Server; PDS und Weiterleitungen nur mit öffentlicher IP. Grenze je Datei: neue Option `media_max_mb` (Standard 150), abschaltbar mit `save_media: false`.
+  - Ältere Postings werden einmal im Hintergrund nachgesehen (`posts.media_checked`). Detailseite: Abschnitt „Medien“ mit Player (spulen per HTTP-Range), Karten zeigen „▶ Video“, „GIF“, „n Bilder“.
+- **Raster** (`?view=raster`): ultraclean, festes Raster gleich großer Kacheln – nur Verfasser, Wortlaut, Datum.
+- **Tags antippen:** Tag-Leiste über dem Archiv (häufigste zuerst, mehrere = alle müssen passen), Schnellauswahl unter jedem Tag-Feld.
+- **Schnell löschen:** Mülleimer beim Drüberfahren (Touch: dezent sichtbar), „Löschen“ in der Mehrfachauswahl; eigenes Rückfrage-Fenster statt Browser-Dialog (gilt jetzt auch für andere Rückfragen). Löschen entfernt Beleg und Medien-Dateien, leere Accounts und unbearbeitete Personen.
+- **Personen:** Kacheln 4:5, Foto füllt die Kachel, Name/Kurzbeschreibung/Zahlen auf Verlauf; ohne Foto Monogramm auf Farbe. Eigene Fotos werden jetzt hochkant bis 720 × 900 gespeichert. Personen ohne Postings erscheinen nicht mehr.
+- **Benennung:** „Aussage“ → „Posting“ in der ganzen Oberfläche. **Ein** Hinzufügen-Knopf oben rechts (und das Plus unten), der sich nach dem Bereich richtet: „Posting“, in der Galerie „Bilder“. Taste `n` ebenso.
+
 ## 0.9.0 – Galerie (14.10.2026)
 
 - **Galerie** (`/galerie`, Tab-Leiste): Bilder hochladen (auswählen, ziehen, ⌘V; bis 40 auf einmal, je 25 MB), frei anlegbare Kategorien. Raster im Blocksatz (alle Bilder einer Zeile gleich hoch, ohne Beschnitt-Lücken), Platzhalter in der Durchschnittsfarbe. Filter-Chips mit Anzahl, mehrere kombinierbar (= eine davon), „Ohne Kategorie“. Vollbild mit Blättern (← →, Wischen), Schließen per Esc oder Wischen nach unten, Infoleiste auf Knopf/Taste i. Bearbeiten (Titel, Notiz, Kategorien) für alle, Löschen nur für wer hochgeladen hat oder Admins. Kategorien umbenennen (gleicher Name = zusammenführen) und löschen (Bilder bleiben).

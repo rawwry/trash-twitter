@@ -25,9 +25,9 @@
   <textarea name="description" rows="3" maxlength="2000" placeholder="Worum geht es in dieser Liste?">{{ plist.description }}</textarea>
   <div class="row"><button class="btn sm" type="submit">Speichern</button><button class="btn-ghost sm" type="button" data-edit-cancel="desc">Abbrechen</button></div>
 </form>
-<p class="muted small" style="margin-top:-8px">{{ posts|length }} {{ 'Aussage' if posts|length == 1 else 'Aussagen' }}, nach Datum geordnet
+<p class="muted small" style="margin-top:-8px">{{ posts|length }} {{ 'Posting' if posts|length == 1 else 'Postings' }}, nach Datum geordnet
   {% if plist.created_by %}· angelegt von {{ plist.created_by.name }}{% endif %}
-  · Aussagen legst du über „Listen wählen“ auf ihrer Detailseite oder per Mehrfachauswahl im Archiv ab.</p>
+  · Postings legst du über „Listen wählen“ auf ihrer Detailseite oder per Mehrfachauswahl im Archiv ab.</p>
 
 {% if posts %}
 <div class="posts view-{{ view }}">
@@ -36,7 +36,7 @@
 {% else %}
 <div class="empty-state">
   <h2>Diese Liste ist leer</h2>
-  <p>Öffne eine Aussage und lege sie unter „Listen“ hier ab.</p>
+  <p>Öffne ein Posting und lege es unter „Listen“ hier ab.</p>
 </div>
 {% endif %}
 {% endblock %}

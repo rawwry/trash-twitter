@@ -43,6 +43,9 @@ class Settings:
     backup_keep: int = 7
     # "dark" oder "light": in welchem Look X und Bluesky fotografiert werden.
     screenshot_theme: str = "dark"
+    # Bilder, GIFs und Videos aus Postings mitsichern (0.10.0); Grenze je Datei.
+    save_media: bool = True
+    media_max_mb: int = 150
     # Im Test aus: kein Playwright, kein Netz, keine Hintergrund-Tasks.
     worker_enabled: bool = True
     # Im Test aus: kein DID-Lookup beim Hinzufuegen.
@@ -70,6 +73,11 @@ class Settings:
         return self.base_path / "avatars"
 
     @property
+    def media_dir(self) -> Path:
+        # Bilder, GIFs und Videos aus den Postings (nicht die Beleg-Screenshots)
+        return self.base_path / "media"
+
+    @property
     def gallery_dir(self) -> Path:
         return self.base_path / "gallery"
 
@@ -90,6 +98,8 @@ class Settings:
             login_lock_minutes=_env_int("SGC_LOGIN_LOCK_MINUTES", 15),
             backup_keep=_env_int("SGC_BACKUP_KEEP", 7),
             screenshot_theme="light" if os.environ.get("SGC_SCREENSHOT_THEME") == "light" else "dark",
+            save_media=_env_bool("SGC_SAVE_MEDIA", True),
+            media_max_mb=_env_int("SGC_MEDIA_MAX_MB", 150),
             worker_enabled=_env_bool("SGC_WORKER_ENABLED", True),
             network_enabled=_env_bool("SGC_NETWORK_ENABLED", True),
         )
@@ -111,7 +121,7 @@ def prepare_storage(settings: Settings) -> None:
         log.warning("Datenordner %s liegt nicht unter /share - im Add-on gehen Daten bei einem Neubau verloren.", base)
     try:
         for d in (base, settings.db_dir, settings.screenshot_dir, settings.backup_dir, settings.avatar_dir,
-                  settings.author_dir, settings.gallery_dir):
+                  settings.author_dir, settings.gallery_dir, settings.media_dir):
             d.mkdir(parents=True, exist_ok=True)
         probe = base / ".schreibtest"
         probe.write_text("ok", encoding="utf-8")

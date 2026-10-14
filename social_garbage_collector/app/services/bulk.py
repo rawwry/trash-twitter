@@ -3,7 +3,7 @@
 Duplikate werden dreifach abgefangen - nichts wird doppelt archiviert:
   1. doppelt im eingefuegten Text (auch als x.com/twitter.com/?s=…-Varianten)
   2. schon im Archiv (gleicher Duplikat-Schluessel, bei Bluesky auch Handle/DID)
-  3. schon als Teil eines Threads einer anderen Aussage
+  3. schon als Teil eines Threads eines anderen Postings
 """
 
 from __future__ import annotations

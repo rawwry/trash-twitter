@@ -13,13 +13,13 @@
       <h1>{{ person.name }}</h1>
       {% if person.subtitle %}<p class="person-subtitle-lg">{{ person.subtitle }}</p>{% endif %}
       <p class="sub muted">
-        {{ stats.count or 0 }} {{ 'Aussage' if stats.count == 1 else 'Aussagen' }}
+        {{ stats.count or 0 }} {{ 'Posting' if stats.count == 1 else 'Postings' }}
         {% if stats.first %} · {{ stats.first|localtime('%d.%m.%Y') }} bis {{ stats.last|localtime('%d.%m.%Y') }}{% endif %}
         · {{ person.accounts|length }} {{ 'Account' if person.accounts|length == 1 else 'Accounts' }}
       </p>
       {% if person.note %}<p class="person-note">{{ person.note }}</p>{% endif %}
     </div>
-    {# Nur Darstellung - Wortlaut und Original-Profilbilder der Aussagen bleiben unveraendert. #}
+    {# Nur Darstellung - Wortlaut und Original-Profilbilder der Postings bleiben unveraendert. #}
     <form method="post" action="{{ url('/personen/' ~ person.id ~ '/bearbeiten') }}" enctype="multipart/form-data"
           class="stack" data-edit-form="person" hidden>
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -41,7 +41,7 @@
         <textarea name="note" rows="3" maxlength="5000">{{ person.note }}</textarea></label>
       <div class="row"><button class="btn sm" type="submit">Speichern</button>
         <button class="btn-ghost sm" type="button" data-edit-cancel="person">Abbrechen</button></div>
-      <p class="faint xs" style="margin:0">Ändert nur die Darstellung der Person. Die archivierten Aussagen behalten Wortlaut, Namen und Profilbild vom Zeitpunkt der Archivierung.
+      <p class="faint xs" style="margin:0">Ändert nur die Darstellung der Person. Die archivierten Postings behalten Wortlaut, Namen und Profilbild vom Zeitpunkt der Archivierung.
         {% if not person.name_locked %}Solange du den Namen nicht änderst, folgt er dem Anzeigenamen des Accounts.{% endif %}</p>
     </form>
   </div>
@@ -54,7 +54,7 @@
 <div class="person-layout">
   <section aria-labelledby="statements-title">
     <div class="section-title">
-      <h2 id="statements-title">Aussagen</h2>
+      <h2 id="statements-title">Postings</h2>
       {% if total > posts|length %}<a class="small" href="{{ url('/') }}?person={{ person.id }}">Alle {{ total }} im Archiv →</a>{% endif %}
     </div>
     {% if posts %}
@@ -62,7 +62,7 @@
       {% for post in posts %}{% with plist=None %}{% include "partials/quote.html" %}{% endwith %}{% endfor %}
     </div>
     {% else %}
-    <p class="muted">Keine archivierten Aussagen.</p>
+    <p class="muted">Keine archivierten Postings.</p>
     {% endif %}
   </section>
 
@@ -77,7 +77,7 @@
             {% else %}<span class="q-avatar q-avatar-empty" aria-hidden="true">{{ (a.display_name or a.handle or '?')[:1] }}</span>{% endif %}
             <div class="grow">
               <strong>{{ a.display_name or a.label }}</strong>
-              <div class="faint xs">{{ PLATFORM_LABELS[a.platform] }} · {{ a.label }} · {{ account_counts.get(a.id, 0) }} Aussagen</div>
+              <div class="faint xs">{{ PLATFORM_LABELS[a.platform] }} · {{ a.label }} · {{ account_counts.get(a.id, 0) }} Postings</div>
             </div>
             {% if a.profile_url %}<a class="icon-btn" href="{{ a.profile_url }}" target="_blank" rel="noopener noreferrer" title="Profil öffnen" aria-label="Profil öffnen">{{ icon('external', 18) }}</a>{% endif %}
           </div>
@@ -112,7 +112,7 @@
     {% if others %}
     <section class="card" id="zusammenfuehren" aria-labelledby="merge-title">
       <div class="section-title"><h2 id="merge-title">Zusammenführen</h2></div>
-      <p class="muted small">Ist das dieselbe Person wie ein anderer Eintrag? Dann wandern alle Accounts und Aussagen dorthin, die Beschreibungen werden zusammengelegt.</p>
+      <p class="muted small">Ist das dieselbe Person wie ein anderer Eintrag? Dann wandern alle Accounts und Postings dorthin, die Beschreibungen werden zusammengelegt.</p>
       <form method="post" action="{{ url('/personen/' ~ person.id ~ '/zusammenfuehren') }}" class="row wrap">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <select name="target_id" aria-label="Ziel-Person" class="grow" required>

@@ -8,13 +8,13 @@
   {% for tag, count in tags %}
   <div class="tag-row">
     <a class="chip" href="{{ url('/') }}?tags={{ tag.name|urlencode }}">#{{ tag.name }}</a>
-    <span class="count">{{ count }} {{ 'Aussage' if count == 1 else 'Aussagen' }}</span>
+    <span class="count">{{ count }} {{ 'Posting' if count == 1 else 'Postings' }}</span>
     <form method="post" action="{{ url('/settings/tags/' ~ tag.id ~ '/rename') }}" class="row grow">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input name="name" value="{{ tag.name }}" maxlength="64" aria-label="Neuer Name für #{{ tag.name }}">
       <button class="btn-soft sm" type="submit">Umbenennen</button>
     </form>
-    <form method="post" action="{{ url('/settings/tags/' ~ tag.id ~ '/delete') }}" data-confirm="#{{ tag.name }} von allen Aussagen entfernen?">
+    <form method="post" action="{{ url('/settings/tags/' ~ tag.id ~ '/delete') }}" data-confirm="#{{ tag.name }} von allen Postings entfernen?">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <button class="btn-ghost sm" type="submit">Löschen</button>
     </form>

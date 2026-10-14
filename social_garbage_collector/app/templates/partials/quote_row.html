@@ -1,6 +1,6 @@
-{# Listenansicht: eine Zeile pro Aussage - Datum, Verfasser, Wortlaut, Nummer. #}
+{# Listenansicht: eine Zeile pro Posting - Datum, Verfasser, Wortlaut, Nummer. #}
 {% set av = post_avatar(post) %}
-<article class="qrow" data-post="{{ post.id }}">
+<article class="qrow" id="post-{{ post.id }}" data-post="{{ post.id }}">
   {% if not plist %}<label class="select-box" aria-label="Auswählen"><input type="checkbox" name="ids" value="{{ post.id }}" form="bulk-form" data-select-item><span></span></label>{% endif %}
   <time class="qrow-date" datetime="{{ post.said_at.isoformat() }}Z">{{ post.said_at|localtime('%d.%m.%Y') if post.posted_at else '–' }}</time>
   <span class="qrow-who">
@@ -10,5 +10,6 @@
   </span>
   <a class="qrow-text" href="{{ url('/posts/' ~ post.id) }}">{% if post.text %}{{ post.text }}{% else %}<span class="faint">{{ 'Wortlaut wird abgerufen …' if post.status in ('pending', 'running') else 'Kein Wortlaut erfasst' }}</span>{% endif %}</a>
   <span class="qrow-meta">{{ PLATFORM_LABELS[post.platform] }} · Nr. {{ archive_no(post) }}{% if post.status == 'error' %} · <span class="is-error">Fehler</span>{% endif %}</span>
+  {% if not plist %}{% include "partials/quick_delete.html" %}{% endif %}
   {% if plist %}{% include "partials/remove_from_list.html" %}{% endif %}
 </article>

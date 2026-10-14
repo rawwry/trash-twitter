@@ -11,7 +11,7 @@
       <span class="person-accounts">{% if p.subtitle %}<span>{{ p.subtitle }}</span>{% endif %}{% for a in p.accounts %}<span>{{ PLATFORM_LABELS[a.platform] }} {{ a.label }}</span>{% endfor %}</span>
     </span>
     <span class="person-stats">
-      <span><strong>{{ st.count or 0 }}</strong> {{ 'Aussage' if st.count == 1 else 'Aussagen' }}</span>
+      <span><strong>{{ st.count or 0 }}</strong> {{ 'Posting' if st.count == 1 else 'Postings' }}</span>
       {% if st.first %}<span class="faint">{{ st.first|localtime('%Y') }}{% if st.last and (st.last|localtime('%Y')) != (st.first|localtime('%Y')) %}–{{ st.last|localtime('%Y') }}{% endif %}</span>{% endif %}
     </span>
   </a>
@@ -23,14 +23,17 @@
 <div id="person-rows" class="person-tiles">
   {% for p in persons %}
   {% set st = stats.get(p.id, {}) %}
-  <a class="person-tile" href="{{ url('/personen/' ~ p.id) }}">
-    {% if p.avatar_path %}<img class="q-avatar" src="{{ file_url(p.avatar_path) }}" alt="" width="88" height="88" loading="lazy">
-    {% else %}<span class="q-avatar q-avatar-empty" aria-hidden="true">{{ p.name.lstrip('@')[:1] }}</span>{% endif %}
-    <span class="person-name">{{ p.name }}</span>
-    {% if p.subtitle %}<span class="person-subtitle">{{ p.subtitle }}</span>{% endif %}
-    <span class="person-handles">{% for a in p.accounts[:3] %}<span>{{ PLATFORM_LABELS[a.platform] }} {{ a.label }}</span>{% endfor %}{% if p.accounts|length > 3 %}<span>+{{ p.accounts|length - 3 }}</span>{% endif %}</span>
-    <span class="person-tile-stats">
-      <strong>{{ st.count or 0 }}</strong> {{ 'Aussage' if st.count == 1 else 'Aussagen' }}{% if st.first %} · {{ st.first|localtime('%Y') }}{% if st.last and (st.last|localtime('%Y')) != (st.first|localtime('%Y')) %}–{{ st.last|localtime('%Y') }}{% endif %}{% endif %}
+  {# Bild fuellt die ganze Kachel, Name und Angaben liegen unten auf einem Verlauf. #}
+  <a class="person-tile {{ 'has-photo' if p.avatar_path else 'no-photo tone-' ~ (p.id % 8) }}" href="{{ url('/personen/' ~ p.id) }}">
+    {% if p.avatar_path %}<img class="pt-img {{ 'is-own' if p.photo_path }}" src="{{ file_url(p.avatar_path) }}" alt="" loading="lazy" decoding="async">
+    {% else %}<span class="pt-mono" aria-hidden="true">{{ p.name.lstrip('@')[:1] }}</span>{% endif %}
+    <span class="pt-caption">
+      <span class="pt-name">{{ p.name }}</span>
+      {% if p.subtitle %}<span class="pt-sub">{{ p.subtitle }}</span>{% endif %}
+      <span class="pt-meta">
+        <span>{{ st.count or 0 }} {{ 'Posting' if st.count == 1 else 'Postings' }}{% if st.first %} · {{ st.first|localtime('%Y') }}{% if st.last and (st.last|localtime('%Y')) != (st.first|localtime('%Y')) %}–{{ st.last|localtime('%Y') }}{% endif %}{% endif %}</span>
+        <span class="pt-handles">{% for a in p.accounts[:2] %}<span>{{ a.label }}</span>{% endfor %}</span>
+      </span>
     </span>
   </a>
   {% else %}

@@ -1,0 +1,5 @@
+{% from "partials/icons.html" import icon %}
+{# Schnell-Loeschen im Archiv: erscheint beim Drueberfahren, fragt vorher nach. #}
+<button class="q-del" type="button" title="Löschen" aria-label="Posting Nr. {{ archive_no(post) }} löschen"
+        hx-post="{{ url('/posts/' ~ post.id ~ '/delete') }}" hx-target="#post-{{ post.id }}" hx-swap="delete swap:180ms"
+        hx-confirm="Posting Nr. {{ archive_no(post) }} von {{ post.author_name }} löschen? Beleg und Anmerkung verschwinden für alle.">{{ icon('trash', 16) }}</button>

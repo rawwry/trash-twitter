@@ -25,7 +25,7 @@ def _clean_title(title: str) -> str:
 
 
 def _overview_rows(db: Session) -> list[tuple[PostList, int, object, object, int]]:
-    """Je Liste: Anzahl Aussagen, Zeitraum der Aussagen, Anzahl Personen."""
+    """Je Liste: Anzahl Postings, Zeitraum der Postings, Anzahl Personen."""
     said = func.coalesce(Post.posted_at, Post.created_at)
     rows = db.execute(
         select(PostList, func.count(Post.id), func.min(said), func.max(said),
@@ -102,7 +102,7 @@ def picker(request: Request, post: int = 0, mode: str = "post", db: Session = De
 @router.post("/posts/{post_id}/lists/{list_id}/toggle")
 def toggle(request: Request, post_id: int, list_id: int, user: User = Depends(require_user),
            db: Session = Depends(get_db)):
-    """Aussage in eine Liste legen bzw. herausnehmen (ein Tipp in der Auswahl)."""
+    """Posting in eine Liste legen bzw. herausnehmen (ein Tipp in der Auswahl)."""
     post = _post_or_404(db, post_id)
     pl = _get_list(db, list_id)
     link = db.get(ListPost, (pl.id, post.id))

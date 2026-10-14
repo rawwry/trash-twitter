@@ -1,0 +1,17 @@
+{# Raster: ultraclean - gleich grosse Kacheln, nur Verfasser, Wortlaut, Datum. #}
+{% set av = post_avatar(post) %}
+<article class="qtile" id="post-{{ post.id }}" data-post="{{ post.id }}">
+  {% if not plist %}{% include "partials/quick_delete.html" %}
+  <label class="select-box" aria-label="Auswählen"><input type="checkbox" name="ids" value="{{ post.id }}" form="bulk-form" data-select-item><span></span></label>{% endif %}
+  <a class="qtile-link" href="{{ url('/posts/' ~ post.id) }}" aria-label="Posting Nr. {{ archive_no(post) }} öffnen">
+    <span class="qtile-who">
+      {% if av %}<img class="q-avatar" src="{{ file_url(av) }}" alt="" width="22" height="22" loading="lazy" decoding="async">
+      {% else %}<span class="q-avatar q-avatar-empty" aria-hidden="true">{{ (post.author_display_name or post.author_handle or '?').lstrip('@')[:1] }}</span>{% endif %}
+      <span class="qtile-name">{{ post.author_name }}</span>
+    </span>
+    {% if post.text %}<span class="qtile-text">{{ post.text }}</span>
+    {% elif post.screenshot_path %}<img class="qtile-shot" src="{{ shot(post) }}" alt="" loading="lazy" decoding="async">
+    {% else %}<span class="qtile-text q-missing">{{ 'Wortlaut wird abgerufen …' if post.status in ('pending', 'running') else 'Kein Wortlaut' }}</span>{% endif %}
+    <time class="qtile-date" datetime="{{ post.said_at.isoformat() }}Z">{{ post.posted_at|localtime('%d.%m.%Y') if post.posted_at else '' }}</time>
+  </a>
+</article>

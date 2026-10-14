@@ -6,7 +6,7 @@
 <div class="page-head">
   <div>
     <h1>Importe</h1>
-    <p class="sub">Massenimporte der letzten Zeit. Neuer Import: „Aussage“ → „Viele Links“.</p>
+    <p class="sub">Massenimporte der letzten Zeit. Neuer Import: „Posting“ → „Viele Links“.</p>
   </div>
   <a class="btn sm" href="{{ url('/add') }}?mode=bulk">{{ icon('plus', 16) }} Neuer Import</a>
 </div>
@@ -24,6 +24,6 @@
   {% endfor %}
 </div>
 {% else %}
-<div class="empty-state"><h2>Noch keine Importe</h2><p>Über „Aussage“ → „Viele Links“ fügst du viele Links auf einmal ein.</p></div>
+<div class="empty-state"><h2>Noch keine Importe</h2><p>Über „Posting“ → „Viele Links“ fügst du viele Links auf einmal ein.</p></div>
 {% endif %}
 {% endblock %}

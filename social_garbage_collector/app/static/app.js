@@ -177,11 +177,73 @@
     tagBtn.parentElement.innerHTML = "";
   });
 
-  // --- Bestaetigung vor dem Absenden: <form data-confirm="..."> ------------------------
+  // Schnellauswahl unter der Tag-Eingabe: antippen = hinzufuegen bzw. wieder entfernen
+  document.addEventListener("click", (ev) => {
+    const pill = ev.target.closest("[data-tag-quick]");
+    if (!pill) return;
+    const input = $("[data-tag-input]", pill.closest(".tag-input"));
+    const name = pill.dataset.tagQuick;
+    let tags = input.value.split(",").map((t) => t.trim().replace(/^#/, "")).filter(Boolean);
+    const has = tags.some((t) => t.toLowerCase() === name);
+    tags = has ? tags.filter((t) => t.toLowerCase() !== name) : tags.concat(name);
+    input.value = tags.join(", ");
+    pill.setAttribute("aria-pressed", String(!has));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  // Archiv: Tag-Leiste filtert sofort (mehrere = alle muessen passen)
+  document.addEventListener("click", (ev) => {
+    const more = ev.target.closest("[data-tag-more]");
+    if (more) { more.closest("[data-tag-bar]").classList.add("is-open"); more.remove(); return; }
+    const pill = ev.target.closest("[data-tag-toggle]");
+    if (!pill) return;
+    const form = pill.closest("form");
+    const field = $("[data-tag-filter]", form);
+    const on = pill.getAttribute("aria-pressed") !== "true";
+    pill.setAttribute("aria-pressed", String(on));
+    field.value = $$("[data-tag-toggle][aria-pressed=true]", form).map((b) => b.dataset.tagToggle).join(",");
+    field.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
+  // --- Rueckfrage im eigenen Fenster (statt window.confirm) -----------------------------
+  // <form data-confirm="...">, <button data-confirm="..."> (z. B. formaction) und htmx hx-confirm.
+  function askConfirm(message, okLabel) {
+    const dlg = document.getElementById("confirm-dialog");
+    if (!dlg) return Promise.resolve(window.confirm(message));
+    $("[data-confirm-text]", dlg).textContent = message;
+    $("[data-confirm-ok]", dlg).textContent = okLabel || "Löschen";
+    dlg.returnValue = "";
+    dlg.showModal();
+    setTimeout(() => $("[data-confirm-cancel]", dlg).focus(), 30);
+    return new Promise((resolve) => {
+      dlg.addEventListener("close", () => resolve(dlg.returnValue === "ok"), { once: true });
+    });
+  }
+  document.addEventListener("click", (ev) => {
+    const dlg = ev.target.closest("#confirm-dialog");
+    if (!dlg) return;
+    if (ev.target.closest("[data-confirm-ok]")) dlg.close("ok");
+    else if (ev.target.closest("[data-confirm-cancel]")) dlg.close("");
+  });
   document.addEventListener("submit", (ev) => {
-    const form = ev.target.closest("form[data-confirm]");
-    if (form && !window.confirm(form.dataset.confirm)) ev.preventDefault();
+    const form = ev.target;
+    const source = (ev.submitter && ev.submitter.dataset.confirm) ? ev.submitter : form;
+    const message = source.dataset && source.dataset.confirm;
+    if (!message) return;
+    if (form.dataset.confirmed === "1") { delete form.dataset.confirmed; return; }
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    const submitter = ev.submitter;
+    askConfirm(message, source.dataset.confirmOk).then((ok) => {
+      if (!ok) return;
+      form.dataset.confirmed = "1";
+      form.requestSubmit(submitter || undefined);
+    });
   }, true);
+  document.addEventListener("htmx:confirm", (ev) => {
+    if (!ev.detail.question) return;
+    ev.preventDefault();
+    askConfirm(ev.detail.question, ev.detail.elt.dataset.confirmOk).then((ok) => { if (ok) ev.detail.issueRequest(true); });
+  });
 
   // --- Einstellungen sofort sichtbar machen (Design, Akzent, Dichte, Bewegung) ---------
   document.addEventListener("change", (ev) => {
@@ -234,7 +296,7 @@
     if (!create.hidden) $("button", create).click();
     else if (visible.length === 1) $("button", visible[0]).click();
   });
-  // Mehrfachauswahl: Liste antippen = alle markierten Aussagen dort ablegen
+  // Mehrfachauswahl: Liste antippen = alle markierten Postings dort ablegen
   document.addEventListener("click", (ev) => {
     const pick = ev.target.closest("[data-bulk-target], [data-bulk-new-list]");
     if (!pick) return;
@@ -259,7 +321,7 @@
     const combo = now - lastKeyAt < 800 ? lastKey + k : k;
     lastKey = k; lastKeyAt = now;
 
-    if (k === "n") { ev.preventDefault(); openDialog("add-dialog"); }
+    if (k === "n") { ev.preventDefault(); openDialog(document.getElementById("gallery-upload") ? "gallery-upload" : "add-dialog"); }
     else if (k === "/") {
       ev.preventDefault();
       const s = $("[data-search]");
@@ -303,6 +365,11 @@
     if (!bar) return;
     $("[data-select-count]", bar).textContent = selected.size;
     $("[data-bulk-submit]", bar).disabled = selected.size === 0;
+    const del = $("[data-bulk-delete]", bar);
+    if (del) {
+      del.disabled = selected.size === 0;
+      del.dataset.confirm = `${selected.size} ${selected.size === 1 ? "Posting" : "Postings"} löschen? Belege und Anmerkungen verschwinden für alle.`;
+    }
     // Die Formular-Felder "ids" kommen aus den Karten (form="bulk-form"). Nicht mehr sichtbare
     // Auswahl (nach Filterwechsel) geht als versteckte Felder mit.
     $$("input[data-hidden-id]", bar).forEach((i) => i.remove());

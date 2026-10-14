@@ -1,9 +1,9 @@
 {% from "partials/icons.html" import icon %}
-{# Formular "Aussage archivieren" - im Sheet (in_dialog) und als eigene Seite (/add, /teilen). #}
+{# Formular "Posting archivieren" - im Sheet (in_dialog) und als eigene Seite (/add, /teilen). #}
 {% set add_mode = mode or 'link' %}
 <div class="sheet-inner" data-add-tabs>
   <div class="sheet-head">
-    <h2 id="add-title">{% if shared %}Geteilte Aussage archivieren{% else %}Aussage archivieren{% endif %}</h2>
+    <h2 id="add-title">{% if shared %}Geteiltes Posting archivieren{% else %}Posting archivieren{% endif %}</h2>
     {% if in_dialog %}<button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close') }}</button>{% endif %}
   </div>
   {# Reiter: ohne JS normale Links auf /add?mode=..., mit JS nur Umschalten #}
@@ -21,7 +21,7 @@
 <form method="post" action="{{ url('/posts') }}" class="stack" data-add-form data-add-panel="link" {% if add_mode != 'link' %}hidden{% endif %}>
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
   <div class="url-field">
-    <label for="add-url-{{ 'd' if in_dialog else 'p' }}" class="sr-only">Link zur Aussage</label>
+    <label for="add-url-{{ 'd' if in_dialog else 'p' }}" class="sr-only">Link zum Posting</label>
     <input id="add-url-{{ 'd' if in_dialog else 'p' }}" name="url" value="{{ form_url or '' }}" required inputmode="url"
            autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="500"
            placeholder="Link von X oder Bluesky einfügen"
@@ -128,7 +128,7 @@
     </div>
   </details>
   <button class="btn lg" type="submit">{{ icon('archive', 20) }} Alle archivieren</button>
-  <p class="faint xs center" style="margin:0">Die Aussagen werden nacheinander im Hintergrund erfasst (je ca. 5–25 s).
+  <p class="faint xs center" style="margin:0">Die Postings werden nacheinander im Hintergrund erfasst (je ca. 5–25 s).
     Den Fortschritt siehst du danach. <a href="{{ url('/import') }}">Frühere Importe</a></p>
 </form>
 </div>

@@ -252,7 +252,43 @@ def metadata_from_post_view(post: dict) -> PostMetadata:
         avatar_url=(author.get("avatar") or "").strip(),
     )
     meta.alt_texts = _collect_alt_texts(post.get("embed"))
+    meta.media = bluesky_media(post.get("embed"), author.get("did"))
     return meta
+
+
+_GIF_HOSTS = ("media.tenor.com", "c.tenor.com", "media.giphy.com", "i.giphy.com")
+
+
+def bluesky_media(embed: dict | None, did: str | None) -> list:
+    """Bilder (fullsize), Videos (Original-Blob vom PDS) und GIFs (Tenor/Giphy-Link)."""
+    from urllib.parse import urlparse
+
+    from .base import MediaRef
+
+    if not embed:
+        return []
+    etype = embed.get("$type", "")
+    if etype.startswith("app.bsky.embed.recordWithMedia"):
+        return bluesky_media(embed.get("media"), did)
+    if etype.startswith("app.bsky.embed.images"):
+        out = []
+        for img in embed.get("images") or []:
+            ar = img.get("aspectRatio") or {}
+            if img.get("fullsize"):
+                out.append(MediaRef("photo", img["fullsize"], (img.get("alt") or "").strip(),
+                                    ar.get("width"), ar.get("height")))
+        return out
+    if etype.startswith("app.bsky.embed.video") and embed.get("cid") and did:
+        ar = embed.get("aspectRatio") or {}
+        return [MediaRef("video", "", (embed.get("alt") or "").strip(), ar.get("width"), ar.get("height"),
+                         did=did, cid=embed["cid"])]
+    if etype.startswith("app.bsky.embed.external"):
+        uri = ((embed.get("external") or {}).get("uri") or "").strip()
+        parsed = urlparse(uri)
+        host = (parsed.hostname or "").lower()
+        if host in _GIF_HOSTS or (host.endswith(".giphy.com") and parsed.path.endswith(".gif")):
+            return [MediaRef("gif", uri, (embed.get("external") or {}).get("title", "").strip())]
+    return []
 
 
 def _collect_alt_texts(embed: dict | None) -> list[str]:

@@ -37,7 +37,7 @@ def test_share_target_extracts_link_from_text(user_client):
     r = user_client.get("/teilen", params={"text": "Haha schau mal https://x.com/jack/status/20?s=46 lol"})
     assert r.status_code == 200
     assert 'value="https://x.com/jack/status/20?s=46"' in r.text
-    assert "Geteilte Aussage archivieren" in r.text
+    assert "Geteiltes Posting archivieren" in r.text
 
 
 def test_login_next_redirect_and_open_redirect_blocked(harness):

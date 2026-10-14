@@ -9,8 +9,8 @@
 <div class="detail-toolbar">
   <a class="back-link" href="{{ url('/') }}" aria-label="Zurück zum Archiv">{{ icon('chev-left', 18) }}<span class="label-hide">Archiv</span></a>
   <span class="spacer"></span>
-  <a class="icon-btn {{ 'is-disabled' if not newer }}" {% if newer %}href="{{ url('/posts/' ~ newer) }}"{% endif %} data-nav="newer" title="Neuere Aussage (←)" aria-label="Neuere Aussage">{{ icon('chev-up') }}</a>
-  <a class="icon-btn {{ 'is-disabled' if not older }}" {% if older %}href="{{ url('/posts/' ~ older) }}"{% endif %} data-nav="older" title="Ältere Aussage (→)" aria-label="Ältere Aussage">{{ icon('chev-down') }}</a>
+  <a class="icon-btn {{ 'is-disabled' if not newer }}" {% if newer %}href="{{ url('/posts/' ~ newer) }}"{% endif %} data-nav="newer" title="Neueres Posting (←)" aria-label="Neueres Posting">{{ icon('chev-up') }}</a>
+  <a class="icon-btn {{ 'is-disabled' if not older }}" {% if older %}href="{{ url('/posts/' ~ older) }}"{% endif %} data-nav="older" title="Älteres Posting (→)" aria-label="Älteres Posting">{{ icon('chev-down') }}</a>
   {% if post.url %}
   <a class="icon-btn" href="{{ post.url }}" target="_blank" rel="noopener noreferrer" title="Original öffnen" aria-label="Original öffnen">{{ icon('external') }}</a>
   <button class="icon-btn" type="button" data-copy-text="{{ post.url }}" title="Link kopieren" aria-label="Link zum Original kopieren">{{ icon('link') }}</button>
@@ -19,8 +19,8 @@
 
 <div class="detail-layout">
   <div class="stack">
-    {# --- Die Aussage --------------------------------------------------------- #}
-    <article class="quote quote-lead" aria-label="Aussage">
+    {# --- Das Posting --------------------------------------------------------- #}
+    <article class="quote quote-lead" aria-label="Posting">
       <header class="q-head">
         {% if av %}<img class="q-avatar" src="{{ file_url(av) }}" alt="" width="52" height="52">
         {% else %}<span class="q-avatar q-avatar-empty" aria-hidden="true">{{ (post.author_display_name or post.author_handle or '?').lstrip('@')[:1] }}</span>{% endif %}
@@ -57,6 +57,29 @@
       </footer>
       {% if post.text_source == 'ocr' %}<p class="faint xs" style="margin:10px 0 0">Per Texterkennung aus dem Bild gelesen – bitte mit dem Beleg abgleichen.</p>{% endif %}
     </article>
+
+    {# --- Medien aus dem Posting (0.10.0) ------------------------------------- #}
+    {% if post.media %}
+    <section class="card media-card" aria-labelledby="media-title">
+      <div class="section-title">
+        <h2 id="media-title">Medien <span class="faint small">({{ post.media|length }})</span></h2>
+      </div>
+      <div class="media-grid {{ 'single' if post.media|length == 1 }}">
+        {% for m in post.media %}
+        {% set src = url('/medien/' ~ m.path) %}
+        <figure class="media-item" {% if m.width and m.height %}style="--r: {{ (m.width / m.height)|round(3) }}"{% endif %}>
+          {% if m.kind == 'gif' and m.is_video %}<video src="{{ src }}" autoplay loop muted playsinline aria-label="{{ m.alt or 'GIF' }}"></video><span class="media-badge">GIF</span>
+          {% elif m.is_video %}<video src="{{ src }}" controls preload="metadata" playsinline aria-label="{{ m.alt or 'Video' }}"></video>
+          {% else %}<a href="{{ src }}" target="_blank" rel="noopener"><img src="{{ src }}" alt="{{ m.alt }}" loading="lazy" decoding="async"></a>{% if m.kind == 'gif' %}<span class="media-badge">GIF</span>{% endif %}{% endif %}
+          <figcaption>
+            {% if m.alt %}<span class="media-alt">{{ m.alt }}</span>{% endif %}
+            <a class="media-dl" href="{{ src }}?download=1" title="Herunterladen" aria-label="Herunterladen">{{ icon('download', 14) }} {{ (m.bytes / 1048576)|round(1) if m.bytes > 1048576 else (m.bytes // 1024) ~ ' KB' }}{{ ' MB' if m.bytes > 1048576 }}</a>
+          </figcaption>
+        </figure>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
 
     {# --- Quellenangabe ------------------------------------------------------ #}
     <section class="card citation-card" aria-labelledby="cite-title">
@@ -143,7 +166,7 @@
       </div>
       <div class="shot-frame">
         {% if post.screenshot_path %}
-          <img src="{{ shot(post) }}" alt="Screenshot der Aussage auf {{ PLATFORM_LABELS[post.platform] }}" data-lightbox>
+          <img src="{{ shot(post) }}" alt="Screenshot des Postings auf {{ PLATFORM_LABELS[post.platform] }}" data-lightbox>
         {% else %}
           <div class="shot-empty">{% if post.status in ('pending', 'running') %}<span class="spinner" aria-hidden="true"></span> Beleg-Screenshot wird erstellt …{% else %}Kein Beleg-Screenshot vorhanden.{% endif %}</div>
         {% endif %}

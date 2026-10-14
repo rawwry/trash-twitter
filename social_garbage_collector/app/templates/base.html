@@ -6,7 +6,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}{% endblock %} · {{ APP_NAME }}</title>
-  <meta name="description" content="Quellenarchiv für öffentliche Aussagen von X und Bluesky">
+  <meta name="description" content="Quellenarchiv für öffentliche Postings von X und Bluesky">
   {# Homescreen: Vollbild ohne Browserleiste, Statusleiste über dem eigenen Hintergrund #}
   <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#16181c" media="(prefers-color-scheme: dark)">
@@ -46,7 +46,12 @@
       <a href="{{ url('/generator') }}" {% if nav == 'generator' %}aria-current="page"{% endif %}>Suchgenerator</a>
     </nav>
     <div class="header-actions">
-      <button class="btn sm btn-add" type="button" data-open="add-dialog" title="Aussage archivieren (n)">{{ icon('plus', 18) }} Aussage</button>
+      {# Ein Hinzufuegen-Knopf fuer die ganze App - er richtet sich nach dem Bereich. #}
+      {% if nav == 'gallery' %}
+      <button class="btn sm btn-add" type="button" data-open="gallery-upload" title="Bilder hinzufügen (n)">{{ icon('plus', 18) }} Bilder</button>
+      {% else %}
+      <button class="btn sm btn-add" type="button" data-open="add-dialog" title="Posting archivieren (n)">{{ icon('plus', 18) }} Posting</button>
+      {% endif %}
       <details class="menu">
         <summary aria-label="Kontomenü">{{ avatar(user, 36, "ring") }}</summary>
         <div class="menu-panel" role="menu">
@@ -74,7 +79,7 @@
 </main>
 
 <footer class="app-footer">
-  {{ APP_NAME }} <span class="version">v{{ VERSION }}</span> · Quellenarchiv für öffentliche Aussagen
+  {{ APP_NAME }} <span class="version">v{{ VERSION }}</span> · Quellenarchiv für öffentliche Postings
 </footer>
 
 {% if logged_in %}
@@ -83,7 +88,7 @@
     {{ icon('archive', 25) }}<span>Archiv</span>
   </a>
   <a href="{{ url('/personen') }}" {% if nav == 'persons' %}aria-current="page"{% endif %}>{{ icon('people', 25) }}<span>Personen</span></a>
-  <button type="button" class="tab-add" data-open="add-dialog" aria-label="Aussage archivieren"><span class="plus">{{ icon('plus', 26) }}</span></button>
+  <button type="button" class="tab-add" data-open="{{ 'gallery-upload' if nav == 'gallery' else 'add-dialog' }}" aria-label="{{ 'Bilder hinzufügen' if nav == 'gallery' else 'Posting archivieren' }}"><span class="plus">{{ icon('plus', 26) }}</span></button>
   <a href="{{ url('/lists') }}" {% if nav == 'lists' %}aria-current="page"{% endif %}>{{ icon('lists', 25) }}<span>Listen</span></a>
   <a href="{{ url('/galerie') }}" {% if nav == 'gallery' %}aria-current="page"{% endif %}>{{ icon('image', 25) }}<span>Galerie</span></a>
 </nav>
@@ -92,6 +97,19 @@
 <dialog class="sheet" id="add-dialog" aria-labelledby="add-title">
   <div class="sheet-grip"></div>
   {% with in_dialog=True %}{% include "partials/add_form.html" %}{% endwith %}
+</dialog>
+
+{# Rueckfrage vor dem Loeschen (app.js: askConfirm) #}
+<dialog class="sheet confirm-sheet" id="confirm-dialog" aria-labelledby="confirm-title">
+  <div class="sheet-inner">
+    <div class="confirm-icon" aria-hidden="true">{{ icon('trash', 26) }}</div>
+    <h2 id="confirm-title" class="sr-only">Wirklich?</h2>
+    <p class="confirm-text" data-confirm-text></p>
+    <div class="confirm-actions">
+      <button class="btn-ghost" type="button" data-confirm-cancel>Abbrechen</button>
+      <button class="btn-danger solid" type="button" data-confirm-ok>Löschen</button>
+    </div>
+  </div>
 </dialog>
 
 {# Listen-Auswahl: Inhalt kommt per htmx (/lists/picker) #}
@@ -106,9 +124,9 @@
     <div class="sheet-head"><h2 id="keys-title">Tastenkürzel</h2>
       <button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close') }}</button></div>
     <dl class="kbd-list">
-      <dt><kbd>n</kbd></dt><dd>Aussage archivieren</dd>
+      <dt><kbd>n</kbd></dt><dd>Posting archivieren</dd>
       <dt><kbd>/</kbd></dt><dd>Im Archiv suchen</dd>
-      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Neuere / ältere Aussage (auf der Detailseite)</dd>
+      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Neuere / älteres Posting (auf der Detailseite)</dd>
       <dt><kbd>g</kbd> <kbd>a</kbd></dt><dd>Zum Archiv</dd>
       <dt><kbd>Esc</kbd></dt><dd>Schließen</dd>
       <dt><kbd>?</kbd></dt><dd>Diese Übersicht</dd>

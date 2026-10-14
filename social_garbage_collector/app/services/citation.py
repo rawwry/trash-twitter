@@ -1,4 +1,4 @@
-"""Quellenangaben: jede Aussage ist eindeutig und dauerhaft zitierbar.
+"""Quellenangaben: jedes Posting ist eindeutig und dauerhaft zitierbar.
 
 Archiv-Nummer = ID in der Datenbank, sechsstellig. Sie aendert sich nie,
 auch nicht, wenn der Beitrag auf der Plattform geloescht wird.

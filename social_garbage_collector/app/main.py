@@ -130,7 +130,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             _remove_password_copies(settings)  # 0.9: Passwort-Anzeige entfernt - Reste loeschen
             shots.backfill(db, settings)
             shots.convert_existing(db, settings)
-            accounts.backfill(db)  # 0.6: Aussagen ohne Account (alte Daten) zuordnen
+            accounts.backfill(db)  # 0.6: Postings ohne Account (alte Daten) zuordnen
             ocr.reflow_existing(db)  # 0.6.2: zerhackte OCR-Zeilen zu Absaetzen
             dates.backfill_from_ids(db)  # 0.6.3: fehlendes Datum aus der Beitrags-ID
         _bootstrap_admin(app, settings)
@@ -234,7 +234,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         data = {
             "name": APP_NAME,
             "short_name": APP_NAME,
-            "description": "Quellenarchiv für öffentliche Aussagen von X und Bluesky",
+            "description": "Quellenarchiv für öffentliche Postings von X und Bluesky",
             "lang": "de",
             "start_url": f"{base}/",
             "scope": f"{base}/",

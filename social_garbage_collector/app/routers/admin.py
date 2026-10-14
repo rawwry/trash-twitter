@@ -234,7 +234,7 @@ def retry_failed(request: Request, admin: User = Depends(require_admin), db: Ses
     if worker:
         for post in failed:
             worker.enqueue(post.id)
-    return redirect(request, "/admin/system", toast=f"{len(failed)} Aussagen neu eingereiht")
+    return redirect(request, "/admin/system", toast=f"{len(failed)} Postings neu eingereiht")
 
 
 @router.post("/system/recapture-all")

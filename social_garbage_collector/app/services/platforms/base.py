@@ -49,6 +49,21 @@ class PostMetadata:
     # Langer X-Beitrag (> 280 Zeichen). text_complete False = nur der gekuerzte Anfang.
     long_post: bool = False
     text_complete: bool = True
+    # Bilder, GIFs, Videos im Beitrag (0.10.0)
+    media: list["MediaRef"] = field(default_factory=list)
+
+
+@dataclass
+class MediaRef:
+    """Wo ein Medium liegt. Bluesky-Videos: kein direkter Link, sondern Blob (did + cid)."""
+
+    kind: str                 # photo | gif | video
+    url: str = ""
+    alt: str = ""
+    width: int | None = None
+    height: int | None = None
+    did: str | None = None
+    cid: str | None = None
 
 
 @dataclass

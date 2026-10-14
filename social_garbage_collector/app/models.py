@@ -142,7 +142,9 @@ class Post(Base):
     long_post: Mapped[bool] = mapped_column(Boolean, default=False)
     # Beleg-Screenshot mit von der App eingesetztem Volltext (0.7.1) - kein reines Abbild.
     shot_reconstructed: Mapped[bool] = mapped_column(Boolean, default=False)
-    # Massenimport (0.8.0): Kennung des Imports, aus dem die Aussage stammt.
+    # Medien (0.10.0): schon nach Bildern/GIFs/Videos geschaut? (fuer das Nachholen alter Postings)
+    media_checked: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Massenimport (0.8.0): Kennung des Imports, aus dem das Posting stammt.
     import_batch: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
     text: Mapped[str] = mapped_column(Text, default="")
     text_source: Mapped[str | None] = mapped_column(String(16), nullable=True)
@@ -184,6 +186,8 @@ class Post(Base):
     account: Mapped["Account | None"] = relationship(back_populates="posts")
     tags: Mapped[list["Tag"]] = relationship(secondary=post_tags, back_populates="posts", order_by="Tag.name")
     list_links: Mapped[list["ListPost"]] = relationship(back_populates="post", cascade="all, delete-orphan")
+    media: Mapped[list["PostMedia"]] = relationship(back_populates="post", cascade="all, delete-orphan",
+                                                    order_by="PostMedia.position")
 
     @property
     def thread_list(self) -> list[dict]:
@@ -435,3 +439,30 @@ class GalleryImage(Base):
     @property
     def ratio(self) -> float:
         return round(self.width / self.height, 4) if self.height else 1.0
+
+
+class PostMedia(Base):
+    """Ein Bild, GIF oder Video aus einem Posting - als Datei gesichert (0.10.0).
+    X liefert GIFs als stumme MP4-Schleife (kind "gif"), Bluesky-Videos kommen
+    als Originaldatei vom Server des Accounts."""
+
+    __tablename__ = "post_media"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    post_id: Mapped[int] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"), index=True)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    kind: Mapped[str] = mapped_column(String(8))          # photo | gif | video
+    path: Mapped[str] = mapped_column(String(255))        # relativ: media/<plattform>/<jahr>/<name>
+    mime: Mapped[str] = mapped_column(String(64), default="")
+    width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    bytes: Mapped[int] = mapped_column(Integer, default=0)
+    alt: Mapped[str] = mapped_column(Text, default="")
+    source_url: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    post: Mapped[Post] = relationship(back_populates="media")
+
+    @property
+    def is_video(self) -> bool:
+        return self.mime.startswith("video/")

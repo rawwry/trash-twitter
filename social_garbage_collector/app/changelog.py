@@ -2,6 +2,19 @@
 
 CHANGES = [
     {
+        "version": "0.10.0",
+        "date": "14.10.2026",
+        "title": "Medien, Raster, schnell aufräumen",
+        "items": [
+            "Bilder, GIFs und Videos aus Postings werden mitgesichert (X und Bluesky) – auch nachträglich für ältere",
+            "Neue Ansicht „Raster“: gleich große Kacheln, nur Name, Text und Datum",
+            "Tags im Archiv antippen statt eintippen; Schnellauswahl beim Vergeben",
+            "Löschen direkt im Archiv: Mülleimer beim Drüberfahren, auch per Mehrfachauswahl – immer mit Rückfrage",
+            "Personen: Foto füllt die ganze Kachel; Personen ohne Postings verschwinden",
+            "„Aussage“ heißt jetzt „Posting“; ein Hinzufügen-Knopf oben rechts (in der Galerie: Bilder)",
+        ],
+    },
+    {
         "version": "0.9.0",
         "date": "14.10.2026",
         "title": "Galerie",
