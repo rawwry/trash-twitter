@@ -54,7 +54,7 @@ def test_person_disappears_after_deleting_last_post(user_client, harness):
 
 def test_add_button_follows_section(user_client):
     archive = user_client.get("/").text
-    assert 'data-open="add-dialog"' in archive and "Posting</button>" in archive
+    assert 'data-open="add-dialog"' in archive and "Posting hinzufügen</button>" in archive
     gallery = user_client.get("/galerie").text
     assert 'class="btn sm btn-add" type="button" data-open="gallery-upload"' in gallery
     assert gallery.count('data-open="gallery-upload"') >= 2  # Kopfzeile + Plus unten

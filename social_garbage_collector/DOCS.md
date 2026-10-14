@@ -25,6 +25,8 @@ Passwort vergessen oder Konto nach Fehlversuchen gesperrt:
 
 ## Aufs Handy
 
+- **Teilen direkt aus X/Bluesky:** In der App unter **Hilfe & FAQ** steht die Anleitung (persönlicher Schlüssel + Kurzbefehl). Kurzbefehle brauchen die direkte Adresse mit Port 8780, nicht die HA-Seitenleiste.
+
 - iPhone: in Safari Teilen → „Zum Home-Bildschirm“.
 - Teilen direkt aus X oder Bluesky: In der App unter Einstellungen → Teilen & Kürzel steht, wie es geht.
 

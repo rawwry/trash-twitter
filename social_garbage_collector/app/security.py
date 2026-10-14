@@ -192,6 +192,36 @@ def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode("ascii")).hexdigest()
 
 
+# --- Persoenlicher Schluessel fuer Kurzbefehle (0.11.0) ----------------------------
+
+API_TOKEN_PREFIX = "tt_"
+
+
+def new_api_token(user: User) -> str:
+    """Erzeugt einen neuen Schluessel (der alte wird ungueltig). Gespeichert wird
+    nur der Hash - der Klartext wird genau einmal angezeigt."""
+    token = API_TOKEN_PREFIX + secrets.token_urlsafe(32)
+    user.api_token_hash = _hash_token(token)
+    user.api_token_hint = token[-4:]
+    user.api_token_created_at = utcnow()
+    return token
+
+
+def revoke_api_token(user: User) -> None:
+    user.api_token_hash, user.api_token_hint, user.api_token_created_at = None, "", None
+
+
+def user_from_api_token(db: Session, header: str | None) -> User | None:
+    """Authorization: Bearer tt_... -> aktiver Benutzer oder None."""
+    if not header or not header.lower().startswith("bearer "):
+        return None
+    token = header.split(" ", 1)[1].strip()
+    if not token.startswith(API_TOKEN_PREFIX) or len(token) > 200:
+        return None
+    user = db.scalar(select(User).where(User.api_token_hash == _hash_token(token)))
+    return user if user is not None and user.is_active else None
+
+
 def create_session(db: Session, settings: Settings, user: User) -> str:
     token = secrets.token_urlsafe(32)
     now = utcnow()
@@ -317,6 +347,11 @@ async def csrf_protect(request: Request, sess: UserSession | None = Depends(load
     das Token der Sitzung, sonst das aus dem Cookie sgc_csrf.
     """
     if request.method in ("GET", "HEAD", "OPTIONS"):
+        return
+    # Kurzbefehle (iOS/Android) mit persoenlichem Schluessel: den Authorization-
+    # Header schickt kein Browser von selbst mit -> kein CSRF moeglich. Ohne
+    # gueltigen Schluessel antwortet /api/ ohnehin mit 401.
+    if request.url.path.startswith("/api/") and request.headers.get("authorization", "").lower().startswith("bearer "):
         return
     expected = sess.csrf_token if sess else request.cookies.get(CSRF_COOKIE)
     sent = request.headers.get(CSRF_HEADER)

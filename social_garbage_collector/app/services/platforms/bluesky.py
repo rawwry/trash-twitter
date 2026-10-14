@@ -281,7 +281,7 @@ def bluesky_media(embed: dict | None, did: str | None) -> list:
     if etype.startswith("app.bsky.embed.video") and embed.get("cid") and did:
         ar = embed.get("aspectRatio") or {}
         return [MediaRef("video", "", (embed.get("alt") or "").strip(), ar.get("width"), ar.get("height"),
-                         did=did, cid=embed["cid"])]
+                         did=did, cid=embed["cid"], poster=embed.get("thumbnail") or "")]
     if etype.startswith("app.bsky.embed.external"):
         uri = ((embed.get("external") or {}).get("uri") or "").strip()
         parsed = urlparse(uri)

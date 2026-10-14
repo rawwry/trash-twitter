@@ -305,7 +305,7 @@ def filter_from_params(params, default_sort: str = "posted") -> ArchiveFilter:
 
 
 def archive_query(f: ArchiveFilter) -> Select:
-    stmt = select(Post).options(selectinload(Post.tags), selectinload(Post.added_by),
+    stmt = select(Post).options(selectinload(Post.tags), selectinload(Post.added_by), selectinload(Post.media),
                                 selectinload(Post.account).selectinload(Account.person))
     conds = []
     match = fts_query(f.q)
@@ -569,7 +569,7 @@ def delete_posts(db: Session, settings, posts: list[Post]) -> int:
     from ..config import UnsafePathError, safe_path
 
     for post in posts:
-        files = [post.screenshot_path] + [m.path for m in getattr(post, "media", [])]
+        files = [post.screenshot_path] + [p for m in getattr(post, "media", []) for p in (m.path, m.thumb_path)]
         for rel in filter(None, files):
             try:
                 safe_path(settings.base_path, rel).unlink(missing_ok=True)

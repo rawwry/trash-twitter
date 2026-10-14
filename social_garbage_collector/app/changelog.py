@@ -2,6 +2,19 @@
 
 CHANGES = [
     {
+        "version": "0.11.0",
+        "date": "14.10.2026",
+        "title": "Facelift, Teilen vom Handy, Ideen",
+        "items": [
+            "Neues Erscheinungsbild: weichere Karten mit Tiefe, Navigation als Pillen, ruhigere Werkzeugleiste",
+            "Bilder, GIFs und Videos erscheinen jetzt auch in der Archivübersicht (als schnelle Vorschaubilder)",
+            "Teilen vom iPhone und Android: persönlicher Schlüssel + Kurzbefehl – ein Tipp, Posting ist im Archiv",
+            "Neue Seite „Hilfe & FAQ“ mit Schritt-für-Schritt-Anleitungen",
+            "Neue Seite „Ideen“: Wünsche für neue Funktionen sammeln und mitstimmen",
+            "Knöpfe heißen jetzt eindeutig „Posting hinzufügen“ und „Bilder hinzufügen“",
+        ],
+    },
+    {
         "version": "0.10.1",
         "date": "14.10.2026",
         "title": "Notfall-Zugang",

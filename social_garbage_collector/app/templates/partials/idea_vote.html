@@ -1,0 +1,6 @@
+<button class="idea-vote" type="button" aria-pressed="{{ 'true' if voted else 'false' }}" title="Will ich auch"
+        hx-post="{{ url('/ideen/' ~ idea.id ~ '/stimme') }}" hx-swap="outerHTML">
+  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 5 4 15h16z"/></svg>
+  <strong>{{ n }}</strong>
+  <span class="sr-only">Will ich auch</span>
+</button>

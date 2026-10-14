@@ -64,6 +64,8 @@ class MediaRef:
     height: int | None = None
     did: str | None = None
     cid: str | None = None
+    # Vorschaubild der Plattform (Videos/GIFs) - fuer die Archivuebersicht
+    poster: str = ""
 
 
 @dataclass

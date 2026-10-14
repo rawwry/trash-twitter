@@ -94,6 +94,9 @@ _ADDED_COLUMNS = {
         ("last_visit_at", "DATETIME"),
         ("display_name", "VARCHAR(40) NOT NULL DEFAULT ''"),
         ("avatar_path", "VARCHAR(255)"),
+        ("api_token_hash", "VARCHAR(64)"),
+        ("api_token_hint", "VARCHAR(8) NOT NULL DEFAULT ''"),
+        ("api_token_created_at", "DATETIME"),
     ],
     "posts": [
         ("shot_w", "INTEGER"),
@@ -112,6 +115,9 @@ _ADDED_COLUMNS = {
         ("shot_reconstructed", "BOOLEAN NOT NULL DEFAULT 0"),
         ("import_batch", "VARCHAR(16)"),
         ("media_checked", "BOOLEAN NOT NULL DEFAULT 0"),
+    ],
+    "post_media": [
+        ("thumb_path", "VARCHAR(255)"),
     ],
     "lists": [
         ("description", "TEXT NOT NULL DEFAULT ''"),

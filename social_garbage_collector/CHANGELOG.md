@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.0 – Facelift, Teilen vom Handy, Ideen (14.10.2026)
+
+- **Facelift:** wärmerer Hintergrund mit leichtem Verlauf, Karten mit 16 px Rundung, leisen Schatten und Anheben beim Drüberfahren, Plattform als kleines Logo, Navigation als Pillen in einer Spur, Suche/Plattform/Sortierung/Filter als eine gemeinsame Leiste, Überschriften mit Eyebrow-Zeile, runderere Knöpfe und Sheets.
+- **Medien in der Übersicht:** Karten und Zeitachse zeigen bis zu 4 Bilder/Videos/GIFs als Raster (Video mit Play-Symbol, „+n“ bei mehr), das Raster das erste Bild. Dafür gibt es Vorschaubilder (`<datei>.thumb.webp`, max. 720 px): für Bilder selbst erzeugt, für Videos aus dem Vorschaubild der Plattform. Vorhandene Bilder bekommen sie beim Start (`media.backfill_thumbs`), Spalte `post_media.thumb_path`.
+- **Teilen vom Handy:** persönlicher Schlüssel (Einstellungen → Teilen & Kürzel oder Hilfe; nur der SHA-256-Hash wird gespeichert, Klartext einmalig angezeigt) und `POST /api/teilen` mit `Authorization: Bearer …` – nimmt `url`/`text` als Formular oder JSON, sucht den ersten X-/Bluesky-Link und antwortet mit einer Zeile Text („Archiviert: @… (Nr. …)“ / „Schon im Archiv“). Kein CSRF nötig, weil Browser den Header nie selbst senden.
+- **Hilfe & FAQ** (`/hilfe`): Kurzbefehl für iPhone/iPad, Android über installierte Web-App (HTTPS) oder „HTTP Shortcuts“, Lesezeichen für den Computer, Hinweis zur direkten Adresse (Port 8780 statt HA-Seitenleiste), häufige Fragen.
+- **Ideen** (`/ideen`): Wünsche für neue Funktionen aufschreiben, „Will ich auch“-Stimmen, Filter Offen/Umgesetzt/Alle. Admins setzen den Stand (Neu, Geplant, Umgesetzt, Nicht geplant) und können antworten. Tabellen `feature_ideas`, `idea_votes`.
+- **Eindeutige Knöpfe:** „Posting hinzufügen“, „Bilder hinzufügen“, „Screenshot hinzufügen“, „Alle Postings hinzufügen“.
+
 ## 0.10.1 – Notfall-Zugang (14.10.2026)
 
 - **Kein Admin kommt mehr rein?** Add-on-Optionen: `reset_password: true`, `admin_username` = Konto, `admin_password` = neues Passwort (mind. 5 Zeichen), Add-on neu starten. Das Konto bekommt das Passwort, wird entsperrt, aktiviert und Admin (gibt es den Namen nicht, wird er angelegt). Beim ersten Login muss ein eigenes Passwort vergeben werden. Danach `reset_password` ausschalten und `admin_password` leeren.

@@ -32,33 +32,13 @@
 <h2>Aus X oder Bluesky teilen</h2>
 <div class="setting-group">
   <div class="setting-row stacked">
-    <div class="text"><div class="label">iPhone &amp; iPad – Kurzbefehl „Archivieren“</div>
-      <div class="help">Danach steht „Archivieren“ im Teilen-Menü jeder App.</div></div>
-    <ol class="steps small">
-      <li>App <strong>Kurzbefehle</strong> öffnen → <strong>+</strong> → oben auf ⓘ → <strong>„Im Share-Sheet anzeigen“</strong> einschalten (Typ: URLs).</li>
-      <li>Aktion <strong>„URL codieren“</strong> hinzufügen (Eingabe: <em>Kurzbefehleingabe</em>).</li>
-      <li>Aktion <strong>„URL“</strong> mit diesem Inhalt, am Ende die Variable <em>Codierte URL</em> einsetzen:</li>
-    </ol>
-    <div class="copy-field">
-      <input id="shortcut-url" readonly value="{{ base_url }}/teilen?url=" aria-label="Adresse für den Kurzbefehl">
-      <button class="btn-soft sm" type="button" data-copy="#shortcut-url">{{ icon('copy', 16) }} Kopieren</button>
-    </div>
-    <ol class="steps small" start="4">
-      <li>Aktion <strong>„URLs öffnen“</strong> hinzufügen, Kurzbefehl <strong>„Archivieren“</strong> nennen. Fertig.</li>
-    </ol>
+    <div class="text"><div class="label">Teilen-Knopf auf iPhone und Android</div>
+      <div class="help">Einmal einrichten, dann landen Postings mit einem Tipp im Archiv. Die Schritt-für-Schritt-Anleitung steht unter „Hilfe &amp; FAQ“.</div></div>
+    <div><a class="btn sm" href="{{ url('/hilfe') }}">{{ icon('share', 15) }} Zur Anleitung</a></div>
   </div>
   <div class="setting-row stacked">
-    <div class="text"><div class="label">Android – als App installieren</div>
-      <div class="help">In Chrome: Menü ⋮ → <strong>„Zum Startbildschirm hinzufügen“</strong>. Danach erscheint {{ APP_NAME }} direkt im Teilen-Menü.</div></div>
-  </div>
-  <div class="setting-row stacked">
-    <div class="text"><div class="label">Computer – Lesezeichen</div>
-      <div class="help">Den Knopf in die Lesezeichenleiste ziehen. Auf eines Postings bei X oder Bluesky anklicken – fertig.</div></div>
-    <div><a class="bookmarklet" href="javascript:(()=>{location.href='{{ base_url }}/teilen?url='+encodeURIComponent(location.href)})()" data-bookmarklet>In {{ APP_NAME }} archivieren</a></div>
-  </div>
-  <div class="setting-row stacked">
-    <div class="help">Tipp: Für deine Freunde funktioniert das nur mit der Adresse, unter der sie die App öffnen
-      (z. B. <code>http://homeassistant.local:8780</code>) – nicht über die Home-Assistant-Seitenleiste.</div>
+    <div class="text"><div class="label">Persönlicher Schlüssel</div></div>
+    {% include "partials/api_token.html" %}
   </div>
 </div>
 

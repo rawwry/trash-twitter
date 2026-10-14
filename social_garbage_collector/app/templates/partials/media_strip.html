@@ -1,0 +1,17 @@
+{# Bilder, GIFs und Videos eines Postings in der Archivuebersicht (bis zu 4).
+   Vorschaubilder statt Originale; Videos ohne Vorschau zeigen ihr erstes Bild. #}
+{% set shown = post.media[:4] %}
+{% if shown %}
+<a class="q-media n{{ shown|length }}" href="{{ url('/posts/' ~ post.id) }}#media-title" aria-label="Medien ansehen" tabindex="-1">
+  {% for m in shown %}
+  <span class="q-media-item" {% if m.width and m.height and shown|length == 1 %}style="--r: {{ (m.width / m.height)|round(3) }}"{% endif %}>
+    {% if m.thumb_path %}<img src="{{ url('/medien/' ~ m.thumb_path) }}" alt="{{ m.alt }}" loading="lazy" decoding="async">
+    {% elif m.is_video %}<video src="{{ url('/medien/' ~ m.path) }}#t=0.1" preload="metadata" muted playsinline tabindex="-1"></video>
+    {% else %}<img src="{{ url('/medien/' ~ m.path) }}" alt="{{ m.alt }}" loading="lazy" decoding="async">{% endif %}
+    {% if m.kind == 'video' %}<span class="q-play" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M8 5.5v13l11-6.5z"/></svg></span>{% endif %}
+    {% if m.kind == 'gif' %}<span class="media-badge">GIF</span>{% endif %}
+    {% if loop.last and post.media|length > 4 %}<span class="q-more">+{{ post.media|length - 4 }}</span>{% endif %}
+  </span>
+  {% endfor %}
+</a>
+{% endif %}

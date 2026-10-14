@@ -160,12 +160,67 @@ async def save_media(db: Session, settings: Settings, client: httpx.AsyncClient,
                     width, height = im.size
             except OSError:
                 pass
+        thumb = None
+        if mime.startswith("image/"):
+            thumb = make_thumb(target)
+        elif ref.poster and _host_ok(ref.poster):
+            try:
+                poster, _ = await _download(client, ref.poster, 10 * 1024 * 1024)
+                thumb = make_thumb(target, poster)
+            except (MediaError, httpx.HTTPError):
+                pass
         post.media.append(PostMedia(position=pos, kind=ref.kind, path=f"media/{post.platform}/{year}/{name}",
+                         thumb_path=_rel(settings, thumb) if thumb else None,
                          mime=mime, width=width, height=height, bytes=len(data), alt=ref.alt or "",
                          source_url=(ref.url or url)[:2000]))
     post.media_checked = True
     db.flush()
     return problems
+
+
+THUMB_EDGE = 720
+
+
+def make_thumb(target, data: bytes | None = None):
+    """Vorschaubild <name>.thumb.webp neben der Datei - aus dem Bild selbst
+    (oder bei Videos aus dem Vorschaubild der Plattform). None bei Fehlern."""
+    import io
+
+    from PIL import ImageOps
+
+    out = target.with_name(target.stem + ".thumb.webp")
+    try:
+        with Image.open(io.BytesIO(data) if data else target) as im:
+            im.seek(0)
+            im = ImageOps.exif_transpose(im).convert("RGB")
+            im.thumbnail((THUMB_EDGE, THUMB_EDGE), Image.Resampling.LANCZOS)
+            im.save(out, "WEBP", quality=78, method=4)
+        return out
+    except (OSError, ValueError, Image.DecompressionBombError):
+        return None
+
+
+def _rel(settings: Settings, path) -> str:
+    return str(path.resolve().relative_to(settings.base_path.resolve()))
+
+
+def backfill_thumbs(db: Session, settings: Settings) -> int:
+    """Beim Start: Vorschaubilder fuer Bilder, die vor 0.11 gesichert wurden."""
+    from sqlalchemy import select
+
+    done = 0
+    for m in db.scalars(select(PostMedia).where(PostMedia.thumb_path.is_(None), PostMedia.mime.like("image/%"))):
+        try:
+            target = safe_path(settings.base_path, m.path)
+        except UnsafePathError:
+            continue
+        if target.is_file() and (thumb := make_thumb(target)):
+            m.thumb_path = _rel(settings, thumb)
+            done += 1
+    if done:
+        db.commit()
+        log.info("%d Vorschaubilder fuer gesicherte Medien erzeugt.", done)
+    return done
 
 
 def remove_files(settings: Settings, post: Post) -> None:

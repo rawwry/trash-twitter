@@ -1,0 +1,23 @@
+{% from "partials/icons.html" import icon %}
+{# Persoenlicher Schluessel fuer Kurzbefehle. Klartext gibt es nur direkt nach dem Erzeugen. #}
+<div class="token-box" id="api-token">
+  {% if new_token %}
+  <p class="small" style="margin:0"><strong>Dein neuer Schlüssel</strong> – jetzt kopieren, er wird nur dieses eine Mal angezeigt:</p>
+  <div class="copy-field">
+    <input id="token-value" readonly value="{{ new_token }}" class="mono" aria-label="Persönlicher Schlüssel">
+    <button class="btn sm" type="button" data-copy="#token-value">{{ icon('copy', 15) }} Kopieren</button>
+  </div>
+  <p class="faint xs" style="margin:0">Wie ein Passwort behandeln: Wer ihn hat, kann in deinem Namen Postings hinzufügen (nicht mehr).</p>
+  {% elif user.api_token_hint %}
+  <p class="small" style="margin:0">{{ icon('check', 15) }} Schlüssel aktiv (endet auf <code>…{{ user.api_token_hint }}</code>, erstellt {{ user.api_token_created_at|localtime('%d.%m.%Y') }}).</p>
+  <div class="row wrap">
+    <button class="btn-soft sm" type="button" hx-post="{{ url('/settings/schluessel') }}" hx-target="#api-token" hx-swap="outerHTML"
+            hx-confirm="Neuen Schlüssel erzeugen? Der alte funktioniert dann nicht mehr – Kurzbefehle musst du anpassen." data-confirm-ok="Neu erzeugen">Neuen erzeugen</button>
+    <button class="btn-ghost sm" type="button" hx-post="{{ url('/settings/schluessel/loeschen') }}" hx-target="#api-token" hx-swap="outerHTML"
+            hx-confirm="Schlüssel löschen? Kurzbefehle damit funktionieren dann nicht mehr.">Löschen</button>
+  </div>
+  {% else %}
+  <p class="small" style="margin:0">Für Kurzbefehle brauchst du einen persönlichen Schlüssel.</p>
+  <div><button class="btn sm" type="button" hx-post="{{ url('/settings/schluessel') }}" hx-target="#api-token" hx-swap="outerHTML">{{ icon('plus', 15) }} Schlüssel erzeugen</button></div>
+  {% endif %}
+</div>

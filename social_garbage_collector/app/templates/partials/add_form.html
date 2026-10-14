@@ -3,7 +3,7 @@
 {% set add_mode = mode or 'link' %}
 <div class="sheet-inner" data-add-tabs>
   <div class="sheet-head">
-    <h2 id="add-title">{% if shared %}Geteiltes Posting archivieren{% else %}Posting archivieren{% endif %}</h2>
+    <h2 id="add-title">{% if shared %}Geteiltes Posting hinzufügen{% else %}Posting hinzufügen{% endif %}</h2>
     {% if in_dialog %}<button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close') }}</button>{% endif %}
   </div>
   {# Reiter: ohne JS normale Links auf /add?mode=..., mit JS nur Umschalten #}
@@ -51,7 +51,7 @@
       {% with field_value=form_tags or '' %}{% include "partials/tag_input.html" %}{% endwith %}
     </div>
   </details>
-  <button class="btn lg" type="submit">{{ icon('archive', 20) }} Archivieren</button>
+  <button class="btn lg" type="submit">{{ icon('plus', 20) }} Posting hinzufügen</button>
   <p class="faint xs center" style="margin:0">Wortlaut, Verfasser, Datum und Beleg-Screenshot kommen automatisch. Unterstützt: x.com, twitter.com, bsky.app</p>
 </form>
 
@@ -101,7 +101,7 @@
       {% with field_value=form_tags or '' %}{% include "partials/tag_input.html" %}{% endwith %}
     </div>
   </details>
-  <button class="btn lg" type="submit" data-upload-submit>{{ icon('archive', 20) }} Hochladen &amp; archivieren</button>
+  <button class="btn lg" type="submit" data-upload-submit>{{ icon('plus', 20) }} Screenshot hinzufügen</button>
   <p class="faint xs center" style="margin:0">JPG, PNG, WebP oder GIF · bis 10 Bilder à 15 MB · Standort- und Kameradaten werden entfernt</p>
 </form>
 {# --- Massenimport: viele Links auf einmal ------------------------------------------ #}
@@ -127,7 +127,7 @@
       </fieldset>
     </div>
   </details>
-  <button class="btn lg" type="submit">{{ icon('archive', 20) }} Alle archivieren</button>
+  <button class="btn lg" type="submit">{{ icon('plus', 20) }} Alle Postings hinzufügen</button>
   <p class="faint xs center" style="margin:0">Die Postings werden nacheinander im Hintergrund erfasst (je ca. 5–25 s).
     Den Fortschritt siehst du danach. <a href="{{ url('/import') }}">Frühere Importe</a></p>
 </form>

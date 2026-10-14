@@ -63,6 +63,11 @@ class User(Base):
     # Profil: Anzeigename (leer = Benutzername) und Profilbild (relativ zum Basispfad).
     display_name: Mapped[str] = mapped_column(String(40), default="")
     avatar_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Persoenlicher Schluessel fuer Kurzbefehle/Teilen (0.11.0). Gespeichert nur der
+    # SHA-256-Hash; hint = letzte 4 Zeichen zum Wiedererkennen.
+    api_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    api_token_hint: Mapped[str] = mapped_column(String(8), default="")
+    api_token_created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     # Persoenliche Einstellungen als JSON (siehe app/prefs.py).
     prefs: Mapped[str] = mapped_column(Text, default="{}")
     # Seit 0.6 ungenutzt ("Neu fuer dich" entfernt), bleiben fuer alte Datenbanken stehen.
@@ -453,6 +458,8 @@ class PostMedia(Base):
     position: Mapped[int] = mapped_column(Integer, default=0)
     kind: Mapped[str] = mapped_column(String(8))          # photo | gif | video
     path: Mapped[str] = mapped_column(String(255))        # relativ: media/<plattform>/<jahr>/<name>
+    # Kleines Vorschaubild (WebP, max. 720 px) fuer die Archivuebersicht (0.11.0)
+    thumb_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
     mime: Mapped[str] = mapped_column(String(64), default="")
     width: Mapped[int | None] = mapped_column(Integer, nullable=True)
     height: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -466,3 +473,38 @@ class PostMedia(Base):
     @property
     def is_video(self) -> bool:
         return self.mime.startswith("video/")
+
+
+# --------------------------------------------------------------------------
+# Ideen fuer neue Funktionen (0.11.0)
+# --------------------------------------------------------------------------
+
+IDEA_STATUSES = {"neu": "Neu", "geplant": "Geplant", "umgesetzt": "Umgesetzt", "abgelehnt": "Nicht geplant"}
+
+
+class FeatureIdea(Base):
+    __tablename__ = "feature_ideas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(140))
+    body: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(12), default="neu", index=True)
+    answer: Mapped[str] = mapped_column(Text, default="")   # Antwort/Notiz vom Admin
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    created_by: Mapped[User | None] = relationship()
+    votes: Mapped[list["IdeaVote"]] = relationship(back_populates="idea", cascade="all, delete-orphan")
+
+
+class IdeaVote(Base):
+    """"Will ich auch" - eine Stimme pro Person und Idee, zum Priorisieren."""
+
+    __tablename__ = "idea_votes"
+
+    idea_id: Mapped[int] = mapped_column(ForeignKey("feature_ideas.id", ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    idea: Mapped[FeatureIdea] = relationship(back_populates="votes")

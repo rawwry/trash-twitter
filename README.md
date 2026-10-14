@@ -37,14 +37,15 @@ Wortlaut, Verfasser, Datum und ein Beleg-Screenshot werden dauerhaft gesichert, 
 | Beleg-Screenshot | Läuft im Hintergrund mit Playwright/Chromium und erfasst nur den Beitrag. Threads: weitere Teile per Link ergänzen (beim Hinzufügen oder später), sie werden zu einem Beleg zusammengesetzt. Die automatische Thread-Erkennung ist seit 0.6.1 abgeschaltet. Eigene Screenshots (z. B. von gelöschten Beiträgen) lassen sich hochladen, ziehen oder mit ⌘V einfügen. |
 | Archiv | Volltextsuche (FTS5), Plattform, Verfasser, Person, Tags, Liste, Zeitraum des Postings, archiviert von, Status. Sortiert standardmäßig nach dem **Datum des Postings**. |
 | Darstellungen | **Karten** (Zitate mit allen Angaben), **Raster** (gleich große Kacheln, nur Name, Text, Datum), **Liste** (eine Zeile pro Posting), **Zeitachse** (nach Monaten, in voller Länge). Wird pro Person gemerkt. Tags oben antippen zum Filtern. |
-| Medien | Bilder, GIFs und Videos aus Postings werden mitgesichert (X: MP4/Originalbild, Bluesky: Originaldatei vom Server des Accounts). Grenze je Datei über `media_max_mb`, abschaltbar mit `save_media`. |
+| Medien | Bilder, GIFs und Videos aus Postings werden mitgesichert und erscheinen als Vorschau auch in der Archivübersicht (X: MP4/Originalbild, Bluesky: Originaldatei vom Server des Accounts). Grenze je Datei über `media_max_mb`, abschaltbar mit `save_media`. |
 | Schnell löschen | Mülleimer beim Drüberfahren und „Löschen“ in der Mehrfachauswahl, immer mit Rückfrage. |
 | Massenimport | Reiter „Viele Links“: bis zu 500 Links von X und Bluesky auf einmal, auch mitten in Text. Doppelte, schon archivierte und schon als Thread-Teil erfasste Beiträge werden übersprungen. Fortschrittsseite mit Zusammenfassung, frühere Importe unter `/import`. |
 | Galerie | Eigene Bilder hochladen (auch ⌘V, bis 40 auf einmal) und selbst angelegten Kategorien zuordnen. Raster im Blocksatz ohne weitere Infos, Filter nach Kategorien (mehrere kombinierbar), Vollbild mit Blättern, Wischen und Infoleiste auf Wunsch. Bilder werden verkleinert, ohne Standortdaten gespeichert, Duplikate erkannt. |
 | Mehrfachauswahl | Postingn markieren und gesammelt in eine Liste legen. |
 | Listen | Gemeinsame Sammlungen zu einem Thema, mit Beschreibung, für alle bearbeitbar. Ablegen über ein Auswahlfenster: antippen, suchen, neue Liste direkt anlegen – einzeln oder per Mehrfachauswahl. |
 | Suchgenerator | Baut Suchbefehle für X und Bluesky, um Postingn auf den Plattformen selbst zu finden. |
-| Teilen | Android: als App installieren, dann im Teilen-Menü. iPhone: Kurzbefehl „Archivieren“. Computer: Lesezeichen. |
+| Teilen vom Handy | Persönlicher Schlüssel + Kurzbefehl (iPhone) bzw. „HTTP Shortcuts“ oder installierte Web-App (Android): Teilen → TrashTwitter, fertig. Schnittstelle `POST /api/teilen` mit `Authorization: Bearer …`. Anleitung in der App unter **Hilfe & FAQ**. |
+| Ideen | Seite `/ideen`: Wünsche für neue Funktionen sammeln, mitstimmen; Admins setzen den Stand. |
 | Benutzer | Rollen Admin und Mitglied. Jede:r ändert das eigene Passwort selbst (Einstellungen → Konto), niemand kann Passwörter einsehen. Konten legt nur der Admin an. Admin-Funktionen sind für Mitglieder unsichtbar und antworten mit 404. Zusammenführungen von Personen stehen im Protokoll. |
 
 Bewusst **nicht** (mehr) enthalten: Reaktionen, Favoriten, „Neu für dich“, Zufallsfunde, Easter Eggs. Die Mitglieder interagieren nicht miteinander, sie dokumentieren gemeinsam.

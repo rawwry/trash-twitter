@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% set nav = 'help' %}
+{% block title %}Hilfe & FAQ{% endblock %}
+{% block container_class %}narrow help-page{% endblock %}
+{% block content %}
+<header class="help-hero">
+  <p class="eyebrow">Hilfe &amp; FAQ</p>
+  <h1>Postings direkt aus X und Bluesky teilen</h1>
+  <p class="sub">Einmal einrichten, danach reicht in der X- oder Bluesky-App: <strong>Teilen → TrashTwitter</strong>. Das Posting landet ohne Umweg im Archiv.</p>
+  <nav class="help-jump" aria-label="Springen zu">
+    <a href="#iphone">{{ icon('share', 15) }} iPhone &amp; iPad</a>
+    <a href="#android">{{ icon('share', 15) }} Android</a>
+    <a href="#computer">{{ icon('monitor', 15) }} Computer</a>
+    <a href="#faq">{{ icon('info', 15) }} Häufige Fragen</a>
+    <a href="{{ url('/ideen') }}">{{ icon('sparkles', 15) }} Ideen</a>
+  </nav>
+</header>
+
+<section class="help-card" aria-labelledby="key-title">
+  <div class="help-step-num">1</div>
+  <div class="help-body">
+    <h2 id="key-title">Persönlichen Schlüssel erzeugen</h2>
+    <p class="muted">Der Kurzbefehl meldet sich damit bei TrashTwitter an – so musst du dich nie im Browser einloggen. Gilt für iPhone und Android.</p>
+    {% include "partials/api_token.html" %}
+  </div>
+</section>
+
+<section class="help-card" aria-labelledby="addr-title">
+  <div class="help-step-num">2</div>
+  <div class="help-body">
+    <h2 id="addr-title">Diese Adresse brauchst du</h2>
+    <div class="copy-field">
+      <input id="api-url" readonly value="{{ api_url }}" class="mono" aria-label="Adresse für Kurzbefehle">
+      <button class="btn-soft sm" type="button" data-copy="#api-url">{{ icon('copy', 15) }} Kopieren</button>
+    </div>
+    {% if via_ingress %}
+    <p class="flash flash-info small" style="margin:10px 0 0">Du bist gerade über die Home-Assistant-Seitenleiste hier. Kurzbefehle können den HA-Login nicht,
+      deshalb steht oben die direkte Adresse mit Port 8780. Passt der Name nicht (z. B. <code>homeassistant.local</code>), nimm die IP-Adresse deines Pi.</p>
+    {% endif %}
+    <p class="faint xs" style="margin:10px 0 0">Funktioniert im WLAN zu Hause. Unterwegs nur, wenn TrashTwitter von außen erreichbar ist (eigene Domain mit HTTPS, z. B. über einen Reverse-Proxy).</p>
+  </div>
+</section>
+
+{# --- iPhone --------------------------------------------------------------------- #}
+<section class="help-card platform" id="iphone" aria-labelledby="ios-title">
+  <div class="help-step-num">3</div>
+  <div class="help-body">
+    <h2 id="ios-title">iPhone &amp; iPad: Kurzbefehl anlegen</h2>
+    <p class="muted">Einmalig etwa 3 Minuten. Danach steht „Zu TrashTwitter“ im Teilen-Menü jeder App.</p>
+    <ol class="help-steps">
+      <li>App <strong>Kurzbefehle</strong> öffnen → oben rechts <strong>+</strong>. Oben auf den Namen tippen und <strong>„Zu TrashTwitter“</strong> nennen.</li>
+      <li>Unten auf <strong>ⓘ</strong> (Details) → <strong>„Im Share-Sheet anzeigen“</strong> einschalten. Bei „Typen“ nur <strong>URLs</strong> und <strong>Text</strong> anhaken.</li>
+      <li>Aktion suchen und hinzufügen: <strong>„Inhalte von URL abrufen“</strong>.
+        <ul>
+          <li>URL: die Adresse aus Schritt 2 einfügen.</li>
+          <li>Auf den Pfeil ▸ tippen → <strong>Methode: POST</strong>.</li>
+          <li><strong>Header</strong> hinzufügen: Schlüssel <code>Authorization</code>, Wert <code>Bearer </code> + dein Schlüssel aus Schritt 1 (mit Leerzeichen nach „Bearer“).</li>
+          <li><strong>Anfragetext: Formular</strong> → Feld hinzufügen (Text): Schlüssel <code>url</code>, Wert: Variable <strong>Kurzbefehleingabe</strong>.</li>
+        </ul>
+      </li>
+      <li>Aktion <strong>„Mitteilung anzeigen“</strong> hinzufügen, als Text die Variable <strong>„Inhalte von URL“</strong> wählen.</li>
+      <li>Fertig. In X oder Bluesky: <strong>Teilen</strong> (bzw. „Teilen über …“) → <strong>Zu TrashTwitter</strong>. Nach ein, zwei Sekunden kommt „Archiviert: @… (Nr. …)“ – oder „Schon im Archiv“.</li>
+    </ol>
+    <details class="help-more">
+      <summary>Alternative ohne Schlüssel</summary>
+      <p class="small">Statt „Inhalte von URL abrufen“: <strong>„URL codieren“</strong> (Kurzbefehleingabe), dann <strong>„URL“</strong> mit
+        <code>{{ base }}/teilen?url=</code> + codierter URL, dann <strong>„URLs öffnen“</strong>. Das öffnet TrashTwitter im Browser mit dem Link schon eingetragen –
+        du tippst dann noch auf „Posting hinzufügen“. Dafür musst du im Browser angemeldet sein.</p>
+    </details>
+  </div>
+</section>
+
+{# --- Android -------------------------------------------------------------------- #}
+<section class="help-card platform" id="android" aria-labelledby="and-title">
+  <div class="help-step-num">3</div>
+  <div class="help-body">
+    <h2 id="and-title">Android</h2>
+    <h3>Weg A: als App installieren {% if is_https %}<span class="badge status-done">passt für dich</span>{% else %}<span class="badge">braucht HTTPS</span>{% endif %}</h3>
+    <ol class="help-steps">
+      <li>TrashTwitter in <strong>Chrome</strong> öffnen und anmelden.</li>
+      <li>Menü <strong>⋮ → „App installieren“</strong> bzw. „Zum Startbildschirm hinzufügen“.</li>
+      <li>Ab jetzt steht <strong>TrashTwitter</strong> im Teilen-Menü. Teilen öffnet die App mit dem Link schon eingetragen – ein Tipp auf „Posting hinzufügen“.</li>
+    </ol>
+    {% if not is_https %}<p class="faint xs">Android zeigt das Teilen-Ziel nur bei Adressen mit <strong>https://</strong>. Über <code>{{ base }}</code> klappt Weg B.</p>{% endif %}
+    <h3>Weg B: „HTTP Shortcuts“ – ein Tipp, fertig</h3>
+    <ol class="help-steps">
+      <li>Die kostenlose App <strong>HTTP Shortcuts</strong> (Open Source, im Play Store und bei F-Droid) installieren.</li>
+      <li><strong>+ → „Regulärer Shortcut“</strong>, Name <strong>„Zu TrashTwitter“</strong>.</li>
+      <li><strong>Grundlegende Anfrageeinstellungen:</strong> Methode <strong>POST</strong>, URL = Adresse aus Schritt 2.</li>
+      <li><strong>Anfrage-Header:</strong> <code>Authorization</code> = <code>Bearer </code> + dein Schlüssel.</li>
+      <li><strong>Anfragekörper:</strong> „Formular-Daten“ → Parameter <code>url</code>, Wert: Variable <strong>„Geteilter Text“</strong> (unter „Variablen“ → „+“ → Typ „Geteilter Text“ anlegen).</li>
+      <li><strong>Trigger &amp; Ausführungseinstellungen:</strong> „Im Teilen-Menü anzeigen“ einschalten. <strong>Antwortverarbeitung:</strong> „Als Toast anzeigen“.</li>
+      <li>Fertig: In X oder Bluesky <strong>Teilen → HTTP Shortcuts → Zu TrashTwitter</strong>.</li>
+    </ol>
+  </div>
+</section>
+
+{# --- Computer ------------------------------------------------------------------- #}
+<section class="help-card platform" id="computer" aria-labelledby="pc-title">
+  <div class="help-step-num">{{ icon('monitor', 18) }}</div>
+  <div class="help-body">
+    <h2 id="pc-title">Computer: Lesezeichen</h2>
+    <p class="muted">Den Knopf in die Lesezeichenleiste ziehen. Auf einem Posting bei X oder Bluesky anklicken – TrashTwitter öffnet sich mit dem Link.</p>
+    <a class="bookmarklet" href="javascript:(()=>{location.href='{{ base }}/teilen?url='+encodeURIComponent(location.href)})()" data-bookmarklet>{{ icon('plus', 15) }} Zu TrashTwitter</a>
+  </div>
+</section>
+
+{# --- FAQ ------------------------------------------------------------------------ #}
+<section class="faq" id="faq" aria-labelledby="faq-title">
+  <h2 id="faq-title">Häufige Fragen</h2>
+  {% set faqs = [
+    ('Was genau wird gesichert?', 'Der Wortlaut (wörtlich von der Plattform), Verfasser mit Profilbild, Datum, ein Beleg-Screenshot und – sofern enthalten – Bilder, GIFs und Videos in Originalqualität. Alles liegt bei dir auf dem Raspberry Pi, nicht in einer Cloud.'),
+    ('Was passiert, wenn ich ein Posting doppelt teile?', 'Nichts Schlimmes: TrashTwitter erkennt es (auch in anderer Schreibweise des Links oder als Teil eines Threads) und meldet „Schon im Archiv“ mit der Archiv-Nummer.'),
+    ('Funktioniert das auch mit gelöschten Tweets?', 'Wenn du einen Screenshot hast: ja. „Posting hinzufügen“ → Reiter „Screenshot“, Bild hochladen. Der Text wird per Texterkennung gelesen.'),
+    ('Warum sehe ich bei langen Tweets „Text ergänzt“?', 'X zeigt lange Beiträge im eingebetteten Tweet nur gekürzt. TrashTwitter holt den vollen Wortlaut und setzt ihn für den Beleg in die Ansicht ein – das ist gekennzeichnet, damit klar ist, dass der Screenshot ergänzt wurde.'),
+    ('Wie lege ich viele Postings auf einmal an?', '„Posting hinzufügen“ → Reiter „Viele Links“: bis zu 500 Links einfügen, auch einfach einen ganzen Text. Duplikate werden übersprungen, den Fortschritt siehst du live.'),
+    ('Wer sieht, was ich archiviere?', 'Alle Mitglieder dieser TrashTwitter-Instanz sehen das gemeinsame Archiv, die Listen und die Galerie. Von außen ist nichts öffentlich. Passwörter kann niemand einsehen, auch kein Admin.'),
+    ('Ich habe mein Passwort vergessen.', 'Bitte einen Admin, es unter Einstellungen → Benutzer zurückzusetzen. Kommt kein Admin mehr hinein, gibt es den Notfall-Zugang über die Add-on-Option „reset_password“ (steht in der Add-on-Dokumentation).'),
+    ('Der Kurzbefehl meldet „Schlüssel fehlt oder ist ungültig“.', 'Prüfe den Header: genau „Authorization“ und als Wert „Bearer “ (mit Leerzeichen) plus Schlüssel. Hast du einen neuen Schlüssel erzeugt, gilt der alte nicht mehr.'),
+    ('Der Kurzbefehl findet den Server nicht.', 'Bist du im WLAN zu Hause? Unterwegs ist der Pi meist nicht erreichbar. Statt „homeassistant.local“ hilft manchmal die IP-Adresse des Pi (z. B. http://192.168.178.20:8780).'),
+  ] %}
+  {% for q, a in faqs %}
+  <details class="faq-item">
+    <summary>{{ q }}<span class="faq-chev" aria-hidden="true">{{ icon('chev-down', 18) }}</span></summary>
+    <p>{{ a }}</p>
+  </details>
+  {% endfor %}
+</section>
+
+<a class="help-ideas" href="{{ url('/ideen') }}">
+  <span class="help-ideas-icon" aria-hidden="true">{{ icon('sparkles', 22) }}</span>
+  <span><strong>Dir fehlt etwas?</strong><br><span class="muted small">Schreib deine Idee für eine neue Funktion auf – alle können mitstimmen.</span></span>
+  {{ icon('chev-right', 18) }}
+</a>
+{% endblock %}

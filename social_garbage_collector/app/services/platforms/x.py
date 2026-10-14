@@ -352,7 +352,7 @@ def x_media(data: dict) -> list:
             mp4 = [v for v in (m.get("video_info") or {}).get("variants") or [] if v.get("content_type") == "video/mp4"]
             if mp4:
                 best = max(mp4, key=lambda v: v.get("bitrate") or 0)
-                out.append(MediaRef(kind, best["url"], alt, **size))
+                out.append(MediaRef(kind, best["url"], alt, **size, poster=m.get("media_url_https") or ""))
     return out
 
 

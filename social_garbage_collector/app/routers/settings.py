@@ -167,6 +167,26 @@ def info(request: Request, user: User = Depends(require_user)):
 
 
 # Muss als LETZTE GET-Route stehen, sonst schluckt sie /tags und /info.
+# --- Persoenlicher Schluessel fuer Kurzbefehle (0.11.0) ---------------------------
+
+@router.post("/schluessel")
+def create_api_token(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    from ..security import new_api_token
+
+    token = new_api_token(user)
+    db.commit()
+    return render(request, "partials/api_token.html", new_token=token)
+
+
+@router.post("/schluessel/loeschen")
+def delete_api_token(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    from ..security import revoke_api_token
+
+    revoke_api_token(user)
+    db.commit()
+    return toast_header(render(request, "partials/api_token.html"), "Schlüssel gelöscht – Kurzbefehle damit funktionieren nicht mehr")
+
+
 @router.get("/{section}")
 def pref_section(request: Request, section: str, user: User = Depends(require_user)):
     if section not in PREF_SECTIONS:

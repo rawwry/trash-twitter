@@ -48,9 +48,9 @@
     <div class="header-actions">
       {# Ein Hinzufuegen-Knopf fuer die ganze App - er richtet sich nach dem Bereich. #}
       {% if nav == 'gallery' %}
-      <button class="btn sm btn-add" type="button" data-open="gallery-upload" title="Bilder hinzufügen (n)">{{ icon('plus', 18) }} Bilder</button>
+      <button class="btn sm btn-add" type="button" data-open="gallery-upload" title="Bilder zur Galerie hinzufügen (n)">{{ icon('plus', 18) }} Bilder hinzufügen</button>
       {% else %}
-      <button class="btn sm btn-add" type="button" data-open="add-dialog" title="Posting archivieren (n)">{{ icon('plus', 18) }} Posting</button>
+      <button class="btn sm btn-add" type="button" data-open="add-dialog" title="Posting zum Archiv hinzufügen (n)">{{ icon('plus', 18) }} Posting hinzufügen</button>
       {% endif %}
       <details class="menu">
         <summary aria-label="Kontomenü">{{ avatar(user, 36, "ring") }}</summary>
@@ -58,6 +58,8 @@
           <div class="who">{{ avatar(user, 40) }}<div><strong>{{ user.name }}</strong><span class="faint xs">@{{ user.username }} · {{ 'Admin' if user.is_admin else 'Mitglied' }}</span></div></div>
           <a href="{{ url('/settings') }}" role="menuitem">{{ icon('settings', 18) }} Einstellungen</a>
           <a href="{{ url('/settings/konto') }}#passwort" role="menuitem">{{ icon('shield', 18) }} Passwort ändern</a>
+          <a href="{{ url('/hilfe') }}" role="menuitem">{{ icon('share', 18) }} Teilen vom Handy &amp; FAQ</a>
+          <a href="{{ url('/ideen') }}" role="menuitem">{{ icon('sparkles', 18) }} Ideen &amp; Wünsche</a>
           {# Admin-Links existieren fuer Nicht-Admins gar nicht im HTML. #}
           {% if user.is_admin %}
           <a href="{{ url('/admin/users') }}" role="menuitem">{{ icon('shield', 18) }} Benutzer verwalten</a>
@@ -80,6 +82,7 @@
 
 <footer class="app-footer">
   {{ APP_NAME }} <span class="version">v{{ VERSION }}</span> · Quellenarchiv für öffentliche Postings
+  {% if logged_in %}· <a href="{{ url('/hilfe') }}">Hilfe &amp; FAQ</a> · <a href="{{ url('/ideen') }}">Ideen</a>{% endif %}
 </footer>
 
 {% if logged_in %}
@@ -88,7 +91,7 @@
     {{ icon('archive', 25) }}<span>Archiv</span>
   </a>
   <a href="{{ url('/personen') }}" {% if nav == 'persons' %}aria-current="page"{% endif %}>{{ icon('people', 25) }}<span>Personen</span></a>
-  <button type="button" class="tab-add" data-open="{{ 'gallery-upload' if nav == 'gallery' else 'add-dialog' }}" aria-label="{{ 'Bilder hinzufügen' if nav == 'gallery' else 'Posting archivieren' }}"><span class="plus">{{ icon('plus', 26) }}</span></button>
+  <button type="button" class="tab-add" data-open="{{ 'gallery-upload' if nav == 'gallery' else 'add-dialog' }}" aria-label="{{ 'Bilder hinzufügen' if nav == 'gallery' else 'Posting hinzufügen' }}"><span class="plus">{{ icon('plus', 26) }}</span></button>
   <a href="{{ url('/lists') }}" {% if nav == 'lists' %}aria-current="page"{% endif %}>{{ icon('lists', 25) }}<span>Listen</span></a>
   <a href="{{ url('/galerie') }}" {% if nav == 'gallery' %}aria-current="page"{% endif %}>{{ icon('image', 25) }}<span>Galerie</span></a>
 </nav>
@@ -124,7 +127,7 @@
     <div class="sheet-head"><h2 id="keys-title">Tastenkürzel</h2>
       <button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close') }}</button></div>
     <dl class="kbd-list">
-      <dt><kbd>n</kbd></dt><dd>Posting archivieren</dd>
+      <dt><kbd>n</kbd></dt><dd>Posting hinzufügen (in der Galerie: Bilder hinzufügen)</dd>
       <dt><kbd>/</kbd></dt><dd>Im Archiv suchen</dd>
       <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Neuere / älteres Posting (auf der Detailseite)</dd>
       <dt><kbd>g</kbd> <kbd>a</kbd></dt><dd>Zum Archiv</dd>

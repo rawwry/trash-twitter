@@ -1,3 +1,4 @@
+{% from "partials/icons.html" import platform_icon %}
 {# Zitatkarte: jedes Posting gleich gewichtet, egal von welcher Plattform.
    Profilbild und Name auf dem Stand der Archivierung; die Person dahinter ist verlinkt. #}
 {% set av = post_avatar(post) %}
@@ -11,15 +12,16 @@
     <div class="q-who">
       {% if person %}<a class="q-name" href="{{ url('/personen/' ~ person.id) }}">{{ post.author_name }}</a>
       {% else %}<span class="q-name">{{ post.author_name }}</span>{% endif %}
-      <span class="q-handle">{% if post.author_handle and post.author_display_name %}@{{ post.author_handle }} · {% endif %}{{ PLATFORM_LABELS[post.platform] }}</span>
+      <span class="q-handle"><span class="q-plat plat-{{ post.platform }}" title="{{ PLATFORM_LABELS[post.platform] }}">{{ platform_icon(post.platform, 11) }}<span class="sr-only">{{ PLATFORM_LABELS[post.platform] }}</span></span>{% if post.author_handle and post.author_display_name %}@{{ post.author_handle }}{% else %}{{ PLATFORM_LABELS[post.platform] }}{% endif %}</span>
     </div>
   </header>
   <a class="q-body" href="{{ url('/posts/' ~ post.id) }}" aria-label="Posting Nr. {{ archive_no(post) }} öffnen">
     {% if post.text %}<blockquote class="q-text">{{ post.text }}</blockquote>
-    {% elif post.screenshot_path %}<img class="q-shot" src="{{ shot(post) }}" alt="Beleg-Screenshot (kein Text erfasst)" loading="lazy" decoding="async">
+    {% elif post.screenshot_path and not post.media %}<img class="q-shot" src="{{ shot(post) }}" alt="Beleg-Screenshot (kein Text erfasst)" loading="lazy" decoding="async">
     {% elif post.status in ('pending', 'running') %}<p class="q-text q-missing">Wortlaut wird abgerufen …</p>
     {% else %}<p class="q-text q-missing">Kein Wortlaut erfasst.</p>{% endif %}
   </a>
+  {% include "partials/media_strip.html" %}
   {% if post.thread_count or post.status != 'done' or post.media %}
   <div class="q-flags">
     {% set videos = post.media|selectattr('kind', 'equalto', 'video')|list|length %}

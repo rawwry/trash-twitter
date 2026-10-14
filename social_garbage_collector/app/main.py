@@ -23,7 +23,7 @@ from . import APP_NAME, VERSION
 from .config import Settings, prepare_storage
 from .db import backup_database, init_db, make_engine, make_sessionmaker
 from .models import ROLE_ADMIN, User
-from .routers import account, admin, auth, gallery, generator, imports, lists, persons, posts
+from .routers import account, admin, api, auth, gallery, generator, help, ideas, imports, lists, persons, posts
 from .routers import settings as settings_router
 from .security import (
     CSRF_COOKIE,
@@ -33,7 +33,7 @@ from .security import (
     csrf_protect,
     set_password,
 )
-from .services import accounts, admin_log, dates, ocr, shots
+from .services import accounts, admin_log, dates, media, ocr, shots
 from .templating import redirect, render, root_path
 
 log = logging.getLogger("sgc")
@@ -167,6 +167,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             accounts.backfill(db)  # 0.6: Postings ohne Account (alte Daten) zuordnen
             ocr.reflow_existing(db)  # 0.6.2: zerhackte OCR-Zeilen zu Absaetzen
             dates.backfill_from_ids(db)  # 0.6.3: fehlendes Datum aus der Beitrags-ID
+            media.backfill_thumbs(db, settings)  # 0.11: Vorschaubilder fuer gesicherte Bilder
         _bootstrap_admin(app, settings)
 
         tasks: list[asyncio.Task] = []
@@ -288,7 +289,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
     for router in (auth.router, account.router, settings_router.router, posts.router, persons.router,
-                   imports.router, lists.router, gallery.router, generator.router, admin.router):
+                   imports.router, lists.router, gallery.router, generator.router, admin.router,
+                   api.router, help.router, ideas.router):
         app.include_router(router)
 
     # Ingress ganz aussen, damit root_path schon bei allem anderen gesetzt ist.

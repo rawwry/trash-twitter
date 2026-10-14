@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "partials/icons.html" import icon %}
+{% from "partials/icons.html" import icon, platform_icon %}
 {% from "partials/avatar.html" import avatar with context %}
 {% set nav = 'archive' %}
 {% set av = post_avatar(post) %}
@@ -27,7 +27,7 @@
         <div class="q-who">
           {% if person %}<a class="q-name" href="{{ url('/personen/' ~ person.id) }}">{{ post.author_name }}</a>
           {% else %}<span class="q-name">{{ post.author_name }}</span>{% endif %}
-          <span class="q-handle">{% if post.author_handle and post.author_display_name %}@{{ post.author_handle }} · {% endif %}{{ PLATFORM_LABELS[post.platform] }}</span>
+          <span class="q-handle"><span class="q-plat plat-{{ post.platform }}" title="{{ PLATFORM_LABELS[post.platform] }}">{{ platform_icon(post.platform, 11) }}<span class="sr-only">{{ PLATFORM_LABELS[post.platform] }}</span></span>{% if post.author_handle and post.author_display_name %}@{{ post.author_handle }}{% else %}{{ PLATFORM_LABELS[post.platform] }}{% endif %}</span>
         </div>
       </header>
       <div data-edit-view="text">
