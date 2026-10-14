@@ -194,3 +194,59 @@ def test_media_hosts_and_private_pds():
     assert not media._host_ok("https://evil.example/a.jpg")
     assert asyncio.run(media._public_host("localhost")) is False
     assert asyncio.run(media._public_host("127.0.0.1")) is False
+
+
+# --- 0.10.1: Notfall-Reset ueber die Add-on-Optionen ---------------------------------------
+
+def _login(c, name, pw):
+    import re as _re
+
+    tok = _re.search(r'name="csrf_token" value="([^"]+)"', c.get("/login").text).group(1)
+    return c.post("/login", data={"username": name, "password": pw, "csrf_token": tok})
+
+
+def test_emergency_reset_unlocks_and_sets_password(tmp_path):
+    from datetime import timedelta
+
+    from fastapi.testclient import TestClient
+
+    from app.models import User, utcnow
+
+    from .conftest import Harness, make_settings
+
+    h = Harness(make_settings(tmp_path))
+    with TestClient(h.app):
+        h.add_user("Timo", "vergessen-123", role="admin")
+        with h.db() as db:
+            u = db.query(User).one()
+            u.locked_until, u.is_active = utcnow() + timedelta(hours=1), False
+            db.commit()
+    # Neustart mit Notfall-Option
+    h2 = Harness(make_settings(tmp_path, reset_password=True, admin_username="timo", admin_password="neu-12345"))
+    with TestClient(h2.app, follow_redirects=False) as c:
+        r = _login(c, "timo", "neu-12345")
+        assert r.status_code == 303 and "/settings/konto" in c.get("/").headers.get("location", "")  # muss aendern
+    with h2.db() as db:
+        u = db.query(User).one()
+        assert u.is_admin and u.locked_until is None and u.must_change_password
+
+
+def test_emergency_reset_creates_missing_admin_and_ignores_short_password(tmp_path):
+    from fastapi.testclient import TestClient
+
+    from app.models import User
+
+    from .conftest import Harness, make_settings
+
+    h = Harness(make_settings(tmp_path))
+    with TestClient(h.app):
+        h.add_user("anna", "anna-12345")
+    with TestClient(Harness(make_settings(tmp_path, reset_password=True, admin_username="chef", admin_password="123")).app):
+        pass
+    with h.db() as db:
+        assert db.query(User).count() == 1  # zu kurz -> nichts passiert
+    h3 = Harness(make_settings(tmp_path, reset_password=True, admin_username="chef", admin_password="chef-12345"))
+    with TestClient(h3.app, follow_redirects=False) as c:
+        assert _login(c, "chef", "chef-12345").status_code == 303
+    with h3.db() as db:
+        assert db.query(User).filter_by(username="chef").one().is_admin

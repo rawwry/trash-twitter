@@ -36,6 +36,8 @@ class Settings:
     base_path: Path = field(default_factory=lambda: Path(DEFAULT_BASE_PATH))
     admin_username: str = "admin"
     admin_password: str = ""
+    # Notfall (0.10.1): beim Start admin_username auf admin_password zuruecksetzen
+    reset_password: bool = False
     session_hours: int = 168
     cookie_secure: bool = False
     login_max_attempts: int = 5
@@ -92,6 +94,7 @@ class Settings:
             base_path=Path(os.environ.get("SGC_BASE_PATH") or DEFAULT_BASE_PATH),
             admin_username=os.environ.get("SGC_ADMIN_USERNAME") or "admin",
             admin_password=os.environ.get("SGC_ADMIN_PASSWORD") or "",
+            reset_password=_env_bool("SGC_RESET_PASSWORD", False),
             session_hours=_env_int("SGC_SESSION_HOURS", 168),
             cookie_secure=_env_bool("SGC_COOKIE_SECURE", False),
             login_max_attempts=_env_int("SGC_LOGIN_MAX_ATTEMPTS", 5),

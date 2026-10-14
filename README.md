@@ -128,6 +128,7 @@ Danach legst du unter **Benutzer** die Konten deiner Freunde an. Das Anfangspass
 |---|---|---|
 | `base_path` | `/share/SocialGarbageCollector` | Datenordner. Muss unter `/share` liegen, sonst geht er bei einem Neubau verloren. |
 | `admin_username` / `admin_password` | `admin` / leer | Erster Admin (nur beim allerersten Start) |
+| `reset_password` | `false` | **Notfall:** beim Start bekommt `admin_username` das Passwort `admin_password` – entsperrt, aktiviert, Admin (wird angelegt, falls es den Namen nicht gibt). Danach wieder ausschalten und `admin_password` leeren! |
 | `session_hours` | `168` | Wie lange ein Login gültig bleibt (Stunden) |
 | `cookie_secure` | `false` | `true`, sobald die App nur noch über HTTPS erreichbar ist |
 | `login_max_attempts` | `5` | Fehlversuche bis zur Sperre eines Kontos |

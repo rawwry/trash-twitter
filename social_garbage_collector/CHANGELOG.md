@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.1 – Notfall-Zugang (14.10.2026)
+
+- **Kein Admin kommt mehr rein?** Add-on-Optionen: `reset_password: true`, `admin_username` = Konto, `admin_password` = neues Passwort (mind. 5 Zeichen), Add-on neu starten. Das Konto bekommt das Passwort, wird entsperrt, aktiviert und Admin (gibt es den Namen nicht, wird er angelegt). Beim ersten Login muss ein eigenes Passwort vergeben werden. Danach `reset_password` ausschalten und `admin_password` leeren.
+- Beim Start steht im Protokoll, welche Admin-Konten es gibt.
+
 ## 0.10.0 – Medien, Raster, schnell aufräumen (14.10.2026)
 
 - **Medien sichern** (`services/media.py`, Tabelle `post_media`, Ordner `media/`): Bilder (Originalgröße), GIFs und Videos aus Postings.

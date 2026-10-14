@@ -75,6 +75,36 @@ def _remove_password_copies(settings: Settings) -> None:
         log.warning("Alte Schluesseldatei nicht loeschbar: %s", exc)
 
 
+def _emergency_reset(db, settings: Settings) -> None:
+    """Notfall: niemand kommt mehr rein (Passwort vergessen, Konto gesperrt).
+
+    Add-on-Optionen: reset_password: true, admin_username = Konto, admin_password
+    = neues Passwort. Beim Start bekommt das Konto dieses Passwort, wird
+    entsperrt, aktiviert und ist Admin. Gibt es den Namen nicht, wird er als
+    Admin angelegt. Danach unbedingt reset_password wieder ausschalten.
+    """
+    name = (settings.admin_username or "").strip() or "admin"
+    if len(settings.admin_password or "") < 5:
+        log.error("NOTFALL-RESET: admin_password fehlt oder ist kuerzer als 5 Zeichen - nichts geaendert.")
+        return
+    user = db.scalar(select(User).where(func.lower(User.username) == name.lower()))
+    created = user is None
+    if created:
+        user = User(username=name, role=ROLE_ADMIN)
+        db.add(user)
+    user.role, user.is_active = ROLE_ADMIN, True
+    set_password(settings, user, settings.admin_password, must_change=True)  # entsperrt auch
+    db.flush()
+    admin_log.record(db, None, "password_reset", user.username, "Notfall-Reset ueber Add-on-Option")
+    db.commit()
+    log.warning("=" * 64)
+    log.warning("NOTFALL-RESET: Konto '%s' %s. Anmelden mit dem Passwort aus den Add-on-Optionen,",
+                user.username, "angelegt" if created else "zurueckgesetzt und entsperrt")
+    log.warning("danach ein eigenes Passwort vergeben. JETZT 'reset_password' wieder AUSSCHALTEN")
+    log.warning("und 'admin_password' leeren - sonst passiert das bei jedem Neustart.")
+    log.warning("=" * 64)
+
+
 def _bootstrap_admin(app: FastAPI, settings: Settings) -> None:
     """Erster Admin: per Add-on-Option, sonst gefuehrte Ersteinrichtung.
 
@@ -86,6 +116,10 @@ def _bootstrap_admin(app: FastAPI, settings: Settings) -> None:
     with app.state.SessionLocal() as db:
         if db.scalar(select(func.count()).select_from(User)):
             app.state.setup_code = None
+            if settings.reset_password:
+                _emergency_reset(db, settings)
+            admins = list(db.scalars(select(User.username).where(User.role == ROLE_ADMIN, User.is_active.is_(True))))
+            log.info("Admin-Konten: %s", ", ".join(admins) or "keins aktiv")
             return
         if settings.admin_password:
             admin = User(username=settings.admin_username.strip() or "admin", role=ROLE_ADMIN)

@@ -8,7 +8,7 @@
 #
 # "version" muss mit VERSION in app/__init__.py uebereinstimmen.
 name: TrashTwitter
-version: "0.10.0"
+version: "0.10.1"
 slug: social_garbage_collector
 description: >-
   Quellenarchiv fuer oeffentliche Aussagen von X und Bluesky: Wortlaut,
@@ -52,6 +52,7 @@ options:
   base_path: /share/SocialGarbageCollector
   admin_username: admin
   admin_password: ""
+  reset_password: false
   session_hours: 168
   cookie_secure: false
   login_max_attempts: 5
@@ -67,6 +68,7 @@ schema:
   base_path: str
   admin_username: str
   admin_password: password?
+  reset_password: bool
   session_hours: int(1,8760)
   cookie_secure: bool
   login_max_attempts: int(3,50)

@@ -2,6 +2,15 @@
 
 CHANGES = [
     {
+        "version": "0.10.1",
+        "date": "14.10.2026",
+        "title": "Notfall-Zugang",
+        "items": [
+            "Neue Add-on-Option reset_password: setzt beim Start das Passwort eines Kontos zurück, entsperrt und macht es zum Admin",
+            "Das Protokoll nennt beim Start die Admin-Konten",
+        ],
+    },
+    {
         "version": "0.10.0",
         "date": "14.10.2026",
         "title": "Medien, Raster, schnell aufräumen",

@@ -26,6 +26,7 @@ def setze(name, key, default):
 setze("SGC_BASE_PATH",           "base_path",           "/share/SocialGarbageCollector")
 setze("SGC_ADMIN_USERNAME",      "admin_username",      "admin")
 setze("SGC_ADMIN_PASSWORD",      "admin_password",      "")
+setze("SGC_RESET_PASSWORD",      "reset_password",      False)
 setze("SGC_SESSION_HOURS",       "session_hours",       168)
 setze("SGC_COOKIE_SECURE",       "cookie_secure",       False)
 setze("SGC_LOGIN_MAX_ATTEMPTS",  "login_max_attempts",  5)

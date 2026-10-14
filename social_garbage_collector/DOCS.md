@@ -9,6 +9,15 @@ Bis 0.5 hieß das Add-on SocialGarbageCollector. Slug und Datenordner sind gleic
 - **Mit Option:** `admin_username` und `admin_password` setzen und starten. Danach das Passwort beim ersten Login ändern und die Option wieder leeren.
 - **Ohne Option:** Starten und im **Protokoll** den **Einrichtungscode** suchen. Dann die Oberfläche öffnen und mit dem Code den Admin anlegen.
 
+## Notfall: Niemand kommt mehr rein
+
+Passwort vergessen oder Konto nach Fehlversuchen gesperrt:
+
+1. Add-on → **Konfiguration**: `reset_password` einschalten, bei `admin_username` deinen Benutzernamen und bei `admin_password` ein neues Passwort (mind. 5 Zeichen) eintragen. Speichern.
+2. Add-on **neu starten**. Im **Protokoll** steht „NOTFALL-RESET“ und welche Admin-Konten es gibt.
+3. Anmelden, ein eigenes Passwort vergeben.
+4. **Wichtig:** `reset_password` wieder ausschalten und `admin_password` leeren.
+
 ## Zugriff
 
 - Für dich: über die HA-Seitenleiste (Ingress).
