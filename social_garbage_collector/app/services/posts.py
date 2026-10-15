@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from ..models import (
     PLATFORM_BLUESKY,
+    PLATFORM_X,
     PLATFORMS,
     STATUS_PENDING,
     Account,
@@ -252,7 +253,7 @@ class ArchiveFilter:
     status: str = ""
     person_id: int | None = None
     account_id: int | None = None
-    sort: str = "posted"
+    sort: str = "new"
 
     @property
     def active(self) -> bool:
@@ -262,7 +263,7 @@ class ArchiveFilter:
     @property
     def advanced_count(self) -> int:
         """Anzahl aktiver Filter im aufklappbaren Filterbereich (fuer das Zaehler-Badge)."""
-        return sum(bool(x) for x in (self.author, self.list_id, self.user_id,
+        return sum(bool(x) for x in (self.platform, self.author, self.list_id, self.user_id,
                                      self.date_from or self.date_to, self.status, self.person_id,
                                      self.account_id))
 
@@ -285,7 +286,7 @@ def _parse_int(value: str | None) -> int | None:
         return None
 
 
-def filter_from_params(params, default_sort: str = "posted") -> ArchiveFilter:
+def filter_from_params(params, default_sort: str = "new") -> ArchiveFilter:
     platform = params.get("platform", "")
     sort = params.get("sort") or default_sort
     return ArchiveFilter(
@@ -300,7 +301,7 @@ def filter_from_params(params, default_sort: str = "posted") -> ArchiveFilter:
         status=params.get("status", "") if params.get("status") in {"pending", "running", "done", "error"} else "",
         person_id=_parse_int(params.get("person")),
         account_id=_parse_int(params.get("account")),
-        sort=sort if sort in SORTS else "posted",
+        sort=sort if sort in SORTS else "new",
     )
 
 
@@ -481,7 +482,7 @@ async def add_upload(db: Session, user: User, settings, blobs: list[bytes], link
     except uploads.UploadError as exc:
         raise AddPostError(str(exc)) from exc
     link = (link or "").strip()
-    did = None
+    did, auto = None, False
     if link:
         found = detect(link)
         if not found:
@@ -498,8 +499,11 @@ async def add_upload(db: Session, user: User, settings, blobs: list[bytes], link
         platform, post_id, url, did = parsed.platform, parsed.post_id, parsed.canonical_url, parsed.author_did
         handle = parsed.author_handle or handle
     else:
-        if platform not in PLATFORMS:
-            raise AddPostError("Bitte auswählen, ob der Screenshot von X oder Bluesky stammt.")
+        auto = platform not in PLATFORMS
+        if auto:
+            # 0.12: Die App erkennt die Plattform selbst (Worker liest den Screenshot).
+            # Bis dahin: ein Handle mit Punkt kann nur Bluesky sein.
+            platform = PLATFORM_BLUESKY if "." in (handle or "").strip().lstrip("@") else PLATFORM_X
         fp = uploads.fingerprint(blobs)
         key = f"upload:{fp}"
         dup = db.scalar(select(Post).where(Post.dedup_key == key))
@@ -513,6 +517,7 @@ async def add_upload(db: Session, user: User, settings, blobs: list[bytes], link
         posted_at=_posted_at(posted), date_source="manual" if posted else None, date_has_time=False,
         note=(note or "").strip()[:MAX_NOTE],
         status=STATUS_PENDING, added_by_id=user.id, shot_source="upload", thread_mode="off",
+        platform_auto=not link and auto,
     )
     text_ = (text_ or "").strip()[:20000]
     if text_:

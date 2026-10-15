@@ -8,12 +8,19 @@
     <h1>Listen</h1>
     <p class="sub">Gemeinsame Sammlungen von Postings zu einem Thema – alle Mitglieder können sie bearbeiten.</p>
   </div>
-  <form method="post" action="{{ url('/lists') }}" class="row">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <input name="title" placeholder="Neue Liste, z. B. Energiepolitik" required maxlength="120" aria-label="Titel der neuen Liste" style="min-width:220px">
-    <button class="btn" type="submit">{{ icon('plus', 18) }} Anlegen</button>
-  </form>
+  <button class="btn-soft" type="button" data-open="list-new">{{ icon('plus', 18) }} Liste hinzufügen</button>
 </div>
+
+<dialog class="sheet" id="list-new" aria-labelledby="list-new-title">
+  <div class="sheet-grip"></div>
+  <form class="sheet-inner" method="post" action="{{ url('/lists') }}">
+    <div class="sheet-head"><h2 id="list-new-title">Neue Liste</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close') }}</button></div>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>Titel<input name="title" placeholder="z. B. Energiepolitik" required maxlength="120" data-url-input autocomplete="off"></label>
+    <button class="btn lg" type="submit">{{ icon('plus', 18) }} Liste hinzufügen</button>
+  </form>
+</dialog>
 {% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
 
 {% if lists %}
@@ -36,7 +43,8 @@
 {% else %}
 <div class="empty-state">
   <h2>Noch keine Listen</h2>
-  <p>Leg oben eine an – zum Beispiel zu einem Thema, einer Debatte oder einem Ereignis.</p>
+  <p>Leg eine an – zum Beispiel zu einem Thema, einer Debatte oder einem Ereignis.</p>
+  <button class="btn" type="button" data-open="list-new">{{ icon('plus', 18) }} Erste Liste hinzufügen</button>
 </div>
 {% endif %}
 {% endblock %}

@@ -45,7 +45,7 @@ def test_post_detail_text_edit_and_source(user_client, harness):
     with harness.db() as db:
         post = db.get(Post, pid)
         assert post.text == "Korrigierter Text" and post.text_source == TEXT_MANUAL
-    assert "Wortlaut: manuell" in user_client.get(f"/posts/{pid}").text
+    assert "<dt>Wortlaut</dt><dd>manuell</dd>" in user_client.get(f"/posts/{pid}").text.replace("\n", "")
 
 
 def test_fulltext_search_and_filters(user_client, harness):

@@ -1,41 +1,84 @@
 {% extends "base.html" %}
-{% from "partials/icons.html" import icon %}
+{% from "partials/icons.html" import icon, platform_icon %}
 {% set nav = 'archive' %}
 {% block title %}Archiv{% endblock %}
 {% block content %}
-<div class="page-head archive-head">
-  <div>
-    <p class="eyebrow">Quellenarchiv</p>
-    <h1>Archiv</h1>
-    <p class="sub">Öffentliche Postings von X und Bluesky – im Wortlaut, mit Quelle und Beleg.</p>
-  </div>
+<div class="archive-title">
+  <h1>Archiv</h1>
 </div>
 
-<form class="archive-search" method="get" action="{{ url('/') }}" role="search"
+<form class="archive-search atb-form" method="get" action="{{ url('/') }}" role="search"
       hx-get="{{ url('/') }}" hx-target="#results" hx-swap="outerHTML" hx-push-url="true"
       hx-trigger="change, input changed delay:350ms from:input[type=search]">
   {% if f.person_id %}<input type="hidden" name="person" value="{{ f.person_id }}">{% endif %}
   {% if f.account_id %}<input type="hidden" name="account" value="{{ f.account_id }}">{% endif %}
-  <div class="searchbar">
-    <div class="search-input">
-      {{ icon('search') }}
-      <input type="search" name="q" value="{{ f.q }}" placeholder="Wortlaut, Verfasser, Anmerkung durchsuchen …" aria-label="Archiv durchsuchen" data-search>
+  <div class="atb">
+    <label class="atb-search">
+      {{ icon('search', 18) }}
+      <input type="search" name="q" value="{{ f.q }}" placeholder="Archiv durchsuchen" aria-label="Archiv durchsuchen: Wortlaut, Verfasser, Anmerkung" data-search>
       {% if prefs.shortcuts == 'on' %}<kbd>/</kbd>{% endif %}
-    </div>
-    <div class="seg" role="radiogroup" aria-label="Plattform">
-      <label><input type="radio" name="platform" value="" {% if not f.platform %}checked{% endif %}><span>Alle</span></label>
-      <label><input type="radio" name="platform" value="x" {% if f.platform == 'x' %}checked{% endif %}><span>X</span></label>
-      <label><input type="radio" name="platform" value="bluesky" {% if f.platform == 'bluesky' %}checked{% endif %}><span>Bluesky</span></label>
-    </div>
-    <select name="sort" aria-label="Sortierung">
-      {% for key, label in [('posted', 'Posting: neueste'), ('posted_old', 'Posting: älteste'), ('new', 'Archiviert: neueste'), ('old', 'Archiviert: älteste')] %}
-      <option value="{{ key }}" {% if f.sort == key %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    <button type="button" class="btn-soft filter-toggle" data-toggle="filter-panel" aria-label="Filter"
-            aria-expanded="{{ 'true' if f.advanced_count else 'false' }}" aria-controls="filter-panel">
-      {{ icon('filter', 18) }}<span class="label-m">Filter</span>{% if f.advanced_count %} <span class="count-badge">{{ f.advanced_count }}</span>{% endif %}
+    </label>
+    <label class="atb-sort" title="Sortierung">
+      {{ icon('sort', 17) }}
+      <select name="sort" aria-label="Sortierung">
+        {% for key, label in [('new', 'Zuletzt archiviert'), ('old', 'Zuerst archiviert'), ('posted', 'Neueste Postings'), ('posted_old', 'Älteste Postings')] %}
+        <option value="{{ key }}" {% if f.sort == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="button" class="atb-btn filter-toggle" data-toggle="filter-panel" title="Filter"
+            aria-expanded="false" aria-controls="filter-panel">
+      {{ icon('filter', 18) }}<span class="atb-label">Filter</span>{% if f.advanced_count %}<span class="count-badge">{{ f.advanced_count }}</span>{% endif %}
     </button>
+  </div>
+
+  {# Standard zu: Was aktiv ist, zeigen die Chips ueber den Ergebnissen (mit x zum Entfernen). #}
+  <div class="atb-panel" id="filter-panel" hidden>
+    <div class="fp-field fp-platform">
+      <span class="label-text">Plattform</span>
+      <div class="seg" role="radiogroup" aria-label="Plattform">
+        <label><input type="radio" name="platform" value="" {% if not f.platform %}checked{% endif %}><span>Alle</span></label>
+        <label><input type="radio" name="platform" value="x" {% if f.platform == 'x' %}checked{% endif %}><span>X</span></label>
+        <label><input type="radio" name="platform" value="bluesky" {% if f.platform == 'bluesky' %}checked{% endif %}><span>{{ platform_icon('bluesky', 12) }} Bluesky</span></label>
+      </div>
+    </div>
+    <label class="fp-field">Verfasser<input name="author" value="{{ f.author }}" placeholder="Name oder @handle"></label>
+    <div class="fp-field fp-range">
+      <span class="label-text">Gepostet zwischen</span>
+      <div class="fp-range-inputs">
+        <input type="date" name="from" value="{{ f.date_from or '' }}" aria-label="Gepostet ab">
+        <span aria-hidden="true">–</span>
+        <input type="date" name="to" value="{{ f.date_to or '' }}" aria-label="Gepostet bis">
+      </div>
+    </div>
+    <label class="fp-field">Liste
+      <select name="list">
+        <option value="">alle</option>
+        {% for pl in all_lists %}<option value="{{ pl.id }}" {% if f.list_id == pl.id %}selected{% endif %}>{{ pl.title }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="fp-field">Archiviert von
+      <select name="user">
+        <option value="">allen</option>
+        {% for u in all_users %}<option value="{{ u.id }}" {% if f.user_id == u.id %}selected{% endif %}>{{ u.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="fp-field">Status
+      <select name="status">
+        <option value="">alle</option>
+        {% for key, label in STATUS_LABELS.items() %}<option value="{{ key }}" {% if f.status == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </label>
+    {% if filter_person %}
+    <div class="fp-field filter-person">
+      <span class="label-text">Person</span>
+      <span class="chip neutral">{{ filter_person.name }} <a href="{{ url('/') }}" aria-label="Personenfilter entfernen" class="x">×</a></span>
+    </div>
+    {% endif %}
+    <div class="fp-foot">
+      <a class="btn-ghost sm" href="{{ url('/') }}">{{ icon('close', 15) }} Alle Filter zurücksetzen</a>
+      <button type="button" class="btn-soft sm" data-toggle="filter-panel">Fertig</button>
+    </div>
   </div>
 
   {# Tags antippen statt eintippen. Mehrere = alle muessen passen. #}
@@ -47,38 +90,9 @@
     <button type="button" class="tag-pill {{ 'is-extra' if loop.index > 18 }}" data-tag-toggle="{{ name }}" aria-pressed="{{ 'true' if name in f.tags else 'false' }}">#{{ name }} <span>{{ n }}</span></button>
     {% endfor %}
     {% if all_tags|length > 18 %}<button type="button" class="tag-pill tag-more" data-tag-more>+{{ all_tags|length - 18 }} weitere</button>{% endif %}
+    <a class="tag-edit" href="{{ url('/settings/tags') }}" title="Tags umbenennen oder löschen" aria-label="Tags umbenennen oder löschen">{{ icon('edit', 15) }}</a>
   </div>
   {% endif %}
-
-  <div class="card filter-panel" id="filter-panel" {% if not f.advanced_count %}hidden{% endif %}>
-    <label>Verfasser<input name="author" value="{{ f.author }}" placeholder="Name oder @handle"></label>
-    <label>Posting vom<input type="date" name="from" value="{{ f.date_from or '' }}"></label>
-    <label>Posting bis<input type="date" name="to" value="{{ f.date_to or '' }}"></label>
-    <label>Liste
-      <select name="list">
-        <option value="">alle</option>
-        {% for pl in all_lists %}<option value="{{ pl.id }}" {% if f.list_id == pl.id %}selected{% endif %}>{{ pl.title }}</option>{% endfor %}
-      </select>
-    </label>
-    <label>Archiviert von
-      <select name="user">
-        <option value="">allen</option>
-        {% for u in all_users %}<option value="{{ u.id }}" {% if f.user_id == u.id %}selected{% endif %}>{{ u.name }}</option>{% endfor %}
-      </select>
-    </label>
-    <label>Status
-      <select name="status">
-        <option value="">alle</option>
-        {% for key, label in STATUS_LABELS.items() %}<option value="{{ key }}" {% if f.status == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
-      </select>
-    </label>
-    {% if filter_person %}
-    <div class="filter-person">
-      <span class="label-text">Person</span>
-      <span class="chip neutral">{{ filter_person.name }} <a href="{{ url('/') }}" aria-label="Personenfilter entfernen" class="x">×</a></span>
-    </div>
-    {% endif %}
-  </div>
   <noscript><button class="btn" type="submit">Suchen</button></noscript>
 </form>
 

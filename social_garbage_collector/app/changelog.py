@@ -2,6 +2,23 @@
 
 CHANGES = [
     {
+        "version": "0.12.0",
+        "date": "15.10.2026",
+        "title": "Screenshots verstehen, aufgeräumte Oberfläche",
+        "items": [
+            "Screenshots ohne Link: Die App liest Verfasser, @Handle, Plattform, Datum und Uhrzeit selbst aus dem Bild, schneidet Kopf- und Fußzeile vom Wortlaut ab und übernimmt das Profilbild",
+            "Bei Bluesky sucht sie zum Screenshot das Original – gefunden, wird daraus ein normales Posting mit Link, exaktem Text und Medien",
+            "Ältere hochgeladene Screenshots werden einmal neu ausgewertet (von Hand Eingetragenes bleibt)",
+            "Archiv: eine ruhige Leiste mit Suche, Sortierung und Filter; die Plattform steckt jetzt im Filter. Standard: zuletzt archiviert zuerst",
+            "Aktive Filter als Chips mit ×, Ansicht und Auswahl als Symbole",
+            "Raster zeigt die ganze Aussage – kein Ausblenden mehr, Kacheln packen sich dicht wie ein Mauerwerk",
+            "Detailseite: Posting mit Medien, Tags und Aktionen in einer Karte; Angaben und Quellenangabe eingeklappt",
+            "Tags umbenennen für alle: Stift in der Tag-Leiste und „Tags verwalten“ im Menü",
+            "Galerie: zufällige Reihenfolge als Standard, Sortieren nach neu hinzugefügt oder Aufnahmedatum, Mosaik oder Quadrate, Größe per Regler",
+            "Listen: „Liste hinzufügen“ als Knopf; am Handy bleibt die Leiste unten kleben, auch beim Tippen",
+        ],
+    },
+    {
         "version": "0.11.0",
         "date": "14.10.2026",
         "title": "Facelift, Teilen vom Handy, Ideen",

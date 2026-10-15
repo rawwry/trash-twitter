@@ -85,10 +85,10 @@ def test_list_picker_toggle_and_create(user_client, harness):
         assert db.query(PostList).count() == 1
     # Antippen nimmt heraus und legt wieder hinein
     r = user_client.post(f"/posts/{pid}/lists/{pl.id}/toggle", data={"csrf_token": user_client.csrf})
-    assert 'aria-pressed="false"' in r.text and "In keiner Liste" in r.text
+    assert 'aria-pressed="false"' in r.text and 'id="post-lists"' in r.text and "list-memberships" in r.text
     r = user_client.post(f"/posts/{pid}/lists/{pl.id}/toggle", data={"csrf_token": user_client.csrf})
     assert 'aria-pressed="true"' in r.text
-    assert "Listen wählen" in user_client.get(f"/posts/{pid}").text
+    assert "In Listen ablegen" in user_client.get(f"/posts/{pid}").text
 
 
 def test_bulk_picker_and_list_tiles(user_client, harness):

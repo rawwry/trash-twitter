@@ -158,7 +158,7 @@ def test_save_media_and_serve(user_client, harness, monkeypatch):
         assert items[0].width == 30 and items[0].alt == "Grafik" and db.get(Post, pid).media_checked
         paths = [m.path for m in items]
     page = user_client.get(f"/posts/{pid}").text
-    assert "Medien" in page and "<video" in page and "Grafik" in page
+    assert "lead-media" in page and "<video" in page and "Grafik" in page
     assert "▶ 2 Videos" in user_client.get("/").text
     r = user_client.get("/medien/" + paths[1], headers={"Range": "bytes=0-9"})
     assert r.status_code == 206 and len(r.content) == 10  # Spulen in Videos

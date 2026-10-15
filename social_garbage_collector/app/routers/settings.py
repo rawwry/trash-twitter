@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import Settings
@@ -144,10 +145,15 @@ def rename_tag(request: Request, tag_id: int, name: str = Form(""), user: User =
                db: Session = Depends(get_db)):
     tag = _get_tag(db, tag_id)
     old = tag.name
+    new = post_service.normalize_tag(name)
+    merged = new != old and db.scalar(select(Tag.id).where(Tag.name == new)) is not None
     error = post_service.rename_tag(db, tag, name)
     if error:
         return redirect(request, "/settings/tags", toast=error, kind="error")
-    return redirect(request, "/settings/tags", toast=f"#{old} → #{post_service.normalize_tag(name)}")
+    if new == old:
+        return redirect(request, "/settings/tags", toast="Nichts geändert")
+    return redirect(request, "/settings/tags",
+                    toast=f"#{old} mit #{new} zusammengeführt" if merged else f"#{old} heißt jetzt #{new}")
 
 
 @router.post("/tags/{tag_id}/delete")

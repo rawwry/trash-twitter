@@ -51,10 +51,23 @@ def _encode(img: Image.Image, quality: int) -> bytes:
     return out.getvalue()
 
 
-def _process(data: bytes) -> tuple[bytes, bytes, int, int, str]:
+def _taken_at(img: Image.Image) -> datetime | None:
+    """Aufnahmezeitpunkt aus EXIF (DateTimeOriginal, sonst DateTime). Die
+    Kameradaten selbst werden danach nicht mitgespeichert."""
+    try:
+        exif = img.getexif()
+        raw = exif.get_ifd(0x8769).get(36867) or exif.get(306)
+        when = datetime.strptime(str(raw).strip()[:19], "%Y:%m:%d %H:%M:%S") if raw else None
+    except Exception:
+        return None
+    return when if when and datetime(1990, 1, 1) < when < datetime.now().replace(year=datetime.now().year + 1) else None
+
+
+def _process(data: bytes) -> tuple[bytes, bytes, int, int, str, datetime | None]:
     with Image.open(io.BytesIO(data)) as src:
         if src.format not in ALLOWED:
             raise GalleryError("Format nicht unterstützt")
+        taken = _taken_at(src)
         src.seek(0)
         img = ImageOps.exif_transpose(src)
         img = img.convert("RGBA") if img.mode in ("RGBA", "LA", "P") else img.convert("RGB")
@@ -69,7 +82,7 @@ def _process(data: bytes) -> tuple[bytes, bytes, int, int, str]:
             thumb_img.thumbnail((10_000, THUMB_HEIGHT), Image.Resampling.LANCZOS)
         thumb = _encode(thumb_img, 78)
         r, g, b = (int(v) for v in ImageStat.Stat(img.resize((16, 16))).mean[:3])
-        return full, thumb, img.width, img.height, f"#{r:02x}{g:02x}{b:02x}"
+        return full, thumb, img.width, img.height, f"#{r:02x}{g:02x}{b:02x}", taken
 
 
 def normalize_category(raw: str) -> str:
@@ -112,7 +125,7 @@ def add_images(db: Session, settings: Settings, user: User, files: list[tuple[st
             result.duplicates += 1
             continue
         try:
-            full, thumb, w, h, color = _process(data)
+            full, thumb, w, h, color, taken = _process(data)
         except (GalleryError, UnidentifiedImageError, OSError, Image.DecompressionBombError):
             result.failed.append(label)
             continue
@@ -121,7 +134,7 @@ def add_images(db: Session, settings: Settings, user: User, files: list[tuple[st
         (folder / f"{stem}.thumb.webp").write_bytes(thumb)
         image = GalleryImage(
             path=f"gallery/{year}/{stem}.webp", thumb_path=f"gallery/{year}/{stem}.thumb.webp",
-            width=w, height=h, color=color, sha256=digest, original_name=label,
+            width=w, height=h, color=color, sha256=digest, original_name=label, taken_at=taken,
             uploaded_by_id=user.id, categories=list(categories),
         )
         db.add(image)
@@ -149,8 +162,25 @@ def category_counts(db: Session) -> list[tuple[GalleryCategory, int]]:
     ).all()]
 
 
-def query_images(db: Session, category_ids: list[int], uncategorized: bool) -> list[GalleryImage]:
-    stmt = select(GalleryImage).order_by(GalleryImage.created_at.desc(), GalleryImage.id.desc())
+# Sortierungen der Galerie (0.12). Standard: zufaellig - jeder Besuch zeigt andere Bilder zuerst.
+SORTS = {
+    "zufall": "Zufällig",
+    "neu": "Zuletzt hinzugefügt",
+    "aufnahme": "Neueste Aufnahmen",
+    "alt": "Zuerst hinzugefügt",
+}
+
+
+def query_images(db: Session, category_ids: list[int], uncategorized: bool, sort: str = "zufall") -> list[GalleryImage]:
+    if sort == "neu":
+        order = (GalleryImage.created_at.desc(), GalleryImage.id.desc())
+    elif sort == "alt":
+        order = (GalleryImage.created_at.asc(), GalleryImage.id.asc())
+    elif sort == "aufnahme":
+        order = (func.coalesce(GalleryImage.taken_at, GalleryImage.created_at).desc(), GalleryImage.id.desc())
+    else:
+        order = (func.random(),)
+    stmt = select(GalleryImage).order_by(*order)
     if uncategorized:
         stmt = stmt.where(~GalleryImage.categories.any())
     elif category_ids:  # mehrere Kategorien = "eine davon"

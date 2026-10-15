@@ -43,12 +43,14 @@ def gallery(request: Request, user: User = Depends(require_user), db: Session = 
     raw = request.query_params.getlist("k")
     uncategorized = "ohne" in raw
     selected = _ids(raw)
-    images = gallery_service.query_images(db, selected, uncategorized)
+    sort = request.query_params.get("sort", "zufall")
+    sort = sort if sort in gallery_service.SORTS else "zufall"
+    images = gallery_service.query_images(db, selected, uncategorized, sort)
     counts = gallery_service.category_counts(db)
     total = db.scalar(select(func.count()).select_from(GalleryImage)) or 0
     without = db.scalar(select(func.count()).select_from(GalleryImage).where(~GalleryImage.categories.any())) or 0
     ctx = dict(images=images, counts=counts, selected=set(selected), uncategorized=uncategorized,
-               total=total, without=without, me=user)
+               total=total, without=without, me=user, sort=sort, sorts=gallery_service.SORTS)
     if request.headers.get("hx-request") and request.headers.get("hx-target") == "gallery-body":
         return render(request, "partials/gallery_body.html", **ctx)
     return render(request, "gallery.html", **ctx)

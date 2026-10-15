@@ -2,30 +2,33 @@
 <section id="results" aria-live="polite">
   <div class="results-bar">
     <div class="active-filters">
-      <span class="result-count"><strong>{{ total }}</strong> {{ 'Posting' if total == 1 else 'Postings' }}{% if f.active %} gefunden{% endif %}</span>
+      <span class="result-count"><strong>{{ total }}</strong> {{ 'Posting' if total == 1 else 'Postings' }}</span>
       {% if f.active %}
-      {% if f.q %}<span class="chip neutral">„{{ f.q }}“</span>{% endif %}
-      {% if f.platform %}<span class="chip neutral">{{ PLATFORM_LABELS[f.platform] }}</span>{% endif %}
-      {% if filter_person %}<span class="chip neutral">Person: {{ filter_person.name }}</span>{% elif f.person_id %}<span class="chip neutral">Person #{{ f.person_id }}</span>{% endif %}
-      {% for t in f.tags %}<span class="chip">#{{ t }}</span>{% endfor %}
-      {% if f.author %}<span class="chip neutral">Verfasser: {{ f.author }}</span>{% endif %}
-      {% if f.date_from or f.date_to %}<span class="chip neutral">{{ f.date_from.strftime('%d.%m.%Y') if f.date_from else '…' }} – {{ f.date_to.strftime('%d.%m.%Y') if f.date_to else '…' }}</span>{% endif %}
-      {% if f.status %}<span class="chip neutral">{{ STATUS_LABELS[f.status] }}</span>{% endif %}
-      <a class="btn-ghost sm" href="{{ url('/') }}">Filter löschen</a>
+      {% macro off(label, key, value=None, tag=False) %}<a class="chip {{ '' if tag else 'neutral' }} chip-off" href="{{ url('/') }}?{{ query_string|qs_without(key, value) }}" title="Filter entfernen">{{ label }}<span aria-hidden="true">×</span><span class="sr-only"> entfernen</span></a>{% endmacro %}
+      {% if f.q %}{{ off('„' ~ f.q ~ '“', 'q') }}{% endif %}
+      {% if f.platform %}{{ off(PLATFORM_LABELS[f.platform], 'platform') }}{% endif %}
+      {% if filter_person %}{{ off('Person: ' ~ filter_person.name, 'person') }}{% elif f.person_id %}{{ off('Person #' ~ f.person_id, 'person') }}{% endif %}
+      {% if f.author %}{{ off('Verfasser: ' ~ f.author, 'author') }}{% endif %}
+      {% if f.date_from or f.date_to %}{{ off((f.date_from.strftime('%d.%m.%Y') if f.date_from else '…') ~ ' – ' ~ (f.date_to.strftime('%d.%m.%Y') if f.date_to else '…'), 'from') }}{% endif %}
+      {% if f.list_id %}{{ off('Liste', 'list') }}{% endif %}
+      {% if f.user_id %}{{ off('Archiviert von …', 'user') }}{% endif %}
+      {% if f.status %}{{ off(STATUS_LABELS[f.status], 'status') }}{% endif %}
       {% endif %}
     </div>
-    {% if posts %}
-    <button type="button" class="btn-ghost sm select-toggle" data-select-toggle aria-pressed="false" title="Mehrere Postings auswählen">
-      {{ icon('check', 16) }}<span>Auswählen</span>
-    </button>
-    {% endif %}
-    {# Darstellung umschalten - wird pro Person gemerkt #}
-    <nav class="seg view-switch" aria-label="Darstellung">
-      {% for key, ico, label in [('cards', 'cards', 'Karten'), ('raster', 'grid', 'Raster'), ('list', 'rows', 'Liste'), ('timeline', 'timeline', 'Zeitachse')] %}
-      <a href="{{ url('/') }}?{{ query_string }}{{ '&' if query_string }}view={{ key }}" title="{{ label }}" aria-label="{{ label }}"
-         {% if view == key %}aria-current="true"{% endif %}><span>{{ icon(ico, 18) }}<span class="label">{{ label }}</span></span></a>
-      {% endfor %}
-    </nav>
+    <div class="results-tools">
+      {% if posts %}
+      <button type="button" class="tool-btn select-toggle" data-select-toggle aria-pressed="false" title="Mehrere auswählen" aria-label="Mehrere Postings auswählen">
+        {{ icon('select', 19) }}
+      </button>
+      {% endif %}
+      {# Darstellung umschalten - wird pro Person gemerkt #}
+      <nav class="view-icons" aria-label="Darstellung">
+        {% for key, ico, label in [('cards', 'cards', 'Karten'), ('raster', 'grid', 'Raster'), ('list', 'rows', 'Liste'), ('timeline', 'timeline', 'Zeitachse')] %}
+        <a href="{{ url('/') }}?{{ query_string }}{{ '&' if query_string }}view={{ key }}" title="{{ label }}" aria-label="{{ label }}"
+           {% if view == key %}aria-current="true"{% endif %}>{{ icon(ico, 19) }}</a>
+        {% endfor %}
+      </nav>
+    </div>
   </div>
 
   {% if posts %}

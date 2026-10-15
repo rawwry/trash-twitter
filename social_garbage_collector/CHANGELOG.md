@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.12.0 – Screenshots verstehen, aufgeräumte Oberfläche (15.10.2026)
+
+- **Screenshots ohne Link** (`services/screenshot.py`, `ocr.ocr_layout`): Tesseract liefert Zeilen mit Positionen. Daraus liest die App
+  - den Kopf: erstes `@handle` oben, Anzeigename in derselben Spalte darüber (Profilbild-Müll links davon fällt weg),
+  - die Fußzeile: letzte Zeile mit Datum (auch „22 Jan. 25“ mit zweistelligem Jahr), Aufrufe/Reposts/Knöpfe werden abgeschnitten, ebenso „Mehr anzeigen“ und als ®/© gelesene Emojis,
+  - die Plattform: Handle mit Punkt = Bluesky, sonst Hinweise wie „Mal angezeigt“, „Uhrzeit · Datum“ (X) oder „Datum um Uhrzeit“ (Bluesky),
+  - das Profilbild: Ausschnitt links neben Name/Handle (nur wenn dort ein kompakter Bildbereich ist).
+  - Hochladen ohne Plattform ist jetzt möglich („Automatisch“, Spalte `posts.platform_auto`). Von Hand Eingetragenes (Handle, Text, Datum, gewählte Plattform) gewinnt immer.
+  - **Bluesky:** Profil per `app.bsky.actor.getProfile` (DID, Name, Profilbild), dann bis zu 500 Beiträge per `getAuthorFeed` durchsuchen und den Text ähnlich vergleichen (≥ 80 %, kurze Texte ≥ 93 %). Gefunden → Posting bekommt Link, ID, Duplikat-Schlüssel und danach die API-Daten (exakter Text, Datum, Medien).
+  - Alte Uploads ohne Link werden einmal im Hintergrund neu ausgewertet (`posts.shot_parsed`).
+  - Ist das Original eines Upload-Postings mit Link gelöscht, liest die App jetzt ebenfalls Kopf/Text/Datum aus dem Bild.
+- **Archiv-Leiste:** Suche, Sortierung (mit Symbol, am Handy nur Symbol) und Filter in einer Fläche. Plattform, Verfasser, Zeitraum (eine Zeile von–bis), Liste, Archiviert von, Status im Filter – Standard zu. Aktive Filter als Chips mit × (entfernt genau diesen Filter). Auswahl- und Ansichts-Umschalter als Symbole. Standard-Sortierung jetzt „Zuletzt archiviert“ (Einstellung `sort`). Stift am Ende der Tag-Leiste → Tags verwalten.
+- **Raster:** volle Texthöhe statt Ausblenden (Grenze 40 Zeilen), Mauerwerk per CSS-Grid mit 2-px-Zeilen und `grid-row-end: span n` (app.js, ResizeObserver), Reihenfolge bleibt zeilenweise. Ohne JS: Zeilen so hoch wie die längste Kachel.
+- **Detailseite:** eine Karte mit Wortlaut, Medien (Download-Knopf auf dem Bild), Datum/Nr., Anmerkung, Tags, Listen und einer Aktionsleiste (Original, Text, Zitieren, Listen, Tags, Wortlaut). Beleg rechts, „Angaben & Quellenangabe“ und „Beleg ersetzen & Thread“ eingeklappt. Sprungmarken (z. B. `#datum`) klappen den Bereich auf.
+- **Tags umbenennen:** „Tags verwalten“ im Menü und über den Stift in der Tag-Leiste. Umbenennen inline (Name ist gleich markiert), Suche ab 9 Tags, Rückmeldung „heißt jetzt“ bzw. „zusammengeführt“.
+- **Galerie:** Sortierung Zufällig (Standard, „Neu mischen“), Zuletzt hinzugefügt, Neueste Aufnahmen (EXIF-Aufnahmedatum, vor dem Entfernen der Metadaten gelesen – Spalte `gallery_images.taken_at`; ältere Bilder ohne Datum zählen mit dem Hinzufüge-Datum), Zuerst hinzugefügt. Darstellung Mosaik/Quadrate und Größe (5 Stufen) per Regler, im Browser gemerkt.
+- **Listen:** „Liste hinzufügen“ öffnet ein Sheet statt eines Felds im Seitenkopf.
+- **Handy:** Die Tab-Leiste verschwindet, solange ein Textfeld aktiv ist (Android schob sie über die Tastatur, iOS ließ sie danach manchmal mitten im Bild stehen); Eingabefelder mit 16 px, damit iOS nicht hineinzoomt. Tablet (761–1020 px): „hinzufügen“ nur als Plus, damit die Kopfzeile passt.
+
 ## 0.11.0 – Facelift, Teilen vom Handy, Ideen (14.10.2026)
 
 - **Facelift:** wärmerer Hintergrund mit leichtem Verlauf, Karten mit 16 px Rundung, leisen Schatten und Anheben beim Drüberfahren, Plattform als kleines Logo, Navigation als Pillen in einer Spur, Suche/Plattform/Sortierung/Filter als eine gemeinsame Leiste, Überschriften mit Eyebrow-Zeile, runderere Knöpfe und Sheets.

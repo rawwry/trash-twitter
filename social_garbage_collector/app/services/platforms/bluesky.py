@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
@@ -236,6 +236,78 @@ class BlueskyService:
             return CaptureResult(screenshot=target, method="bsky.app")
         finally:
             await context.close()
+
+
+# --------------------------------------------------------------------------
+# Screenshot ohne Link (0.12): Original ueber Profil und Beitragsliste finden
+# --------------------------------------------------------------------------
+
+def _norm(text: str) -> str:
+    return " ".join(re.sub(r"[^\w]+", " ", (text or "").lower()).split())
+
+
+def text_similarity(a: str, b: str) -> float:
+    from difflib import SequenceMatcher
+
+    a, b = _norm(a), _norm(b)
+    if not a or not b:
+        return 0.0
+    return SequenceMatcher(None, a, b, autojunk=False).ratio()
+
+
+async def get_profile(client: httpx.AsyncClient, actor: str) -> dict | None:
+    """Oeffentliches Profil (DID, Anzeigename, Profilbild) - ohne Login."""
+    try:
+        resp = await client.get(f"{API}/app.bsky.actor.getProfile", params={"actor": actor}, timeout=10)
+    except httpx.HTTPError as exc:
+        log.info("Profil %s nicht abrufbar: %s", actor, exc)
+        return None
+    return resp.json() if resp.status_code == 200 else None
+
+
+async def find_post(client: httpx.AsyncClient, actor: str, text: str, around: datetime | None = None,
+                    max_pages: int = 5) -> dict | None:
+    """Sucht in den Beitraegen eines Kontos den, dessen Wortlaut zum OCR-Text
+    passt. Rueckgabe: PostView (wie getPosts) oder None.
+
+    Texterkennung ist nie perfekt, daher Aehnlichkeit statt Gleichheit. Kurze
+    Texte brauchen fast exakte Treffer, sonst passt "Guten Morgen" auf vieles."""
+    if len(_norm(text)) < 8:
+        return None
+    need = 0.93 if len(_norm(text)) < 40 else 0.8
+    cursor, best = None, (0.0, None)
+    for _ in range(max_pages):
+        params = {"actor": actor, "limit": 100, "filter": "posts_with_replies"}
+        if cursor:
+            params["cursor"] = cursor
+        try:
+            resp = await client.get(f"{API}/app.bsky.feed.getAuthorFeed", params=params, timeout=15)
+        except httpx.HTTPError as exc:
+            log.info("Beitraege von %s nicht abrufbar: %s", actor, exc)
+            return None
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        oldest = None
+        for item in data.get("feed") or []:
+            if item.get("reason"):  # Repost von jemand anderem
+                continue
+            view = item.get("post") or {}
+            record = view.get("record") or {}
+            score = text_similarity(text, record.get("text") or "")
+            created = _parse_dt(record.get("createdAt"))
+            if around and created and abs((created - around).total_seconds()) < 26 * 3600:
+                score += 0.05  # Datum passt auch
+            if score > best[0]:
+                best = (score, view)
+            oldest = created or oldest
+        if best[0] >= need:
+            return best[1]
+        cursor = data.get("cursor")
+        # Aelter als das Datum im Screenshot: weiter zurueck lohnt sich nicht
+        if not cursor or (around and oldest and oldest < around - timedelta(days=2)):
+            break
+    return best[1] if best[0] >= need else None
 
 
 def metadata_from_post_view(post: dict) -> PostMetadata:

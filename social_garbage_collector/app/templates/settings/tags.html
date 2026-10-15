@@ -1,27 +1,41 @@
 {% extends "settings/base.html" %}
+{% from "partials/icons.html" import icon %}
 {% block title %}Tags verwalten{% endblock %}
 {% block settings %}
 <h1>Tags verwalten</h1>
-<p class="sub">Tippfehler korrigieren, Doppelte zusammenführen, Überflüssiges löschen. Gilt für alle.</p>
+<p class="sub">Tippfehler korrigieren, Doppelte zusammenführen, Überflüssiges löschen. Alle Mitglieder können das, es gilt für alle Postings.</p>
 {% if tags %}
-<div class="setting-group">
+{% if tags|length > 8 %}
+<label class="tag-search search-input">
+  {{ icon('search', 18) }}
+  <input type="search" placeholder="Tag suchen" aria-label="Tags durchsuchen" data-tag-search autocomplete="off">
+</label>
+{% endif %}
+<div class="setting-group tag-list">
   {% for tag, count in tags %}
-  <div class="tag-row">
-    <a class="chip" href="{{ url('/') }}?tags={{ tag.name|urlencode }}">#{{ tag.name }}</a>
-    <span class="count">{{ count }} {{ 'Posting' if count == 1 else 'Postings' }}</span>
-    <form method="post" action="{{ url('/settings/tags/' ~ tag.id ~ '/rename') }}" class="row grow">
+  <div class="tag-row" data-tag-name="{{ tag.name }}">
+    <div class="tag-view" data-edit-view="tag-{{ tag.id }}">
+      <a class="chip" href="{{ url('/') }}?tags={{ tag.name|urlencode }}" title="Postings mit #{{ tag.name }} zeigen">#{{ tag.name }}</a>
+      <span class="count">{{ count }} {{ 'Posting' if count == 1 else 'Postings' }}</span>
+      <span class="tag-actions">
+        <button class="icon-btn" type="button" data-edit="tag-{{ tag.id }}" title="Umbenennen" aria-label="#{{ tag.name }} umbenennen">{{ icon('edit', 17) }}</button>
+        <form method="post" action="{{ url('/settings/tags/' ~ tag.id ~ '/delete') }}" data-confirm="#{{ tag.name }} von allen Postings entfernen?">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="icon-btn danger" type="submit" title="Löschen" aria-label="#{{ tag.name }} löschen">{{ icon('trash', 17) }}</button>
+        </form>
+      </span>
+    </div>
+    <form method="post" action="{{ url('/settings/tags/' ~ tag.id ~ '/rename') }}" class="tag-rename" data-edit-form="tag-{{ tag.id }}" hidden>
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      <input name="name" value="{{ tag.name }}" maxlength="64" aria-label="Neuer Name für #{{ tag.name }}">
-      <button class="btn-soft sm" type="submit">Umbenennen</button>
-    </form>
-    <form method="post" action="{{ url('/settings/tags/' ~ tag.id ~ '/delete') }}" data-confirm="#{{ tag.name }} von allen Postings entfernen?">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      <button class="btn-ghost sm" type="submit">Löschen</button>
+      <span class="tag-hash" aria-hidden="true">#</span>
+      <input name="name" value="{{ tag.name }}" maxlength="64" aria-label="Neuer Name für #{{ tag.name }}" autocapitalize="off" spellcheck="false">
+      <button class="btn sm" type="submit">Speichern</button>
+      <button class="btn-ghost sm" type="button" data-edit-cancel="tag-{{ tag.id }}">Abbrechen</button>
     </form>
   </div>
   {% endfor %}
 </div>
-<p class="faint xs" style="margin-top:10px">Umbenennen auf einen vorhandenen Namen führt beide Tags zusammen.</p>
+<p class="faint xs" style="margin-top:10px">Heißt der neue Name schon wie ein anderer Tag, werden beide zusammengeführt.</p>
 {% else %}
 <div class="setting-group"><div class="setting-block muted">Noch keine Tags vergeben.</div></div>
 {% endif %}

@@ -69,22 +69,25 @@
     </span>
     <span class="drop-previews" data-drop-previews></span>
   </label>
-  <label>Link zum Original <span class="hint">optional – dann prüft die App Duplikate und holt Verfasser und Wortlaut</span>
+  <p class="upload-hint">{{ icon('sparkles', 16) }}<span>Die App liest Verfasser, @Handle, Plattform, Datum und Wortlaut selbst aus dem Bild.
+    Bei Bluesky sucht sie zusätzlich das Original.</span></p>
+  <label>Link zum Original <span class="hint">optional – dann prüft die App Duplikate und holt alles direkt von der Plattform</span>
     <input name="link" value="{{ form_link or '' }}" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"
            maxlength="500" placeholder="https://x.com/… oder https://bsky.app/…">
   </label>
   <div class="field-row">
-    <span class="label-text">Plattform <span class="hint">nur nötig ohne Link</span></span>
+    <span class="label-text">Plattform</span>
     <div class="seg" role="radiogroup" aria-label="Plattform">
+      <label><input type="radio" name="platform" value="" {% if form_platform not in ('x', 'bluesky') %}checked{% endif %}><span>Automatisch</span></label>
       <label><input type="radio" name="platform" value="x" {% if form_platform == 'x' %}checked{% endif %}><span>X</span></label>
       <label><input type="radio" name="platform" value="bluesky" {% if form_platform == 'bluesky' %}checked{% endif %}><span>Bluesky</span></label>
     </div>
   </div>
   <details {% if form_handle or form_posted or form_text %}open{% endif %}>
-    <summary class="muted small" style="cursor:pointer">Verfasser, Datum &amp; Wortlaut (optional)</summary>
+    <summary class="muted small" style="cursor:pointer">Verfasser, Datum &amp; Wortlaut selbst eintragen (optional)</summary>
     <div class="stack" style="margin-top:12px">
       <div class="two-cols">
-        <label>Verfasser (Handle)<input name="handle" value="{{ form_handle or '' }}" maxlength="100" placeholder="@handle" autocapitalize="off"></label>
+        <label>Verfasser (Handle)<input name="handle" value="{{ form_handle or '' }}" maxlength="100" placeholder="leer = aus dem Bild" autocapitalize="off"></label>
         <label>Gepostet am<input type="date" name="posted" value="{{ form_posted or '' }}"></label>
       </div>
       <label>Wortlaut <span class="hint">leer lassen = Texterkennung aus dem Bild</span>

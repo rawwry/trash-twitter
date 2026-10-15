@@ -205,8 +205,10 @@ def test_sorted_and_filtered_by_date_of_statement(user_client, harness):
         p1.posted_at, p2.posted_at = datetime(2024, 5, 1), datetime(2019, 5, 1)
         p1.text, p2.text = "neuere Aussage", "aeltere Aussage"
         db.commit()
-    page = user_client.get("/").text  # Standard: Aussage, neueste zuerst
+    page = user_client.get("/?sort=posted").text  # nach Datum der Aussage, neueste zuerst
     assert page.index("neuere Aussage") < page.index("aeltere Aussage")
+    page = user_client.get("/").text  # 0.12: Standard = zuletzt archiviert
+    assert page.index("aeltere Aussage") < page.index("neuere Aussage")
     page = user_client.get("/?sort=posted_old").text
     assert page.index("aeltere Aussage") < page.index("neuere Aussage")
     page = user_client.get("/?from=2019-01-01&to=2019-12-31").text

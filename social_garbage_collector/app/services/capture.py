@@ -13,6 +13,7 @@ Nach einem Neustart werden alle offenen Beitraege wieder eingereiht.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 from datetime import datetime
@@ -31,11 +32,12 @@ from ..models import (
     TEXT_API,
     TEXT_MANUAL,
     TEXT_OCR,
+    PLATFORM_BLUESKY,
     Post,
     utcnow,
 )
-from . import accounts, dates, media, ocr, shots
-from .platforms import get_service
+from . import accounts, dates, media, ocr, screenshot, shots
+from .platforms import bluesky, get_service
 from .platforms.base import (
     MAX_THREAD_PARTS,
     USER_AGENT,
@@ -80,6 +82,9 @@ class CaptureWorker:
 
     async def _refresh_safe(self) -> None:
         try:
+            n = await self.reparse_uploads()
+            if n:
+                log.info("%d hochgeladene Screenshots neu ausgewertet.", n)
             n = await self.fill_missing_dates()
             if n:
                 log.info("Datum fuer %d Postings aus dem Screenshot gelesen.", n)
@@ -316,15 +321,18 @@ class CaptureWorker:
             db.close()
 
     async def _process_upload(self, db: Session, post: Post) -> None:
-        """Hochgeladener Screenshot: KEINE Aufnahme. Nur Metadaten (wenn ein Link
-        da ist) und Text (API bzw. Texterkennung aus dem hochgeladenen Bild)."""
-        service = get_service(post.platform)
+        """Hochgeladener Screenshot: KEINE Aufnahme. Ohne Link liest die App erst
+        das Bild (Verfasser, Plattform, Datum, Wortlaut - 0.12), dann - wenn ein
+        Link da ist oder sich finden liess - die Metadaten von der Plattform."""
         problems: list[str] = []
         meta: PostMetadata | None = None
-        if post.url:
-            parsed = ParsedPost(platform=post.platform, post_id=post.post_id, author_handle=post.author_handle,
-                                canonical_url=post.url, author_did=post.author_did)
-            async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, follow_redirects=True) as client:
+        async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, follow_redirects=True) as client:
+            if not post.url and post.screenshot_path:
+                await self.read_screenshot(db, post, client, problems)
+            service = get_service(post.platform)
+            if post.url:
+                parsed = ParsedPost(platform=post.platform, post_id=post.post_id, author_handle=post.author_handle,
+                                    canonical_url=post.url, author_did=post.author_did)
                 try:
                     meta = await service.fetch_metadata(parsed, client)
                 except PostNotFound:
@@ -335,22 +343,142 @@ class CaptureWorker:
                     self._apply_metadata(db, post, parsed, meta)
                     await accounts.apply_metadata(db, self.settings, client, post, meta)
                     problems += await media.save_media(db, self.settings, client, post, meta.media)
+                    if meta.text and post.text_source != TEXT_MANUAL:
+                        post.text, post.text_source = meta.text, TEXT_API
+            if meta is None and post.url and post.screenshot_path and post.text_source != TEXT_MANUAL:
+                # Original geloescht/nicht erreichbar: dann eben aus dem Bild lesen
+                await self.read_screenshot(db, post, None, problems)
         if post.account_id is None:
             accounts.ensure_for_post(db, post)
-        if post.text_source != TEXT_MANUAL and post.screenshot_path:
-            try:
-                path = safe_path(self.settings.base_path, post.screenshot_path)
-                text, source = await self._choose_text(service.prefers_api_text, meta,
-                                                       CaptureResult(screenshot=path), problems)
-                if text or source:
-                    post.text, post.text_source = text, source
-            except UnsafePathError:
-                problems.append("Screenshot-Pfad ungültig.")
-        await self._fill_date(post)
+        if not post.shot_parsed:
+            await self._fill_date(post)
         post.status = STATUS_DONE
-        post.status_message = "; ".join(problems)
+        post.status_message = "; ".join(dict.fromkeys(problems))
         db.commit()
         log.info("Beitrag %s (Upload): fertig %s", post.id, post.status_message)
+
+    async def read_screenshot(self, db: Session, post: Post, client: httpx.AsyncClient | None,
+                              problems: list[str]) -> bool:
+        """Liest Verfasser, @handle, Plattform, Datum und Wortlaut aus dem Bild.
+        Von Hand Eingetragenes bleibt. Bei Bluesky sucht die App danach das
+        Original (oeffentliche API) - gefunden, wird daraus ein normales
+        Posting mit Link. Rueckgabe: ob die Texterkennung gelaufen ist."""
+        try:
+            path = safe_path(self.settings.base_path, post.screenshot_path)
+            layout, img = await asyncio.to_thread(ocr.ocr_layout, path)
+        except ocr.OcrUnavailable as exc:
+            problems.append(f"Texterkennung nicht verfügbar ({exc}).")
+            return False
+        except (UnsafePathError, OSError) as exc:
+            problems.append(f"Screenshot nicht lesbar ({type(exc).__name__}).")
+            return False
+        except Exception as exc:  # OCR darf das Erfassen nie scheitern lassen
+            log.warning("Texterkennung fuer Beitrag %s fehlgeschlagen: %s", post.id, exc)
+            problems.append(f"Texterkennung fehlgeschlagen ({type(exc).__name__}).")
+            return False
+        info = screenshot.parse(layout)
+        post.shot_parsed = True
+        if post.platform_auto and info.platform:
+            post.platform = info.platform
+        handle_fits = bool(info.handle) and (("." in info.handle) == (post.platform == PLATFORM_BLUESKY))
+        if not post.author_handle and handle_fits:
+            post.author_handle = info.handle[:255]
+        if not post.author_display_name and info.display_name and handle_fits:
+            post.author_display_name = info.display_name
+        if post.text_source != TEXT_MANUAL and info.text:
+            post.text, post.text_source = info.text, TEXT_OCR
+        if post.posted_at is None and info.posted_at:
+            dates.set_date(post, info.posted_at, dates.DATE_OCR, has_time=info.has_time)
+        if post.platform_auto and not info.platform:
+            problems.append("Plattform nicht erkannt – bitte unter „Angaben“ prüfen.")
+
+        if client is not None and self.settings.network_enabled and post.platform == PLATFORM_BLUESKY \
+                and post.author_handle and not post.url:
+            await self._find_bluesky_original(db, post, client, info, problems)
+
+        acc = accounts.resolve(db, post.platform, post.author_did if post.platform == PLATFORM_BLUESKY else None,
+                               post.author_handle, post.author_display_name, candidate=post.account)
+        accounts.attach(db, post, acc)
+        if post.author_avatar_path is None:
+            if acc is not None and acc.avatar_path:
+                post.author_avatar_path = acc.avatar_path
+            else:
+                rel = await asyncio.to_thread(self._save_cropped_avatar, img, info)
+                if rel:
+                    post.author_avatar_path = rel
+                    if acc is not None and not acc.avatar_path:
+                        accounts.set_avatar(db, acc, rel)
+        db.flush()
+        return True
+
+    def _save_cropped_avatar(self, img, info) -> str | None:
+        data = screenshot.crop_avatar(img, info.header)
+        if not data:
+            return None
+        try:
+            webp = accounts.process_avatar(data)
+        except OSError:
+            return None
+        name = hashlib.sha256(webp).hexdigest()[:24] + ".webp"
+        self.settings.author_dir.mkdir(parents=True, exist_ok=True)
+        target = self.settings.author_dir / name
+        if not target.exists():
+            target.write_bytes(webp)
+        return f"authors/{name}"
+
+    async def _find_bluesky_original(self, db: Session, post: Post, client: httpx.AsyncClient, info,
+                                     problems: list[str]) -> None:
+        profile = await bluesky.get_profile(client, post.author_handle)
+        if not profile or not bluesky.is_did(profile.get("did") or ""):
+            return
+        did = profile["did"]
+        post.author_did = did
+        post.author_handle = (profile.get("handle") or post.author_handle).lower()[:255]
+        if profile.get("displayName"):
+            post.author_display_name = profile["displayName"].strip()[:255]
+        view = await bluesky.find_post(client, did, post.text, post.posted_at)
+        if view is None:
+            meta = PostMetadata(handle=post.author_handle, display_name=post.author_display_name, did=did,
+                                author_id=did, avatar_url=(profile.get("avatar") or "").strip())
+            await accounts.apply_metadata(db, self.settings, client, post, meta)
+            return
+        rkey = (view.get("uri") or "").rsplit("/", 1)[-1]
+        key = f"bluesky:{did}:{rkey}"
+        clash = db.scalar(select(Post).where(Post.dedup_key == key, Post.id != post.id))
+        if clash is not None:
+            problems.append(f"Original gefunden – es ist schon im Archiv (Nr. {clash.id:06d}).")
+            return
+        post.post_id, post.dedup_key = rkey, key
+        post.url = f"https://bsky.app/profile/{post.author_handle or did}/post/{rkey}"
+        if post.posted_at is not None and post.date_source == dates.DATE_OCR:
+            post.posted_at = None  # gleich kommt das exakte Datum von der API
+        log.info("Beitrag %s: Original auf Bluesky gefunden (%s).", post.id, post.url)
+
+    async def reparse_uploads(self, pause_s: float = 0.3) -> int:
+        """Einmal im Hintergrund (0.12): Screenshots ohne Link, die noch mit der
+        alten Texterkennung gelesen wurden, neu auswerten - Verfasser, Datum,
+        Wortlaut ohne Kopf- und Fusszeile. Von Hand Geaendertes bleibt."""
+        done = 0
+        async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, follow_redirects=True) as client:
+            while True:
+                with self.session_factory() as db:
+                    batch = list(db.scalars(select(Post).where(
+                        Post.shot_source == "upload", Post.url == "", Post.shot_parsed.is_(False),
+                        Post.screenshot_path.is_not(None), Post.status != STATUS_RUNNING,
+                        Post.status != STATUS_PENDING).order_by(Post.id).limit(10)))
+                    if not batch:
+                        return done
+                    for post in batch:
+                        problems: list[str] = []
+                        if not await self.read_screenshot(db, post, client, problems):
+                            post.shot_parsed = True  # z. B. Tesseract fehlt: nicht bei jedem Start erneut
+                        elif post.url:
+                            post.status = STATUS_PENDING  # Original gefunden: Metadaten holen
+                            db.commit()
+                            self.enqueue(post.id)
+                        done += 1
+                        db.commit()
+                        await asyncio.sleep(pause_s)
 
     async def _thread_parts(self, service, parsed: ParsedPost, post: Post,
                             client: httpx.AsyncClient) -> list[ParsedPost]:

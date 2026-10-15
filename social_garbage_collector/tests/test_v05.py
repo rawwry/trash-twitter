@@ -53,7 +53,7 @@ def test_upload_without_link(user_client, harness):
         assert img.format == "WEBP"
     # Detailseite ohne Link: keine "Original öffnen"-Knoepfe, aber Upload-Bereich
     page = user_client.get(f"/posts/{p.id}").text
-    assert "Original öffnen" not in page and "Anderen Screenshot hochladen" in page
+    assert "Original öffnen" not in page and "Anderen Screenshot auswählen" in page
     assert "Originallink unbekannt" in page  # Quellenangabe sagt ehrlich, dass der Link fehlt
 
 
@@ -64,9 +64,8 @@ def test_upload_multiple_images_are_stitched(user_client, harness):
     assert (p.shot_w, p.shot_h) == (600, 500 + shots.THREAD_GAP)
 
 
-def test_upload_requires_platform_or_link_and_valid_image(user_client, harness):
-    r = _upload(user_client, [_png()])
-    assert r.status_code == 400 and "X oder Bluesky" in r.text
+def test_upload_requires_valid_image(user_client, harness):
+    # 0.12: ohne Plattform erkennt die App sie selbst (siehe test_v12)
     r = _upload(user_client, [b"kein bild"], platform="x")
     assert r.status_code == 400 and "kein lesbares Bild" in r.text
     r = _upload(user_client, [], platform="x")
@@ -111,7 +110,7 @@ def test_replace_screenshot_of_failed_post(user_client, harness):
     with harness.db() as db:
         db.get(Post, p.id).status = "error"
         db.commit()
-    assert "Eigenen Screenshot hochladen" in user_client.get(f"/posts/{p.id}").text
+    assert "Eigenen Screenshot auswählen" in user_client.get(f"/posts/{p.id}").text
     r = user_client.post(f"/posts/{p.id}/screenshot", data={"csrf_token": user_client.csrf},
                          files=[("files", ("s.png", _png(), "image/png"))])
     assert r.status_code == 303
@@ -167,6 +166,10 @@ def _worker_post(tmp_path, monkeypatch, service, url=""):
         pid = p.id
     monkeypatch.setattr(capture_mod, "get_service", lambda _p: service)
     monkeypatch.setattr(ocr, "ocr_image", lambda src: "Text per OCR")
+    # 0.12: Screenshots ohne Link liest der Worker mit Zeilen-Positionen
+    from app.services.ocr import Layout, Line
+    monkeypatch.setattr(ocr, "ocr_layout", lambda src: (Layout([Line("Text per OCR", 10, 50, 300, 70)], 400, 200),
+                                                        Image.new("RGB", (400, 200))))
     asyncio.run(CaptureWorker(h.settings, h.app.state.SessionLocal).process(pid))
     with h.db() as db:
         post = db.get(Post, pid)

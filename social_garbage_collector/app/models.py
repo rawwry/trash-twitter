@@ -149,6 +149,9 @@ class Post(Base):
     shot_reconstructed: Mapped[bool] = mapped_column(Boolean, default=False)
     # Medien (0.10.0): schon nach Bildern/GIFs/Videos geschaut? (fuer das Nachholen alter Postings)
     media_checked: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 0.12: Screenshot ohne Link - Plattform selbst erkennen; Kopf/Fuss schon ausgewertet
+    platform_auto: Mapped[bool] = mapped_column(Boolean, default=False)
+    shot_parsed: Mapped[bool] = mapped_column(Boolean, default=False)
     # Massenimport (0.8.0): Kennung des Imports, aus dem das Posting stammt.
     import_batch: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
     text: Mapped[str] = mapped_column(Text, default="")
@@ -435,6 +438,8 @@ class GalleryImage(Base):
     title: Mapped[str] = mapped_column(String(200), default="")
     note: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    # 0.12: Aufnahmedatum aus den Kameradaten (vor dem Entfernen gelesen), sonst leer
+    taken_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     uploaded_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     uploaded_by: Mapped[User | None] = relationship()

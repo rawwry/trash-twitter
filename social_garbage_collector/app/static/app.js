@@ -143,7 +143,10 @@
     const form = $(`[data-edit-form="${key}"]`);
     if (!view || !form) return;
     view.hidden = on; form.hidden = !on;
-    if (on) { const f = $("textarea, input:not([type=hidden])", form); if (f) { f.focus(); f.setSelectionRange?.(f.value.length, f.value.length); } }
+    if (on) {
+      const f = $("textarea, input:not([type=hidden])", form);
+      if (f) { f.focus(); if (form.classList.contains("tag-rename")) f.select(); else f.setSelectionRange?.(f.value.length, f.value.length); }
+    }
   }
   document.addEventListener("click", (ev) => {
     const e = ev.target.closest("[data-edit]");
@@ -159,7 +162,8 @@
     const panel = document.getElementById(t.dataset.toggle);
     if (!panel) return;
     panel.hidden = !panel.hidden;
-    t.setAttribute("aria-expanded", String(!panel.hidden));
+    document.querySelectorAll(`[data-toggle="${t.dataset.toggle}"][aria-expanded]`)
+      .forEach((b) => b.setAttribute("aria-expanded", String(!panel.hidden)));
   });
 
   // --- Tag-Vorschlaege -----------------------------------------------------------------
@@ -587,14 +591,116 @@
     else if (dy > 90 && Math.abs(dy) > Math.abs(dx)) lb()?.close();  // nach unten wischen = schliessen
   }, { passive: true });
 
+  // --- Handy: Tab-Leiste ausblenden, solange getippt wird (0.12) -----------------------------
+  // Android schiebt fest unten klebende Leisten sonst ueber die Tastatur, iOS
+  // laesst sie nach dem Schliessen der Tastatur manchmal mitten im Bild stehen.
+  const isTextField = (el) => el && el.matches && el.matches(
+    "input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=button]):not([type=submit]), textarea, select, [contenteditable]");
+  let typingTimer = null;
+  document.addEventListener("focusin", (ev) => {
+    if (!isTextField(ev.target)) return;
+    clearTimeout(typingTimer);
+    document.documentElement.classList.add("is-typing");
+  });
+  document.addEventListener("focusout", (ev) => {
+    if (!isTextField(ev.target)) return;
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => {
+      if (!isTextField(document.activeElement)) document.documentElement.classList.remove("is-typing");
+    }, 120);
+  });
+
+  // --- Tags verwalten: Liste filtern ----------------------------------------------------------
+  document.addEventListener("input", (ev) => {
+    if (!ev.target.matches || !ev.target.matches("[data-tag-search]")) return;
+    const q = ev.target.value.trim().toLowerCase().replace(/^#/, "");
+    $$("[data-tag-name]").forEach((row) => { row.hidden = q && !row.dataset.tagName.includes(q); });
+  });
+
+  // --- Galerie: Darstellung und Groesse (0.12, pro Browser gemerkt) ---------------------------
+  const GAL_SCALE = [0.55, 0.75, 1, 1.35, 1.8];
+  const remember = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* privat: egal */ } };
+  const recall = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  function applyGallery() {
+    const style = recall("tt.gal.style") === "square" ? "square" : "mosaic";
+    const size = Math.min(5, Math.max(1, parseInt(recall("tt.gal.size") || "3", 10) || 3));
+    const gal = $("[data-gallery]");
+    if (gal) {
+      gal.classList.toggle("is-square", style === "square");
+      gal.style.setProperty("--scale", GAL_SCALE[size - 1]);
+    }
+    $$("[data-gal-style]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.galStyle === style)));
+    $$("[data-gal-size]").forEach((r) => (r.value = size));
+  }
+  document.addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-gal-style]");
+    if (!b) return;
+    remember("tt.gal.style", b.dataset.galStyle);
+    applyGallery();
+  });
+  document.addEventListener("input", (ev) => {
+    if (!ev.target.matches || !ev.target.matches("[data-gal-size]")) return;
+    remember("tt.gal.size", ev.target.value);
+    applyGallery();
+  });
+  document.addEventListener("htmx:afterSettle", applyGallery);
+
+  // --- Raster als Mauerwerk (0.12) ------------------------------------------------------------
+  // Jede Kachel ist so hoch wie ihr Text; das Grid hat 2px-Zeilen, jede Kachel
+  // spannt so viele, wie sie braucht. Reihenfolge bleibt zeilenweise.
+  const ROW = 2;
+  function layoutMasonry(grid) {
+    if (!grid || !grid.classList.contains("view-raster")) return;
+    const narrow = getComputedStyle(grid).gridTemplateColumns.split(" ").length < 2;
+    grid.classList.toggle("is-masonry", !narrow);
+    if (narrow) { $$(".qtile", grid).forEach((t) => (t.style.gridRowEnd = "")); return; }
+    const gap = parseFloat(getComputedStyle($(".qtile", grid) || grid).marginBottom) || 0;
+    $$(".qtile", grid).forEach((t) => {
+      t.style.gridRowEnd = `span ${Math.max(1, Math.ceil((t.getBoundingClientRect().height + gap) / ROW))}`;
+    });
+  }
+  let masonryObserver = null;
+  function initMasonry() {
+    const grid = $("#post-grid.view-raster");
+    if (!grid) return;
+    layoutMasonry(grid);
+    if (window.ResizeObserver) {
+      masonryObserver?.disconnect();
+      let queued = false;
+      masonryObserver = new ResizeObserver(() => {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(() => { queued = false; layoutMasonry(grid); });
+      });
+      masonryObserver.observe(grid);
+      $$(".qtile", grid).forEach((t) => masonryObserver.observe(t));
+    }
+    $$("img", grid).forEach((img) => { if (!img.complete) img.addEventListener("load", () => layoutMasonry(grid), { once: true }); });
+  }
+  document.addEventListener("htmx:afterSettle", initMasonry);
+  window.addEventListener("load", initMasonry);
+  document.fonts?.ready?.then(initMasonry);
+
   // --- Start ---------------------------------------------------------------------------------
+  // Sprungmarke in einem eingeklappten Bereich (z. B. #datum nach dem Speichern): aufklappen
+  function openHashTarget() {
+    if (!location.hash) return;
+    let el = null;
+    try { el = document.querySelector(location.hash); } catch (e) { return; }
+    let d = el && el.closest("details");
+    while (d) { d.open = true; d = d.parentElement && d.parentElement.closest("details"); }
+    if (el && el.tagName !== "DETAILS") el.scrollIntoView({ block: "center" });
+  }
+  window.addEventListener("hashchange", openHashTarget);
+
   function init(scope) {
     $$("[data-autoclose]", scope).forEach(autoclose);
+    if (scope === document) openHashTarget();
     const form = $("#gen-form");
     if (scope === document && form && form.dataset.focus) {
       const field = $(`[name="${form.dataset.focus}"]`, form);
       if (field) field.focus();
     }
   }
-  document.addEventListener("DOMContentLoaded", () => init(document));
+  document.addEventListener("DOMContentLoaded", () => { init(document); initMasonry(); applyGallery(); });
 })();

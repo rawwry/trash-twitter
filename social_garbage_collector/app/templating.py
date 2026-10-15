@@ -207,6 +207,27 @@ env.filters["monthkey"] = _monthkey
 env.filters["monthname"] = _monthname
 
 
+def _qs_without(query_string: str, key: str, value: str | None = None) -> str:
+    """Query-String ohne einen Parameter (bzw. ohne einen Tag aus "tags") -
+    fuer die x-Knoepfe an aktiven Filtern."""
+    from urllib.parse import parse_qsl, urlencode
+
+    pairs = []
+    for k, v in parse_qsl(query_string or ""):
+        if k == key and key == "tags" and value is not None:
+            rest = [t for t in v.split(",") if t.strip() and t.strip() != value]
+            if rest:
+                pairs.append((k, ",".join(rest)))
+        elif k == key or (key == "from" and k == "to"):
+            continue
+        else:
+            pairs.append((k, v))
+    return urlencode(pairs)
+
+
+env.filters["qs_without"] = _qs_without
+
+
 # --- Toasts ------------------------------------------------------------------
 
 def _encode_toast(message: str, kind: str) -> str:

@@ -88,6 +88,8 @@ _MONTH_WORD = r"([A-Za-zÄÖÜäöü]{3,9})\.?"
 _PATTERNS = [
     # 4. März 2019
     ("dmy_word", re.compile(rf"\b(\d{{1,2}})\.?\s*{_MONTH_WORD}\s+(\d{{4}})\b")),
+    # 22 Jan. 25 (X auf Deutsch kuerzt das Jahr)
+    ("dmy_word2", re.compile(rf"\b(\d{{1,2}})\.?\s*{_MONTH_WORD}\s+(\d{{2}})(?!\d|[:.]\d)")),
     # Mar 4, 2019 / March 4 2019
     ("mdy_word", re.compile(rf"\b{_MONTH_WORD}\s+(\d{{1,2}}),?\s+(\d{{4}})\b")),
     # 04.03.19 / 4.3.2019 (X-App auf Deutsch)
@@ -101,8 +103,9 @@ _TIME_WINDOW = 28  # so weit darf die Uhrzeit vom Datum entfernt stehen (gleiche
 
 def _build(kind: str, g: tuple[str, ...]) -> tuple[int, int, int] | None:
     try:
-        if kind == "dmy_word":
+        if kind in ("dmy_word", "dmy_word2"):
             day, month, year = int(g[0]), _MONTHS.get(g[1].lower().rstrip(".")), int(g[2])
+            year += 2000 if year < 100 else 0
         elif kind == "mdy_word":
             month, day, year = _MONTHS.get(g[0].lower().rstrip(".")), int(g[1]), int(g[2])
         elif kind == "dmy_num":

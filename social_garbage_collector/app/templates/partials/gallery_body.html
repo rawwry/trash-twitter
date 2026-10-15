@@ -1,25 +1,57 @@
 {# Filter + Raster. Wird beim Filtern per htmx ersetzt (ohne Seitenwechsel). #}
 {% from "partials/icons.html" import icon %}
+{% set sort_q = ('sort=' ~ sort) if sort != 'zufall' else '' %}
 {% macro toggle_url(cat_id) -%}
   {%- set ids = (selected | list) -%}
   {%- set ids = (ids | reject('equalto', cat_id) | list) if cat_id in selected else ids + [cat_id] -%}
-  {{ url('/galerie') }}{% if ids %}?{% for i in ids %}k={{ i }}{{ '&' if not loop.last }}{% endfor %}{% endif %}
+  {{ url('/galerie') }}?{% for i in ids %}k={{ i }}&{% endfor %}{{ sort_q }}
 {%- endmacro %}
 <div id="gallery-body">
   {% if total %}
   <nav class="gal-filter" aria-label="Nach Kategorie filtern">
-    <a class="gal-chip {{ 'is-on' if not selected and not uncategorized }}" href="{{ url('/galerie') }}"
-       hx-get="{{ url('/galerie') }}" hx-target="#gallery-body" hx-swap="outerHTML" hx-push-url="true">Alle <span>{{ total }}</span></a>
+    <a class="gal-chip {{ 'is-on' if not selected and not uncategorized }}" href="{{ url('/galerie') }}?{{ sort_q }}"
+       hx-get="{{ url('/galerie') }}?{{ sort_q }}" hx-target="#gallery-body" hx-swap="outerHTML" hx-push-url="true">Alle <span>{{ total }}</span></a>
     {% for cat, n in counts %}{% if n %}
     {% set href = toggle_url(cat.id) %}
     <a class="gal-chip {{ 'is-on' if cat.id in selected }}" href="{{ href }}" aria-pressed="{{ 'true' if cat.id in selected else 'false' }}"
        hx-get="{{ href }}" hx-target="#gallery-body" hx-swap="outerHTML" hx-push-url="true"><i class="dot tone-{{ cat.tone }}"></i>{{ cat.name }} <span>{{ n }}</span></a>
     {% endif %}{% endfor %}
     {% if without and counts %}
-    <a class="gal-chip {{ 'is-on' if uncategorized }}" href="{{ url('/galerie') }}?k=ohne"
-       hx-get="{{ url('/galerie') }}?k=ohne" hx-target="#gallery-body" hx-swap="outerHTML" hx-push-url="true">Ohne Kategorie <span>{{ without }}</span></a>
+    <a class="gal-chip {{ 'is-on' if uncategorized }}" href="{{ url('/galerie') }}?k=ohne&{{ sort_q }}"
+       hx-get="{{ url('/galerie') }}?k=ohne&{{ sort_q }}" hx-target="#gallery-body" hx-swap="outerHTML" hx-push-url="true">Ohne Kategorie <span>{{ without }}</span></a>
     {% endif %}
   </nav>
+
+  {# Sortierung, Darstellung, Groesse. Darstellung und Groesse merkt sich der Browser (app.js). #}
+  <div class="gal-tools">
+    <form class="gal-sort" method="get" action="{{ url('/galerie') }}"
+          hx-get="{{ url('/galerie') }}" hx-target="#gallery-body" hx-swap="outerHTML" hx-push-url="true" hx-trigger="change">
+      {% for i in selected %}<input type="hidden" name="k" value="{{ i }}">{% endfor %}
+      {% if uncategorized %}<input type="hidden" name="k" value="ohne">{% endif %}
+      <label class="atb-sort" title="Sortierung">
+        {{ icon('sort', 17) }}
+        <select name="sort" aria-label="Sortierung">
+          {% for key, label in sorts.items() %}<option value="{{ key }}" {% if sort == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </label>
+      {% if sort == 'zufall' %}
+      <button class="tool-btn" type="submit" title="Neu mischen" aria-label="Neu mischen">{{ icon('shuffle', 18) }}</button>
+      {% endif %}
+      <noscript><button class="btn-soft sm" type="submit">Sortieren</button></noscript>
+    </form>
+    <div class="gal-view">
+      <div class="view-icons" role="group" aria-label="Darstellung">
+        <button type="button" data-gal-style="mosaic" title="Mosaik (Originalformat)" aria-label="Mosaik">{{ icon('mosaic', 18) }}</button>
+        <button type="button" data-gal-style="square" title="Quadrate" aria-label="Quadrate">{{ icon('grid', 18) }}</button>
+      </div>
+      <label class="gal-size" title="Größe der Vorschaubilder">
+        <span class="sr-only">Größe der Vorschaubilder</span>
+        {{ icon('zoom-out', 16) }}
+        <input type="range" min="1" max="5" step="1" value="3" data-gal-size aria-label="Größe der Vorschaubilder">
+        {{ icon('zoom-in', 16) }}
+      </label>
+    </div>
+  </div>
   {% endif %}
 
   {% if images %}

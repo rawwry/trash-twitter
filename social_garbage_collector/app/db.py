@@ -115,12 +115,17 @@ _ADDED_COLUMNS = {
         ("shot_reconstructed", "BOOLEAN NOT NULL DEFAULT 0"),
         ("import_batch", "VARCHAR(16)"),
         ("media_checked", "BOOLEAN NOT NULL DEFAULT 0"),
+        ("platform_auto", "BOOLEAN NOT NULL DEFAULT 0"),
+        ("shot_parsed", "BOOLEAN NOT NULL DEFAULT 0"),
     ],
     "post_media": [
         ("thumb_path", "VARCHAR(255)"),
     ],
     "lists": [
         ("description", "TEXT NOT NULL DEFAULT ''"),
+    ],
+    "gallery_images": [
+        ("taken_at", "DATETIME"),
     ],
     "persons": [
         ("subtitle", "VARCHAR(120) NOT NULL DEFAULT ''"),

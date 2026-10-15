@@ -38,9 +38,9 @@ PREFS: tuple[Pref, ...] = (
     Pref("archive_view", "Ansicht", "Karten: Zitate mit allen Angaben. Raster: gleich große Kacheln, nur Name, Text und Datum. Liste: eine Zeile pro Posting. "
          "Zeitachse: nach Monaten, in voller Länge.", "cards",
          (("cards", "Karten"), ("raster", "Raster"), ("list", "Liste"), ("timeline", "Zeitachse")), "archiv"),
-    Pref("sort", "Sortierung", "Standard: nach dem Datum des Postings.", "posted",
-         (("posted", "Posting: neueste"), ("posted_old", "Posting: älteste"),
-          ("new", "Archiviert: neueste"), ("old", "Archiviert: älteste")), "archiv"),
+    Pref("sort", "Sortierung", "Standard: zuletzt archivierte Postings zuerst.", "new",
+         (("new", "Zuletzt archiviert"), ("old", "Zuerst archiviert"),
+          ("posted", "Neueste Postings"), ("posted_old", "Älteste Postings")), "archiv"),
     Pref("persons_view", "Personen", "Wie die Personenübersicht aussieht.", "tiles",
          (("tiles", "Kacheln"), ("list", "Liste")), "archiv"),
     Pref("per_page", "Postings pro Seite", "Weitere lädt der Knopf „Mehr laden“.", "24",

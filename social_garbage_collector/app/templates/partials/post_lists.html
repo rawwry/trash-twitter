@@ -3,7 +3,5 @@
 <div id="post-lists" class="list-memberships" {% if oob_chips %}hx-swap-oob="true"{% endif %}>
   {% for pl in post.lists %}
   <a class="chip" href="{{ url('/lists/' ~ pl.id) }}">{{ icon('lists', 13) }} {{ pl.title }}</a>
-  {% else %}
-  <span class="muted small">In keiner Liste.</span>
   {% endfor %}
 </div>
