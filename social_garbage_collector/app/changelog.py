@@ -2,6 +2,16 @@
 
 CHANGES = [
     {
+        "version": "0.13.0",
+        "date": "15.10.2026",
+        "title": "Videos in der Galerie",
+        "items": [
+            "Die Galerie nimmt jetzt auch Videos (MP4, MOV, WebM) – im Original, mit Vorschaubild und Länge im Raster",
+            "Abspielen in der Vollansicht mit Spulen; Blättern und Schließen halten das Video an",
+            "Fortschrittsbalken beim Hochladen; danach stehen die neuen Dateien vorn",
+        ],
+    },
+    {
         "version": "0.12.0",
         "date": "15.10.2026",
         "title": "Screenshots verstehen, aufgeräumte Oberfläche",

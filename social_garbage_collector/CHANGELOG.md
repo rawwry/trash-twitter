@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.13.0 – Videos in der Galerie (15.10.2026)
+
+- **Videos hochladen:** MP4/M4V, MOV und WebM, erkannt am Dateikopf (nicht an der Endung). Gespeichert wird das Original, gestreamt ohne die Datei im Speicher zu halten; Grenze je Video = Add-on-Option `media_max_mb` (Standard 150 MB). Doppelte erkennt die App über SHA-256.
+- **Vorschaubild:** Der Browser zeichnet beim Hochladen ein Standbild (bei ca. 1 s) und misst die Länge (app.js, `posters` + `video_info`). Kann er das Format nicht abspielen, versucht es der Server mit ffmpeg (falls vorhanden – im Add-on-Abbild nicht enthalten), sonst neutrale 16:9-Fläche.
+- **Anzeige:** Play-Symbol mit Länge im Raster, Player in der Vollansicht (Range-Anfragen → spulen), Herunterladen liefert das Original. Blättern und Schließen halten das Video an.
+- Upload mit Fortschrittsbalken; danach Sortierung „Zuletzt hinzugefügt“. Knopf heißt „Bilder & Videos hinzufügen“.
+- Datenbank: `gallery_images.kind`, `poster_path`, `mime`, `bytes`, `duration`.
+
 ## 0.12.0 – Screenshots verstehen, aufgeräumte Oberfläche (15.10.2026)
 
 - **Screenshots ohne Link** (`services/screenshot.py`, `ocr.ocr_layout`): Tesseract liefert Zeilen mit Positionen. Daraus liest die App

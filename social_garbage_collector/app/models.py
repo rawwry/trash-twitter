@@ -12,6 +12,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     String,
@@ -440,6 +441,13 @@ class GalleryImage(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
     # 0.12: Aufnahmedatum aus den Kameradaten (vor dem Entfernen gelesen), sonst leer
     taken_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # 0.13: Videos. path = Videodatei (Original), poster_path = Standbild (WebP),
+    # thumb_path = kleines Standbild fuer das Raster; width/height = Standbild.
+    kind: Mapped[str] = mapped_column(String(8), default="image")   # image | video
+    poster_path: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    mime: Mapped[str] = mapped_column(String(64), default="")
+    bytes: Mapped[int] = mapped_column(Integer, default=0)
+    duration: Mapped[float | None] = mapped_column(Float, nullable=True)
     uploaded_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     uploaded_by: Mapped[User | None] = relationship()
@@ -449,6 +457,19 @@ class GalleryImage(Base):
     @property
     def ratio(self) -> float:
         return round(self.width / self.height, 4) if self.height else 1.0
+
+    @property
+    def is_video(self) -> bool:
+        return self.kind == "video"
+
+    @property
+    def duration_label(self) -> str:
+        if not self.duration:
+            return ""
+        total = int(round(self.duration))
+        h, rest = divmod(total, 3600)
+        m, sec = divmod(rest, 60)
+        return f"{h}:{m:02d}:{sec:02d}" if h else f"{m}:{sec:02d}"
 
 
 class PostMedia(Base):

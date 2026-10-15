@@ -1599,3 +1599,19 @@ dialog.sheet { border-radius: 20px; }
 .upload-hint { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 10px 12px; border-radius: var(--r);
   background: var(--accent-soft); color: var(--text-2); font-size: var(--fs-sm); line-height: 1.45; }
 .upload-hint svg { flex: none; margin-top: 1px; color: var(--accent); }
+
+/* --- Galerie: Videos (0.13) ----------------------------------------------------- */
+.gal-play { position: absolute; left: 8px; bottom: 8px; z-index: 1; display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 8px 4px 5px; border-radius: 999px; background: rgba(0, 0, 0, .58); color: #fff;
+  font: 650 11.5px/1 var(--font); font-variant-numeric: tabular-nums; pointer-events: none;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.gal-play svg { width: 16px; height: 16px; }
+.gal-play:not(:has(span)) { padding: 5px; }
+.lb-stage [hidden] { display: none !important; }
+.lb-stage video { position: absolute; inset: 0; margin: auto; max-width: calc(100% - 2 * var(--pad)); max-height: calc(100% - 8px);
+  width: auto; height: auto; background: #000; border-radius: 4px; }
+.drop-thumb video { height: 100%; width: auto; max-width: 220px; object-fit: cover; display: block; }
+.drop-thumb.is-video::after { content: "▶"; position: absolute; left: 6px; bottom: 6px; padding: 2px 6px; border-radius: 999px;
+  background: rgba(0, 0, 0, .6); color: #fff; font-size: 10px; }
+.upload-progress { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.upload-progress span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s linear; }

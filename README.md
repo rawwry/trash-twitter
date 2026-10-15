@@ -41,7 +41,7 @@ Wortlaut, Verfasser, Datum und ein Beleg-Screenshot werden dauerhaft gesichert, 
 | Medien | Bilder, GIFs und Videos aus Postings werden mitgesichert und erscheinen als Vorschau auch in der Archivübersicht (X: MP4/Originalbild, Bluesky: Originaldatei vom Server des Accounts). Grenze je Datei über `media_max_mb`, abschaltbar mit `save_media`. |
 | Schnell löschen | Mülleimer beim Drüberfahren und „Löschen“ in der Mehrfachauswahl, immer mit Rückfrage. |
 | Massenimport | Reiter „Viele Links“: bis zu 500 Links von X und Bluesky auf einmal, auch mitten in Text. Doppelte, schon archivierte und schon als Thread-Teil erfasste Beiträge werden übersprungen. Fortschrittsseite mit Zusammenfassung, frühere Importe unter `/import`. |
-| Galerie | Eigene Bilder hochladen (auch ⌘V, bis 40 auf einmal) und selbst angelegten Kategorien zuordnen. Raster im Blocksatz ohne weitere Infos, Filter nach Kategorien (mehrere kombinierbar), Vollbild mit Blättern, Wischen und Infoleiste auf Wunsch. Bilder werden verkleinert, ohne Standortdaten gespeichert, Duplikate erkannt. |
+| Galerie | Eigene Bilder hochladen (auch ⌘V, bis 40 auf einmal) und selbst angelegten Kategorien zuordnen. Raster im Blocksatz ohne weitere Infos, Filter nach Kategorien (mehrere kombinierbar), Vollbild mit Blättern, Wischen und Infoleiste auf Wunsch. Bilder werden verkleinert, ohne Standortdaten gespeichert, Duplikate erkannt. Videos (MP4, MOV, WebM) bleiben im Original, mit Vorschaubild und Länge; abspielen in der Vollansicht. |
 | Mehrfachauswahl | Postingn markieren und gesammelt in eine Liste legen. |
 | Listen | Gemeinsame Sammlungen zu einem Thema, mit Beschreibung, für alle bearbeitbar. Ablegen über ein Auswahlfenster: antippen, suchen, neue Liste direkt anlegen – einzeln oder per Mehrfachauswahl. |
 | Suchgenerator | Baut Suchbefehle für X und Bluesky, um Postingn auf den Plattformen selbst zu finden. |
@@ -157,7 +157,7 @@ Alles Dauerhafte liegt in **einem** Ordner:
 ├── authors/                ← Profilbilder der Verfasser (Name = Prüfsumme)
 ├── avatars/                ← Profilbilder der Mitglieder
 ├── backups/                ← tägliche DB-Sicherungen (sqlite backup, WAL-sicher)
-├── gallery/                ← Galerie-Bilder (WebP, je Bild Ansicht + Vorschau)
+├── gallery/                ← Galerie: Bilder (WebP, Ansicht + Vorschau), Videos im Original + Standbild
 ├── media/                  ← Bilder, GIFs, Videos aus den Postings
 ```
 

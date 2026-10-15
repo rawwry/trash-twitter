@@ -48,7 +48,7 @@
     <div class="header-actions">
       {# Ein Hinzufuegen-Knopf fuer die ganze App - er richtet sich nach dem Bereich. #}
       {% if nav == 'gallery' %}
-      <button class="btn sm btn-add" type="button" data-open="gallery-upload" title="Bilder zur Galerie hinzufügen (n)" aria-label="Bilder hinzufügen">{{ icon('plus', 18) }}<span class="btn-add-label"> Bilder hinzufügen</span></button>
+      <button class="btn sm btn-add" type="button" data-open="gallery-upload" title="Bilder und Videos zur Galerie hinzufügen (n)" aria-label="Bilder & Videos hinzufügen">{{ icon('plus', 18) }}<span class="btn-add-label"> Bilder &amp; Videos hinzufügen</span></button>
       {% else %}
       <button class="btn sm btn-add" type="button" data-open="add-dialog" title="Posting zum Archiv hinzufügen (n)" aria-label="Posting hinzufügen">{{ icon('plus', 18) }}<span class="btn-add-label"> Posting hinzufügen</span></button>
       {% endif %}
@@ -92,7 +92,7 @@
     {{ icon('archive', 25) }}<span>Archiv</span>
   </a>
   <a href="{{ url('/personen') }}" {% if nav == 'persons' %}aria-current="page"{% endif %}>{{ icon('people', 25) }}<span>Personen</span></a>
-  <button type="button" class="tab-add" data-open="{{ 'gallery-upload' if nav == 'gallery' else 'add-dialog' }}" aria-label="{{ 'Bilder hinzufügen' if nav == 'gallery' else 'Posting hinzufügen' }}"><span class="plus">{{ icon('plus', 26) }}</span></button>
+  <button type="button" class="tab-add" data-open="{{ 'gallery-upload' if nav == 'gallery' else 'add-dialog' }}" aria-label="{{ 'Bilder & Videos hinzufügen' if nav == 'gallery' else 'Posting hinzufügen' }}"><span class="plus">{{ icon('plus', 26) }}</span></button>
   <a href="{{ url('/lists') }}" {% if nav == 'lists' %}aria-current="page"{% endif %}>{{ icon('lists', 25) }}<span>Listen</span></a>
   <a href="{{ url('/galerie') }}" {% if nav == 'gallery' %}aria-current="page"{% endif %}>{{ icon('image', 25) }}<span>Galerie</span></a>
 </nav>
@@ -128,7 +128,7 @@
     <div class="sheet-head"><h2 id="keys-title">Tastenkürzel</h2>
       <button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close') }}</button></div>
     <dl class="kbd-list">
-      <dt><kbd>n</kbd></dt><dd>Posting hinzufügen (in der Galerie: Bilder hinzufügen)</dd>
+      <dt><kbd>n</kbd></dt><dd>Posting hinzufügen (in der Galerie: Bilder &amp; Videos hinzufügen)</dd>
       <dt><kbd>/</kbd></dt><dd>Im Archiv suchen</dd>
       <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Neuere / älteres Posting (auf der Detailseite)</dd>
       <dt><kbd>g</kbd> <kbd>a</kbd></dt><dd>Zum Archiv</dd>

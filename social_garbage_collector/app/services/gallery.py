@@ -1,9 +1,14 @@
-"""Galerie: Bilder hochladen, verkleinern, Kategorien verwalten.
+"""Galerie: Bilder und Videos hochladen, Kategorien verwalten.
 
 Jedes Bild wird neu kodiert (EXIF-Drehung angewendet, Metadaten wie GPS weg):
   - Ansicht:   lange Seite hoechstens 2400 px, WebP q86
   - Vorschau:  hoechstens 720 px hoch, WebP q78 (fuer das Raster)
 Gleiche Bilder (SHA-256 der Originaldatei) werden nicht doppelt gespeichert.
+
+Videos (0.13) bleiben im Original (MP4, MOV, WebM) - umrechnen waere auf dem
+Pi zu langsam. Das Standbild fuer Raster und Player schickt der Browser beim
+Hochladen mit (app.js zeichnet ein Bild aus dem Video). Fehlt es, versucht es
+der Server mit ffmpeg (falls installiert), sonst gibt es eine neutrale Flaeche.
 """
 
 from __future__ import annotations
@@ -11,8 +16,11 @@ from __future__ import annotations
 import hashlib
 import io
 import logging
+import os
 import re
 import secrets
+import shutil
+import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -32,6 +40,25 @@ THUMB_HEIGHT = 720
 ALLOWED = {"JPEG", "PNG", "WEBP", "GIF", "HEIF", "MPO", "BMP", "TIFF"}
 Image.MAX_IMAGE_PIXELS = 80_000_000
 MAX_CATEGORY = 60
+
+
+# Videos: Endung nach Dateikopf (nicht nach dem, was der Browser behauptet)
+VIDEO_MIME = {".mp4": "video/mp4", ".m4v": "video/mp4", ".mov": "video/quicktime", ".webm": "video/webm"}
+VIDEO_HINTS = (".mp4", ".m4v", ".mov", ".webm", ".qt")
+CHUNK = 1024 * 1024
+
+
+def is_video_upload(filename: str, content_type: str) -> bool:
+    return (content_type or "").startswith("video/") or (filename or "").lower().endswith(VIDEO_HINTS)
+
+
+def sniff_video(head: bytes) -> str | None:
+    """Endung aus den ersten Bytes: ISO-Container (MP4/MOV) oder Matroska (WebM)."""
+    if len(head) >= 12 and head[4:8] == b"ftyp":
+        return ".mov" if head[8:12] == b"qt  " else ".mp4"
+    if head[:4] == b"\x1a\x45\xdf\xa3":
+        return ".webm"
+    return None
 
 
 class GalleryError(ValueError):
@@ -144,8 +171,97 @@ def add_images(db: Session, settings: Settings, user: User, files: list[tuple[st
     return result
 
 
+def _placeholder_poster() -> bytes:
+    """Neutrale 16:9-Flaeche, wenn es kein Standbild gibt (Abspielen geht trotzdem)."""
+    img = Image.new("RGB", (1280, 720), (31, 34, 41))
+    out = io.BytesIO()
+    img.save(out, "PNG")
+    return out.getvalue()
+
+
+def _ffmpeg_poster(video: "os.PathLike[str]", duration: float | None) -> bytes | None:
+    exe = shutil.which("ffmpeg")
+    if not exe:
+        return None
+    at = f"{min(1.0, (duration or 2) / 3):.2f}"
+    try:
+        run = subprocess.run([exe, "-v", "error", "-ss", at, "-i", os.fspath(video), "-frames:v", "1",
+                              "-f", "image2pipe", "-vcodec", "png", "-"], capture_output=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return run.stdout if run.returncode == 0 and run.stdout else None
+
+
+async def add_video(db: Session, settings: Settings, user: User, upload, poster: bytes | None,
+                    duration: float | None, categories: list[GalleryCategory], result: UploadResult) -> None:
+    """Speichert ein Video im Original (gestreamt, ohne alles in den Speicher zu laden)."""
+    label = (upload.filename or "Video")[:80]
+    limit = max(1, settings.media_max_mb) * 1024 * 1024
+    year = datetime.now().year
+    folder = settings.gallery_dir / str(year)
+    folder.mkdir(parents=True, exist_ok=True)
+    stem = secrets.token_hex(8)
+    tmp = folder / f"{stem}.part"
+    digest, size, head = hashlib.sha256(), 0, b""
+    try:
+        with open(tmp, "wb") as out:
+            while chunk := await upload.read(CHUNK):
+                if not head:
+                    head = chunk[:16]
+                size += len(chunk)
+                if size > limit:
+                    result.failed.append(f"{label} (größer als {settings.media_max_mb} MB)")
+                    return
+                digest.update(chunk)
+                out.write(chunk)
+        suffix = sniff_video(head)
+        if suffix is None:
+            result.failed.append(label)
+            return
+        sha = digest.hexdigest()
+        if db.scalar(select(GalleryImage.id).where(GalleryImage.sha256 == sha)):
+            result.duplicates += 1
+            return
+        target = folder / f"{stem}{suffix}"
+        os.replace(tmp, target)
+        if duration is not None and not (0 < duration < 86_400):
+            duration = None
+        frame = None
+        for candidate in (poster, None):
+            data = candidate if candidate is not None else await _to_thread(_ffmpeg_poster, target, duration)
+            if not data:
+                continue
+            try:
+                frame = _process(data)
+                break
+            except (GalleryError, UnidentifiedImageError, OSError, Image.DecompressionBombError):
+                continue
+        full, thumb, w, h, color, _ = frame or _process(_placeholder_poster())
+        (folder / f"{stem}.webp").write_bytes(full)
+        (folder / f"{stem}.thumb.webp").write_bytes(thumb)
+        image = GalleryImage(
+            kind="video", path=f"gallery/{year}/{stem}{suffix}", poster_path=f"gallery/{year}/{stem}.webp",
+            thumb_path=f"gallery/{year}/{stem}.thumb.webp", width=w, height=h, color=color, sha256=sha,
+            original_name=label, mime=VIDEO_MIME[suffix], bytes=size, duration=duration,
+            uploaded_by_id=user.id, categories=list(categories),
+        )
+        db.add(image)
+        db.flush()
+        result.added.append(image)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+async def _to_thread(fn, *args):
+    import asyncio
+
+    return await asyncio.to_thread(fn, *args)
+
+
 def delete_image(db: Session, settings: Settings, image: GalleryImage) -> None:
-    for rel in (image.path, image.thumb_path):
+    for rel in (image.path, image.thumb_path, image.poster_path):
+        if not rel:
+            continue
         try:
             safe_path(settings.base_path, rel).unlink(missing_ok=True)
         except (UnsafePathError, OSError):

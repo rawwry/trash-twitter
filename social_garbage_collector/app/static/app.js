@@ -439,10 +439,82 @@
   });
 
   // --- Screenshot-Upload: Auswahl, Ziehen & Ablegen, Einfuegen (Cmd/Strg+V) -----------------------
+  const isVideoFile = (f) => (f.type || "").startsWith("video/") || /\.(mp4|m4v|mov|webm)$/i.test(f.name || "");
+
+  // --- Galerie-Upload (0.13): Standbild + Laenge der Videos im Browser bestimmen, mit Fortschritt senden
+  function videoFrame(file) {
+    return new Promise((resolve) => {
+      const v = document.createElement("video");
+      const url = URL.createObjectURL(file);
+      let done = false, duration = null;
+      const finish = (blob) => {
+        if (done) return;
+        done = true;
+        URL.revokeObjectURL(url);
+        resolve({ blob, duration });
+      };
+      setTimeout(() => finish(null), 15000);  // Format, das der Browser nicht kann: Server uebernimmt
+      v.muted = true; v.playsInline = true; v.preload = "auto";
+      v.onerror = () => finish(null);
+      v.onloadedmetadata = () => {
+        duration = isFinite(v.duration) ? v.duration : null;
+        v.currentTime = Math.min(1, (duration || 2) / 3);
+      };
+      v.onseeked = () => {
+        const w = v.videoWidth, h = v.videoHeight;
+        if (!w || !h) return finish(null);
+        const k = Math.min(1, 1600 / Math.max(w, h));
+        const c = document.createElement("canvas");
+        c.width = Math.round(w * k); c.height = Math.round(h * k);
+        try { c.getContext("2d").drawImage(v, 0, 0, c.width, c.height); } catch (e) { return finish(null); }
+        c.toBlob((b) => finish(b), "image/jpeg", 0.85);
+      };
+      v.src = url;
+    });
+  }
+  document.addEventListener("submit", async (ev) => {
+    const form = ev.target.closest && ev.target.closest("form[data-gallery-upload]");
+    if (!form || !window.XMLHttpRequest || !window.FormData) return;
+    const input = $("[data-drop-input]", form);
+    const files = Array.from(input.files || []);
+    if (!files.length) return;  // Server meldet "bitte auswaehlen"
+    ev.preventDefault();
+    const btn = $("[data-upload-submit]", form);
+    const label = btn.innerHTML;
+    btn.disabled = true;
+    const data = new FormData(form);
+    const info = {};
+    const videos = files.map((f, i) => [f, i]).filter(([f]) => isVideoFile(f));
+    for (const [f, i] of videos) {
+      btn.textContent = videos.length > 1 ? `Bereite Videos vor … (${i + 1})` : "Bereite Video vor …";
+      const r = await videoFrame(f);
+      if (r.blob) data.append("posters", r.blob, `${i}.jpg`);
+      if (r.duration) info[i] = r.duration;
+    }
+    data.set("video_info", JSON.stringify(info));
+    const bar = $("[data-upload-bar]", form), wrap = $("[data-upload-progress]", form);
+    if (wrap) wrap.hidden = false;
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", form.action);
+    xhr.upload.onprogress = (e) => {
+      if (!e.lengthComputable) return;
+      const pct = Math.round((e.loaded / e.total) * 100);
+      if (bar) bar.style.width = pct + "%";
+      btn.textContent = pct < 100 ? `Lade hoch … ${pct} %` : "Wird gespeichert …";
+    };
+    xhr.onload = () => { location.href = xhr.responseURL || form.action.replace(/\/hochladen$/, ""); };
+    xhr.onerror = () => {
+      btn.disabled = false; btn.innerHTML = label;
+      if (wrap) wrap.hidden = true;
+      toast("Hochladen fehlgeschlagen – Verbindung prüfen und nochmal versuchen.", "error");
+    };
+    xhr.send(data);
+  });
   function setFiles(zone, files) {
     const input = $("[data-drop-input]", zone);
     const max = parseInt(zone.dataset.dropMax || "10", 10);
-    const images = Array.from(files).filter((f) => f.type.startsWith("image/")).slice(0, max);
+    const videosOk = (input.accept || "").includes("video");
+    const images = Array.from(files).filter((f) => f.type.startsWith("image/") || (videosOk && isVideoFile(f))).slice(0, max);
     if (!images.length) return;
     const dt = new DataTransfer();
     // Bereits gewaehlte Bilder behalten, neue anhaengen (z. B. mehrere Screenshots nacheinander einfuegen)
@@ -458,9 +530,17 @@
     Array.from(input.files || []).forEach((f, i) => {
       const fig = document.createElement("span");
       fig.className = "drop-thumb";
-      const img = document.createElement("img");
-      img.alt = "";
-      img.src = URL.createObjectURL(f);
+      let img;
+      if (isVideoFile(f)) {
+        img = document.createElement("video");
+        img.muted = true; img.playsInline = true; img.preload = "metadata";
+        img.src = URL.createObjectURL(f) + "#t=0.5";
+        fig.classList.add("is-video");
+      } else {
+        img = document.createElement("img");
+        img.alt = "";
+        img.src = URL.createObjectURL(f);
+      }
       const btn = document.createElement("button");
       btn.type = "button"; btn.textContent = "×"; btn.dataset.dropRemove = String(i);
       btn.setAttribute("aria-label", `Bild ${i + 1} entfernen`);
@@ -530,11 +610,28 @@
     lbIndex = (i + items.length) % items.length;
     const a = items[lbIndex], box = lb();
     const img = $("[data-lb-img]", box);
-    img.classList.remove("is-loaded");
-    img.onload = () => img.classList.add("is-loaded");
-    img.style.setProperty("--c", a.style.getPropertyValue("--c"));
-    img.src = a.dataset.full;
-    img.alt = a.dataset.title || "";
+    const vid = $("[data-lb-video]", box);
+    const isVideo = a.dataset.kind === "video";
+    img.hidden = isVideo;
+    if (vid) {
+      vid.pause();
+      vid.hidden = !isVideo;
+      if (isVideo) {
+        vid.poster = a.dataset.poster || "";
+        vid.src = a.dataset.full;
+        vid.play().catch(() => { /* Autoplay blockiert: Nutzer tippt auf Play */ });
+      } else {
+        vid.removeAttribute("src");
+        vid.load();
+      }
+    }
+    if (!isVideo) {
+      img.classList.remove("is-loaded");
+      img.onload = () => img.classList.add("is-loaded");
+      img.style.setProperty("--c", a.style.getPropertyValue("--c"));
+      img.src = a.dataset.full;
+      img.alt = a.dataset.title || "";
+    }
     $("[data-lb-count]", box).textContent = `${lbIndex + 1} / ${items.length}`;
     $("[data-lb-download]", box).href = a.dataset.full + "?download=1";
     $("[data-lb-title]", box).textContent = a.dataset.title || "Ohne Titel";
@@ -555,9 +652,18 @@
     edit.setAttribute("hx-get", a.dataset.edit + "?back=" + encodeURIComponent(location.pathname.replace(root(), "") + location.search));
     if (window.htmx) window.htmx.process(edit);
     // Nachbarn vorladen - Blaettern fuehlt sich sofort an
-    [1, -1].forEach((d) => { const n = items[(lbIndex + d + items.length) % items.length]; if (n) new Image().src = n.dataset.full; });
+    [1, -1].forEach((d) => {
+      const n = items[(lbIndex + d + items.length) % items.length];
+      if (n) new Image().src = n.dataset.kind === "video" ? n.dataset.poster : n.dataset.full;
+    });
     if (!box.open) box.showModal();
   }
+  // Vollbild zu (x, Esc, Wischen): Video anhalten. "close" blubbert nicht -> Capture-Phase.
+  document.addEventListener("close", (ev) => {
+    if (ev.target !== lb()) return;
+    const v = $("[data-lb-video]", ev.target);
+    if (v) { v.pause(); v.removeAttribute("src"); v.load(); }
+  }, true);
   document.addEventListener("click", (ev) => {
     const item = ev.target.closest("[data-gal-item]");
     if (item) { ev.preventDefault(); lbShow(galItems().indexOf(item)); return; }
@@ -569,7 +675,7 @@
     else if (ev.target.closest("[data-lb-info]")) {
       const on = box.classList.toggle("show-info");
       $("[data-lb-info]", box).setAttribute("aria-pressed", String(on));
-    } else if (ev.target === box || ev.target.closest("[data-lb-stage]") && ev.target.tagName !== "IMG") box.close();
+    } else if (ev.target === box || ev.target.closest("[data-lb-stage]") && !["IMG", "VIDEO"].includes(ev.target.tagName)) box.close();
   });
   document.addEventListener("keydown", (ev) => {
     const box = lb();

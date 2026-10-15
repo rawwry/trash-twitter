@@ -57,14 +57,16 @@
   {% if images %}
   <div class="gal" data-gallery>
     {% for img in images %}
-    <a class="gal-item" href="{{ url('/galerie/datei/' ~ img.path) }}" style="--r: {{ img.ratio }}; --c: {{ img.color }}"
+    <a class="gal-item {{ 'is-video' if img.is_video }}" href="{{ url('/galerie/datei/' ~ img.path) }}" style="--r: {{ img.ratio }}; --c: {{ img.color }}"
        data-gal-item data-full="{{ url('/galerie/datei/' ~ img.path) }}" data-title="{{ img.title }}" data-note="{{ img.note }}"
+       {% if img.is_video %}data-kind="video" data-poster="{{ url('/galerie/datei/' ~ img.poster_path) }}"{% endif %}
        data-cats="{{ img.categories | map(attribute='name') | join('|') }}"
        data-tones="{{ img.categories | map(attribute='tone') | join('|') }}"
-       data-meta="{{ img.created_at|localtime('%d.%m.%Y') }}{% if img.uploaded_by %} · {{ img.uploaded_by.name }}{% endif %}"
+       data-meta="{{ img.created_at|localtime('%d.%m.%Y') }}{% if img.uploaded_by %} · {{ img.uploaded_by.name }}{% endif %}{% if img.is_video and img.duration_label %} · {{ img.duration_label }}{% endif %}"
        data-edit="{{ url('/galerie/bild/' ~ img.id ~ '/bearbeiten') }}"
-       aria-label="{{ img.title or 'Bild öffnen' }}">
+       aria-label="{{ img.title or ('Video abspielen' if img.is_video else 'Bild öffnen') }}">
       <img src="{{ url('/galerie/datei/' ~ img.thumb_path) }}" alt="{{ img.title }}" width="{{ img.width }}" height="{{ img.height }}" loading="lazy" decoding="async">
+      {% if img.is_video %}<span class="gal-play" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>{% if img.duration_label %}<span>{{ img.duration_label }}</span>{% endif %}</span>{% endif %}
     </a>
     {% endfor %}
   </div>
@@ -73,8 +75,8 @@
   {% else %}
   <div class="empty-state gallery-empty">
     <h2>Die Galerie ist noch leer</h2>
-    <p>Lade Bilder hoch und ordne sie Kategorien zu, die du selbst festlegst. Ziehen, auswählen oder einfach mit ⌘V einfügen.</p>
-    <button class="btn" type="button" data-open="gallery-upload">{{ icon('plus', 18) }} Erste Bilder hinzufügen</button>
+    <p>Lade Bilder und Videos hoch und ordne sie Kategorien zu, die du selbst festlegst. Ziehen, auswählen oder Bilder einfach mit ⌘V einfügen.</p>
+    <button class="btn" type="button" data-open="gallery-upload">{{ icon('plus', 18) }} Erste Bilder &amp; Videos hinzufügen</button>
   </div>
   {% endif %}
 </div>

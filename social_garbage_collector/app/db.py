@@ -126,6 +126,11 @@ _ADDED_COLUMNS = {
     ],
     "gallery_images": [
         ("taken_at", "DATETIME"),
+        ("kind", "VARCHAR(8) NOT NULL DEFAULT 'image'"),
+        ("poster_path", "VARCHAR(255)"),
+        ("mime", "VARCHAR(64) NOT NULL DEFAULT ''"),
+        ("bytes", "INTEGER NOT NULL DEFAULT 0"),
+        ("duration", "FLOAT"),
     ],
     "persons": [
         ("subtitle", "VARCHAR(120) NOT NULL DEFAULT ''"),
