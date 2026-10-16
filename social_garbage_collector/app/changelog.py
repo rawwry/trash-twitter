@@ -2,6 +2,15 @@
 
 CHANGES = [
     {
+        "version": "0.13.1",
+        "date": "16.10.2026",
+        "title": "Belege ohne Bedienleiste",
+        "items": [
+            "X-Belege enden jetzt mit der Zeitzeile: Herz, „Antworten“, „Link zum Post kopieren“ und „Antworten lesen“ fallen weg – auch in zusammengesetzten Threads",
+            "Vorhandene Belege: „Neu erfassen“ am Posting oder Einstellungen → System → alle neu aufnehmen",
+        ],
+    },
+    {
         "version": "0.13.0",
         "date": "15.10.2026",
         "title": "Videos in der Galerie",

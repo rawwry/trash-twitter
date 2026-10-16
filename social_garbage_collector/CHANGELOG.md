@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.1 – Belege ohne Bedienleiste (16.10.2026)
+
+- X-Screenshots (Embed und x.com direkt): Vor der Aufnahme entfernt `TRIM_JS` alles, was im Beitrag nach der `<time>` kommt – Aktionsleiste (Herz, Antworten, Link kopieren), „n Antworten lesen“, „Auf X weiterlesen“, Info-Symbol. Gearbeitet wird von der Zeit aus nach oben bis zum `<article>`, nicht über X’ Klassennamen. Unter der Zeitzeile bleiben 10 px Luft. Gilt für jeden Thread-Teil, der Sammel-Beleg wirkt dadurch ruhiger.
+- Alte Belege ändern sich erst bei „Neu erfassen“ bzw. Einstellungen → System → „Alle Screenshots neu aufnehmen“.
+
 ## 0.13.0 – Videos in der Galerie (15.10.2026)
 
 - **Videos hochladen:** MP4/M4V, MOV und WebM, erkannt am Dateikopf (nicht an der Endung). Gespeichert wird das Original, gestreamt ohne die Datei im Speicher zu halten; Grenze je Video = Add-on-Option `media_max_mb` (Standard 150 MB). Doppelte erkennt die App über SHA-256.

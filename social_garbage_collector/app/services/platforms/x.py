@@ -70,6 +70,25 @@ EXPAND_JS = """full => {
 }"""
 
 
+# Beleg ohne Bedienelemente (Timo, 0.13.1): Alles, was im Beitrag NACH der
+# Zeitzeile kommt - Herz/Antworten/Link kopieren, "n Antworten lesen", "Auf X
+# weiterlesen" - fliegt vor dem Screenshot raus. Von der <time> aus wird auf
+# jeder Ebene bis zum <article> alles Nachfolgende entfernt; so haengt es nicht
+# an X' wechselnden Klassennamen. Rueckgabe: Anzahl entfernter Elemente.
+TRIM_JS = """sel => {
+  const article = document.querySelector(sel);
+  const time = article && article.querySelector('time');
+  if (!time) return 0;
+  let removed = 0, row = time;
+  for (let el = time; el && el !== article; el = el.parentElement) {
+    while (el.nextElementSibling) { el.nextElementSibling.remove(); removed++; }
+    row = el;
+  }
+  if (removed) row.style.paddingBottom = '10px';  // etwas Luft unter der Zeitzeile
+  return removed;
+}"""
+
+
 class XService:
     name = PLATFORM_X
     label = "X"
@@ -198,6 +217,7 @@ class XService:
             ).first
             await article.wait_for(state="visible", timeout=DIRECT_TIMEOUT_MS)
             await page.wait_for_timeout(800)  # Bilder nachladen lassen
+            await page.evaluate(TRIM_JS, f'article[data-testid="tweet"]:has(a[href*="/status/{parsed.post_id}"])')
             await fill_page_background(article)
             await article.screenshot(path=str(target))
             text_img = await _element_png(article.locator('[data-testid="tweetText"]').first)
@@ -232,7 +252,8 @@ class XService:
             reconstructed = False
             if parsed.full_text:
                 reconstructed = bool(await page.evaluate(EXPAND_JS, parsed.full_text))
-                await page.wait_for_timeout(150)
+            await page.evaluate(TRIM_JS, "article")
+            await page.wait_for_timeout(150)
             await fill_page_background(article)
             await article.screenshot(path=str(target))
             text_img = await _element_png(page.locator('[data-testid="tweetText"]').first)
