@@ -58,7 +58,7 @@ def test_groups_filter_and_cleanup(user_client, harness):
     assert r.status_code == 303
     page = user_client.get("/?tags=umwelt").text
     assert page.count('data-post="') == 2  # Oberbegriff findet Unter-Tags
-    assert 'class="tag-pill is-group"' in page and 'id="tag-browser"' in page
+    assert 'class="tag-pill is-group"' in page and 'id="tag-panel"' in page
     # Oberbegriff ohne eigene Postings bleibt beim Aufraeumen bestehen
     user_client.post("/posts/3/note", data={"note": "", "tags": "", "csrf_token": csrf})
     with harness.db() as db:
@@ -115,7 +115,7 @@ def test_research_create_link_and_show(user_client, harness):
     _add(user_client, "https://x.com/olaf/status/2")
     person_id = _person_of(harness, 1)
     form = user_client.get("/recherche/neu?post=1").text
-    assert f'value="{person_id}" checked' in form and 'value="1"' in form
+    assert f'name="person_ids" value="{person_id}"' in form and 'name="post_ids" value="1"' in form
     r = user_client.post("/recherche", data={"title": "Hat es selbst zugegeben", "kind": "widerspruch",
                                              "body": "Erst so, dann so: https://example.org/beleg",
                                              "sources": "https://example.org/beleg\nZeitung, 3.4.2026",
@@ -183,7 +183,8 @@ def test_release_notice_once_per_minor(user_client, harness):
     r = user_client.post("/neuigkeiten/gesehen", data={"csrf_token": user_client.csrf}, headers={"X-Requested-With": "fetch"})
     assert r.status_code == 204
     assert "data-release-dialog" not in user_client.get("/").text
-    assert harness.get_user("anna").release_seen == "0.14"
+    from app import VERSION
+    assert harness.get_user("anna").release_seen == ".".join(VERSION.split(".")[:2])
     # Patch-Versionen zeigen nichts Neues, alte Versionen ohne highlights auch nicht
     assert release_notice("0.14.3", "0.14") is None
     assert release_notice("0.13.0", "") is None

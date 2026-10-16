@@ -162,6 +162,16 @@
     const panel = document.getElementById(t.dataset.toggle);
     if (!panel) return;
     panel.hidden = !panel.hidden;
+    // Gruppe (z. B. Tags/Filter im Idiotarium): immer nur ein Fenster offen
+    if (!panel.hidden && t.dataset.toggleGroup) {
+      $$(`[data-toggle-group="${t.dataset.toggleGroup}"]`).forEach((other) => {
+        if (other.dataset.toggle === t.dataset.toggle) return;
+        const p = document.getElementById(other.dataset.toggle);
+        if (p) p.hidden = true;
+        other.setAttribute("aria-expanded", "false");
+      });
+    }
+    if (!panel.hidden) $("[data-tb-search]", panel)?.focus({ preventScroll: true });
     document.querySelectorAll(`[data-toggle="${t.dataset.toggle}"][aria-expanded]`)
       .forEach((b) => b.setAttribute("aria-expanded", String(!panel.hidden)));
   });
@@ -833,6 +843,142 @@
     }, 120);
   });
 
+  // --- Idiotarium: "#…" im Suchfeld schlaegt Tags vor (0.15) ------------------------------------
+  let pickTimer = null;
+  function hashWord(input) {
+    const before = input.value.slice(0, input.selectionStart ?? input.value.length);
+    const m = before.match(/(?:^|\s)#([^\s#]*)$/);
+    return m ? { word: m[1], start: before.length - m[1].length - 1 } : null;
+  }
+  function pickTag(form, name) {
+    const field = $("[data-tag-filter]", form);
+    const tags = new Set((field.value || "").split(",").map((t) => t.trim()).filter(Boolean));
+    tags.add(name);
+    field.value = [...tags].join(",");
+    $$(`[data-tag-toggle="${CSS.escape(name)}"]`, form).forEach((b) => b.setAttribute("aria-pressed", "true"));
+    field.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  document.addEventListener("input", (ev) => {
+    const input = ev.target.closest && ev.target.closest("[data-tag-pick-url]");
+    if (!input) return;
+    const box = $("[data-search-tags]", input.closest("form"));
+    const hw = hashWord(input);
+    clearTimeout(pickTimer);
+    if (!hw) { box.hidden = true; return; }
+    pickTimer = setTimeout(async () => {
+      const r = await fetch(`${input.dataset.tagPickUrl}&tq=${encodeURIComponent(hw.word)}&tags=${encodeURIComponent($("[data-tag-filter]", input.closest("form")).value)}`,
+                            { credentials: "same-origin" });
+      if (!r.ok) return;
+      box.innerHTML = await r.text();
+      box.hidden = false;
+    }, 120);
+  });
+  document.addEventListener("click", (ev) => {
+    const pick = ev.target.closest("[data-tag-pick]");
+    const boxes = $$("[data-search-tags]");
+    if (!pick) { boxes.forEach((b) => { if (!b.contains(ev.target)) b.hidden = true; }); return; }
+    const form = pick.closest("form");
+    const input = $("[data-tag-pick-url]", form);
+    const hw = hashWord(input);
+    if (hw) input.value = (input.value.slice(0, hw.start) + input.value.slice(hw.start + hw.word.length + 1)).replace(/\s{2,}/g, " ").trim();
+    $("[data-search-tags]", form).hidden = true;
+    pickTag(form, pick.dataset.tagPick);
+    input.focus();
+  });
+  document.addEventListener("keydown", (ev) => {
+    const input = ev.target.closest && ev.target.closest("[data-tag-pick-url]");
+    if (!input) return;
+    const box = $("[data-search-tags]", input.closest("form"));
+    if (ev.key === "Escape") { box.hidden = true; return; }
+    if ((ev.key === "Enter" || ev.key === " ") && hashWord(input) && !box.hidden) {
+      const first = $("[data-tag-pick]", box);
+      if (first) { ev.preventDefault(); first.click(); }
+    }
+  });
+
+  // --- Recherche-Arbeitsplatz (0.15): rechts lesen/bearbeiten ohne Seitenwechsel ------------------
+  const paneWide = () => window.matchMedia("(min-width: 1000px)").matches && document.getElementById("rs-pane");
+  function openInPane(href) {
+    const pane = document.getElementById("rs-pane");
+    if (!pane || !window.htmx) return false;
+    window.htmx.ajax("GET", href, { target: "#rs-pane", swap: "innerHTML" }).then(() => {
+      pane.scrollIntoView({ block: "nearest" });
+      pane.querySelector("textarea, input[type=text]")?.focus({ preventScroll: true });
+    });
+    const id = (href.match(/\/recherche\/(\d+)(?:$|\?|\/bearbeiten)/) || [])[1];
+    $$("[data-rs-id]").forEach((a) => a.classList.toggle("is-active", a.dataset.rsId === id));
+    if (id) {
+      const u = new URL(location.href);
+      u.searchParams.set("id", id);
+      history.replaceState(null, "", u);
+    }
+    return true;
+  }
+  document.addEventListener("click", (ev) => {
+    const a = ev.target.closest("[data-pane-link]");
+    if (a && paneWide() && !ev.metaKey && !ev.ctrlKey && !ev.shiftKey) {
+      if (openInPane(a.getAttribute("href"))) ev.preventDefault();
+      return;
+    }
+    const cancel = ev.target.closest("[data-pane-cancel]");
+    if (cancel && paneWide()) {
+      ev.preventDefault();
+      const active = $("[data-rs-id].is-active") || $("[data-rs-id]");
+      if (active) openInPane(active.getAttribute("href"));
+      else document.getElementById("rs-pane").innerHTML = "";
+    }
+  });
+
+  // Liste links neu geladen: aktiven Eintrag (aus der Adresse) wieder markieren
+  document.addEventListener("htmx:afterSettle", (ev) => {
+    if (!ev.target || ev.target.id !== "rs-index") return;
+    const id = new URL(location.href).searchParams.get("id");
+    if (id) $$("[data-rs-id]").forEach((a) => a.classList.toggle("is-active", a.dataset.rsId === id));
+  });
+
+  // --- Auswahlfelder mit Suche (Recherche: Personen, Postings) -----------------------------------
+  document.addEventListener("click", (ev) => {
+    const add = ev.target.closest("[data-picker-add]");
+    if (add) {
+      const picker = add.closest("[data-picker]");
+      const name = picker.dataset.name;
+      const chips = $("[data-picker-chips]", picker);
+      if (!$(`input[name="${name}"][value="${add.dataset.id}"]`, chips)) {
+        const chip = document.createElement("span");
+        chip.className = "tp-chip";
+        chip.textContent = add.dataset.label;
+        const x = document.createElement("button");
+        x.type = "button"; x.dataset.pickerRemove = ""; x.textContent = "×"; x.setAttribute("aria-label", `${add.dataset.label} entfernen`);
+        const hidden = document.createElement("input");
+        hidden.type = "hidden"; hidden.name = name; hidden.value = add.dataset.id;
+        chip.append(x, hidden);
+        chips.appendChild(chip);
+      }
+      const q = $("[data-picker-q]", picker);
+      q.value = "";
+      $("[data-picker-results]", picker).replaceChildren();
+      q.focus();
+      return;
+    }
+    const rm = ev.target.closest("[data-picker-remove]");
+    if (rm) { rm.closest(".tp-chip").remove(); return; }
+    $$("[data-picker]").forEach((p) => { if (!p.contains(ev.target)) $("[data-picker-results]", p)?.replaceChildren(); });
+  });
+  document.addEventListener("keydown", (ev) => {
+    const q = ev.target.closest && ev.target.closest("[data-picker-q]");
+    if (!q) return;
+    const picker = q.closest("[data-picker]");
+    if (ev.key === "Enter") {
+      ev.preventDefault();  // Enter waehlt den ersten Treffer, schickt aber nie das Formular ab
+      $("[data-picker-add]", picker)?.click();
+    } else if (ev.key === "Backspace" && !q.value) {
+      const chips = $$(".tp-chip", picker);
+      chips[chips.length - 1]?.remove();
+    } else if (ev.key === "Escape") {
+      $("[data-picker-results]", picker).replaceChildren();
+    }
+  });
+
   // --- Auswahlfeld schickt sein Formular sofort ab (z. B. Tag einordnen) -------------------------
   document.addEventListener("change", (ev) => {
     if (ev.target.matches && ev.target.matches("select[data-autosubmit]")) ev.target.form?.requestSubmit();
@@ -962,6 +1108,11 @@
     dlg.addEventListener("close", markSeen);
     setTimeout(() => dlg.showModal(), 350);
   }
+
+  // Kopfzeile bekommt beim Scrollen eine Kante
+  const onScroll = () => document.documentElement.classList.toggle("is-scrolled", window.scrollY > 4);
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
 
   function init(scope) {
     $$("[data-autoclose]", scope).forEach(autoclose);

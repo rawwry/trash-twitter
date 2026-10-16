@@ -5,10 +5,11 @@
 {% block title %}Ideen{% endblock %}
 {% block container_class %}narrow{% endblock %}
 {% block content %}
-<header class="help-hero">
-  <p class="eyebrow">Wunschliste</p>
-  <h1>Ideen für TrashTwitter</h1>
-  <p class="sub">Was fehlt dir? Schreib es auf. Mit „Will ich auch“ zeigst du, was dir wichtig ist – so sieht man, was zuerst kommen sollte.</p>
+<header class="page-header">
+  <div class="ph-text">
+    <h1>Ideen &amp; Wünsche</h1>
+    <p class="sub">Was fehlt dir? Schreib es auf. Mit „Will ich auch“ zeigst du, was dir wichtig ist – so sieht man, was zuerst kommen sollte.</p>
+  </div>
 </header>
 
 <form class="card idea-form" method="post" action="{{ url('/ideen') }}">

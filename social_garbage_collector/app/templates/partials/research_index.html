@@ -1,0 +1,33 @@
+{# Linke Spalte des Recherche-Arbeitsplatzes. Laedt sich nach jedem Speichern neu (research-changed). #}
+{% from "partials/icons.html" import icon %}
+{% macro row(n) %}
+<a class="rs-row {{ 'is-active' if n.id == selected_id }}" href="{{ url('/recherche/' ~ n.id) }}" data-pane-link data-rs-id="{{ n.id }}">
+  <span class="rs-kind kind-{{ n.kind }}">{{ n.kind_label }}</span>
+  <strong class="rs-row-title">{{ n.title }}</strong>
+  <span class="rs-row-meta">{{ n.persons|map(attribute='name')|join(', ') }} · {{ n.updated_at|localtime('%d.%m.%Y') }}{% if n.posts %} · {{ n.posts|length }} {{ 'Posting' if n.posts|length == 1 else 'Postings' }}{% endif %}</span>
+</a>
+{% endmacro %}
+<div class="rs-index" id="rs-index" hx-get="{{ url('/recherche') }}" hx-trigger="research-changed from:body" hx-include="#rs-filter"
+     hx-target="this" hx-swap="outerHTML">
+  <p class="rs-count faint xs">{{ notes|length }} {{ 'Eintrag' if notes|length == 1 else 'Einträge' }}{% if q or art or person_id %} gefunden{% endif %}</p>
+  {% if notes %}
+    {% if ansicht == 'personen' %}
+      {% for p, items in groups %}
+      <div class="rs-group">
+        <a class="rs-group-head" href="{{ url('/personen/' ~ p.id) }}#recherche">
+          {% if p.avatar_path %}<img class="q-avatar" src="{{ file_url(p.avatar_path) }}" alt="" width="28" height="28">
+          {% else %}<span class="q-avatar q-avatar-empty" aria-hidden="true">{{ p.name.lstrip('@')[:1] }}</span>{% endif %}
+          <strong>{{ p.name }}</strong><span class="faint xs">{{ items|length }}</span>
+        </a>
+        {% for n in items %}{{ row(n) }}{% endfor %}
+      </div>
+      {% endfor %}
+    {% else %}
+      {% for n in notes %}{{ row(n) }}{% endfor %}
+    {% endif %}
+  {% elif q or art or person_id %}
+    <p class="muted small rs-empty">Nichts gefunden. <a href="{{ url('/recherche') }}">Alle zeigen</a></p>
+  {% else %}
+    <p class="muted small rs-empty">Noch keine Einträge – leg rechts den ersten an.</p>
+  {% endif %}
+</div>

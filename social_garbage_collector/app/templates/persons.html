@@ -3,24 +3,24 @@
 {% set nav = 'persons' %}
 {% block title %}Personen{% endblock %}
 {% block content %}
-<div class="page-head">
-  <div>
+<header class="page-header">
+  <div class="ph-text">
     <h1>Personen</h1>
     <p class="sub">Wer hat was gesagt – mit allen Accounts auf X (Twitter) und Bluesky.</p>
   </div>
-</div>
-<form class="searchbar" method="get" action="{{ url('/personen') }}" role="search"
+</header>
+<form class="atb person-search" method="get" action="{{ url('/personen') }}" role="search"
       hx-get="{{ url('/personen') }}" hx-target="#person-rows" hx-swap="outerHTML" hx-push-url="true"
       hx-trigger="input changed delay:300ms from:input[type=search]">
-  <div class="search-input">
-    {{ icon('search') }}
+  <label class="atb-search">
+    {{ icon('search', 18) }}
     <input type="search" name="q" value="{{ q }}" placeholder="Name oder @handle" aria-label="Personen durchsuchen">
-  </div>
+  </label>
   <noscript><button class="btn" type="submit">Suchen</button></noscript>
-  <nav class="seg view-switch" aria-label="Darstellung">
+  <nav class="view-icons" aria-label="Darstellung">
     {% for key, ico, label in [('tiles', 'grid', 'Kacheln'), ('list', 'rows', 'Liste')] %}
     <a href="{{ url('/personen') }}?view={{ key }}{% if q %}&q={{ q|urlencode }}{% endif %}" title="{{ label }}" aria-label="{{ label }}"
-       {% if pview == key %}aria-current="true"{% endif %}><span>{{ icon(ico, 18) }}<span class="label">{{ label }}</span></span></a>
+       {% if pview == key %}aria-current="true"{% endif %}>{{ icon(ico, 18) }}</a>
     {% endfor %}
   </nav>
 </form>

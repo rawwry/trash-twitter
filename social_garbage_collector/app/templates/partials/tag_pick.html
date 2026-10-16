@@ -1,0 +1,3 @@
+{# "#…" im Suchfeld: vorhandene Tags zum Antippen (kein Neuanlegen beim Filtern) #}
+{% for s in suggestions[:8] %}<button type="button" class="tp-option {{ 'is-similar' if s.similar }}" data-tag-pick="{{ s.name }}">#{{ s.name }}{% if s.parent %}<small>in #{{ s.parent }}</small>{% endif %}<span>{{ s.count }}</span></button>{% else %}
+<span class="tp-hint">Kein Tag „#{{ query }}“ vorhanden.</span>{% endfor %}

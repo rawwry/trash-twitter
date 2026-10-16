@@ -288,13 +288,26 @@ def _parse_int(value: str | None) -> int | None:
         return None
 
 
+_HASH_TAG = re.compile(r"(?<!\S)#([^\s#]+)")
+
+
+def split_hashtags(q: str) -> tuple[str, list[str]]:
+    """'energie #klima' -> ('energie', ['klima']) - #woerter in der Suche sind Tag-Filter (0.15)."""
+    tags = [normalize_tag(t) for t in _HASH_TAG.findall(q or "")]
+    rest = " ".join(_HASH_TAG.sub(" ", q or "").split())
+    return rest, [t for t in tags if t]
+
+
 def filter_from_params(params, default_sort: str = "new") -> ArchiveFilter:
     platform = params.get("platform", "")
     sort = params.get("sort") or default_sort
+    q, hash_tags = split_hashtags((params.get("q") or "")[:200])
+    tags = parse_tag_input(params.get("tags", ""))
+    tags += [t for t in hash_tags if t not in tags]
     return ArchiveFilter(
-        q=(params.get("q") or "")[:200],
+        q=q,
         platform=platform if platform in PLATFORMS else "",
-        tags=parse_tag_input(params.get("tags", "")),
+        tags=tags[:MAX_TAGS],
         author=(params.get("author") or "").strip().lstrip("@")[:100],
         list_id=_parse_int(params.get("list")),
         user_id=_parse_int(params.get("user")),

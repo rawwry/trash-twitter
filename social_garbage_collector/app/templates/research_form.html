@@ -1,46 +1,9 @@
 {% extends "base.html" %}
 {% from "partials/icons.html" import icon %}
 {% set nav = 'research' %}
-{% block title %}{{ 'Recherche bearbeiten' if note else 'Recherche hinzufügen' }}{% endblock %}
+{% block title %}{{ 'Recherche bearbeiten' if note else 'Neue Recherche' }}{% endblock %}
 {% block container_class %}narrow{% endblock %}
 {% block content %}
-<a class="back-link" href="{{ url('/recherche/' ~ note.id) if note else url('/recherche') }}">{{ icon('chev-left', 18) }} {{ 'Zurück' if note else 'Recherche' }}</a>
-<h1 style="margin-top:12px">{{ 'Recherche bearbeiten' if note else 'Recherche hinzufügen' }}</h1>
-{% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
-{% set chosen = form_person_ids or [] %}
-<form method="post" action="{{ url('/recherche/' ~ note.id) if note else url('/recherche') }}" class="card stack rs-form">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-  <div class="field-row">
-    <span class="label-text">Art</span>
-    <div class="seg" role="radiogroup" aria-label="Art">
-      {% for key, label in kinds.items() %}
-      <label><input type="radio" name="kind" value="{{ key }}" {% if (form_kind or 'hintergrund') == key %}checked{% endif %}><span>{{ label }}</span></label>
-      {% endfor %}
-    </div>
-  </div>
-  <p class="faint xs" style="margin:-6px 0 0"><strong>Widerspruch:</strong> Die Person relativiert oder entlarvt sich selbst. <strong>Fakt:</strong> Belegte Tatsache, die einer Aussage gegenübersteht. <strong>Hintergrund:</strong> Kontext und Zusammenhänge.</p>
-  <label>Titel<input name="title" value="{{ form_title or '' }}" maxlength="200" required placeholder="z. B. Behauptete Teilnahme an der Demo – Video zeigt anderes"></label>
-  <label>Was wir herausgefunden haben
-    <textarea name="body" rows="9" maxlength="20000" placeholder="Sachlich und nachvollziehbar. Links werden klickbar, eine Leerzeile beginnt einen neuen Absatz.">{{ form_body or '' }}</textarea>
-  </label>
-  <label>Quellen <span class="hint">eine pro Zeile – Link oder Beschreibung (z. B. „Bundestag, Drucksache 20/1234“)</span>
-    <textarea name="sources" rows="4" maxlength="5000">{{ form_sources or '' }}</textarea>
-  </label>
-  <fieldset class="rs-person-pick">
-    <legend class="label-text">Personen <span class="hint">mindestens eine</span></legend>
-    {% if persons|length > 10 %}<input type="search" placeholder="Person suchen" aria-label="Personen durchsuchen" data-person-filter autocomplete="off">{% endif %}
-    <div class="rs-person-grid" data-person-grid>
-      {% for p in persons %}
-      <label class="chip-radio" data-person-name="{{ p.name|lower }}"><input type="checkbox" name="person_ids" value="{{ p.id }}" {% if p.id in chosen %}checked{% endif %}><span>{{ p.name }}</span></label>
-      {% endfor %}
-    </div>
-  </fieldset>
-  <label>Dazugehörige Postings <span class="hint">Archiv-Nummern, mit Komma getrennt – z. B. 000219, 000245. Deren Personen werden automatisch zugeordnet.</span>
-    <input name="posts" value="{{ form_posts or '' }}" maxlength="1000" placeholder="000219, 000245" autocomplete="off" inputmode="numeric">
-  </label>
-  <div class="row wrap">
-    <button class="btn" type="submit">{{ icon('check', 18) }} Speichern</button>
-    <a class="btn-ghost" href="{{ url('/recherche/' ~ note.id) if note else url('/recherche') }}">Abbrechen</a>
-  </div>
-</form>
+<a class="back-link" href="{{ url('/recherche/' ~ note.id) if note else url('/recherche') }}">{{ icon('chev-left', 18) }} Recherche</a>
+<div class="card rs-form">{% include "partials/research_editor.html" %}</div>
 {% endblock %}

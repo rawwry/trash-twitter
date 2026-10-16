@@ -4,13 +4,16 @@
 {% block title %}Galerie{% endblock %}
 {% block container_class %}gallery-page{% endblock %}
 {% block content %}
-<div class="gallery-head">
-  <h1>Galerie</h1>
-  <div class="gallery-actions">
+<header class="page-header">
+  <div class="ph-text">
+    <h1>Galerie</h1>
+    <p class="sub">Eigene Bilder und Videos, nach Kategorien geordnet.</p>
+  </div>
+  <div class="ph-actions">
     <button class="btn-ghost sm" type="button" data-open="gallery-cats"
             hx-get="{{ url('/galerie/kategorien') }}" hx-target="#gallery-cats-body">{{ icon('tag', 15) }} Kategorien</button>
   </div>
-</div>
+</header>
 
 {% include "partials/gallery_body.html" %}
 

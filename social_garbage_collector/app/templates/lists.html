@@ -3,13 +3,13 @@
 {% set nav = 'lists' %}
 {% block title %}Listen{% endblock %}
 {% block content %}
-<div class="page-head">
-  <div>
+<header class="page-header">
+  <div class="ph-text">
     <h1>Listen</h1>
     <p class="sub">Gemeinsame Sammlungen von Postings zu einem Thema – alle Mitglieder können sie bearbeiten.</p>
   </div>
-  <button class="btn-soft" type="button" data-open="list-new">{{ icon('plus', 18) }} Liste hinzufügen</button>
-</div>
+  <div class="ph-actions"><button class="btn" type="button" data-open="list-new">{{ icon('plus', 18) }} Liste hinzufügen</button></div>
+</header>
 
 <dialog class="sheet" id="list-new" aria-labelledby="list-new-title">
   <div class="sheet-grip"></div>

@@ -1,0 +1,10 @@
+{# Treffer fuer die Auswahlfelder im Recherche-Formular #}
+{% if kind == 'person' %}
+  {% for p in persons %}<button type="button" class="tp-option" data-picker-add data-id="{{ p.id }}" data-label="{{ p.name }}">
+    {% if p.avatar_path %}<img class="rs-face" src="{{ file_url(p.avatar_path) }}" alt="">{% endif %}{{ p.name }}</button>
+  {% else %}{% if q %}<span class="tp-hint">Keine Person „{{ q }}“. Personen entstehen mit dem ersten archivierten Posting.</span>{% endif %}{% endfor %}
+{% else %}
+  {% for post in posts %}<button type="button" class="tp-option rs-pick-post" data-picker-add data-id="{{ post.id }}" data-label="Nr. {{ archive_no(post) }} · {{ post.author_name }}">
+    <strong>{{ post.author_name }}</strong><small>Nr. {{ archive_no(post) }}</small><em>{{ (post.text or 'Kein Wortlaut')|truncate(90, True, ' …') }}</em></button>
+  {% else %}{% if q %}<span class="tp-hint">Kein Posting gefunden.</span>{% endif %}{% endfor %}
+{% endif %}

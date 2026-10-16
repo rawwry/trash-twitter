@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.15.0 – Recherche-Arbeitsplatz, Tags im Griff, neues Design (16.10.2026)
+
+- **Recherche-Arbeitsplatz** (`/recherche`): links alle Einträge (neueste zuerst oder „Nach Person“ gruppiert, Filter Art/Person, Suche auch in Personennamen), rechts der gewählte Eintrag. Lesen, Bearbeiten und Neu-Anlegen laufen rechts per htmx (`HX-Target: rs-pane`), danach lädt die Liste neu (`HX-Trigger: research-changed`), die Adresse merkt sich den Eintrag (`?id=`). Am Handy (< 1000 px) bleiben es eigene Seiten.
+- **Recherche-Formular vereinfacht:** Text zuerst; Titel optional (sonst erster Satz, `auto_title`). Personen und Postings per Suchfeld mit Treffern (`/recherche/suche/personen`, `/recherche/suche/postings` – Wortlaut, Verfasser oder Archiv-Nr.), Quellen einklappbar. Archiv-Nummern als Text gehen weiterhin (`posts`), neu `post_ids`.
+- **Tags im Idiotarium:** Die Tag-Zeile ist weg. Knopf „Tags“ in der Suchleiste öffnet ein Fenster mit Suche, „Häufig“ und allen Tags nach Oberbegriffen; Tags und Filter öffnen sich abwechselnd. `#tag` im Suchfeld schlägt vorhandene Tags vor (Enter/Leertaste übernimmt), `#wort` in der Adresse wirkt als Tag-Filter (`split_hashtags`). Aktive Tags stehen als Chips mit × über den Ergebnissen; × entfernt den Tag auch aus der Suche.
+- **Redesign:** neues Token-System (Farben, Abstände, Radien, Schatten), einheitlicher Seitenkopf (`.page-header`) auf allen Hauptseiten, Navigation als Pillen mit dunklem Aktiv-Zustand, Kopfzeile mit Kante beim Scrollen, ruhigere Karten (Schatten statt Rand, Status als Punkt-Pillen), einheitliche Knöpfe/Eingabefelder (42 px), Sheets mit 24 px Radius, Anmelden als Karte, Listen-Kopf mit Umbenennen/Beschreibung inline, Hinzufügen-Reiter am Handy (Symbol über Text), Seitenhintergrund mit zwei leichten Farbverläufen. Personen-Suche im selben Stil wie das Idiotarium.
+
 ## 0.14.0 – Recherche, Tags mit Oberbegriffen, Threads (16.10.2026)
 
 - **Recherche** (`/recherche`, `routers/research.py`, Tabellen `research_notes`, `research_persons`, `research_posts`): eigene Fakten und Hintergründe des Teams. Art (Widerspruch, Fakt, Hintergrund), Titel, Text (Links klickbar), Quellen (eine pro Zeile), Personen (mind. eine) und Postings per Archiv-Nummer – deren Personen werden automatisch zugeordnet. Alle lesen und bearbeiten, löschen nur Anlegende oder Admins. Erscheint auf der Personenseite und am Posting („Recherche dazu“), Aktion „Recherche“ in der Aktionsleiste. Beim Zusammenführen von Personen wandern die Einträge mit; Personen mit Recherche werden nicht automatisch aufgeräumt.

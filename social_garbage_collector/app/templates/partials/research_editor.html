@@ -1,0 +1,56 @@
+{# Recherche schreiben/bearbeiten - im Arbeitsplatz (htmx, rechts) und als eigene Seite.
+   Einfach gehalten: erst der Text, der Rest per Suche. #}
+{% from "partials/icons.html" import icon %}
+{% set action = url('/recherche/' ~ note.id) if note else url('/recherche') %}
+{% set pane = request.headers.get('hx-target') == 'rs-pane' %}
+<form class="rs-editor stack" method="post" action="{{ action }}"
+      {% if pane %}hx-post="{{ action }}" hx-target="#rs-pane" hx-swap="innerHTML"{% endif %}>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <div class="rs-editor-head">
+    <h2>{{ 'Recherche bearbeiten' if note else 'Neue Recherche' }}</h2>
+    <div class="seg rs-kinds" role="radiogroup" aria-label="Art">
+      {% for key, label in kinds.items() %}
+      <label><input type="radio" name="kind" value="{{ key }}" {% if (form_kind or 'hintergrund') == key %}checked{% endif %}><span class="kind-dot kind-{{ key }}">{{ label }}</span></label>
+      {% endfor %}
+    </div>
+  </div>
+  {% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
+  <textarea name="body" rows="7" maxlength="20000" class="rs-editor-body" aria-label="Was habt ihr herausgefunden?"
+            placeholder="Was habt ihr herausgefunden? Sachlich und nachvollziehbar – Links werden klickbar. Die erste Zeile wird zum Titel, wenn du keinen angibst.">{{ form_body or '' }}</textarea>
+  <input name="title" value="{{ form_title or '' }}" maxlength="200" placeholder="Titel (optional)" aria-label="Titel (optional)">
+
+  <div class="picker" data-picker data-name="person_ids">
+    <span class="label-text">Personen</span>
+    <div class="tp-box" data-picker-box>
+      <span class="tp-chips" data-picker-chips>
+        {% for p in chosen_persons %}<span class="tp-chip">{{ p.name }}<button type="button" data-picker-remove aria-label="{{ p.name }} entfernen">×</button><input type="hidden" name="person_ids" value="{{ p.id }}"></span>{% endfor %}
+      </span>
+      <input type="text" class="tp-input" name="q" placeholder="Person suchen …" autocomplete="off" aria-label="Person suchen"
+             hx-get="{{ url('/recherche/suche/personen') }}" hx-trigger="input changed delay:150ms" hx-target="next [data-picker-results]" data-picker-q>
+      <div class="tp-results" data-picker-results></div>
+    </div>
+  </div>
+
+  <div class="picker" data-picker data-name="post_ids">
+    <span class="label-text">Postings <span class="hint">optional – deren Personen werden automatisch zugeordnet</span></span>
+    <div class="tp-box" data-picker-box>
+      <span class="tp-chips" data-picker-chips>
+        {% for post in chosen_posts %}<span class="tp-chip">Nr. {{ archive_no(post) }} · {{ post.author_name }}<button type="button" data-picker-remove aria-label="Posting entfernen">×</button><input type="hidden" name="post_ids" value="{{ post.id }}"></span>{% endfor %}
+      </span>
+      <input type="text" class="tp-input" name="q" placeholder="Posting suchen: Wortlaut, Verfasser oder Nr." autocomplete="off" aria-label="Posting suchen"
+             hx-get="{{ url('/recherche/suche/postings') }}" hx-trigger="input changed delay:200ms" hx-target="next [data-picker-results]" data-picker-q>
+      <div class="tp-results" data-picker-results></div>
+    </div>
+  </div>
+
+  <details class="rs-sources-edit" {% if form_sources %}open{% endif %}>
+    <summary>Quellen {% if not form_sources %}<span class="hint">optional</span>{% endif %}</summary>
+    <textarea name="sources" rows="3" maxlength="5000" placeholder="Eine pro Zeile – Link oder Beschreibung, z. B. „Bundestag, Drucksache 20/1234“">{{ form_sources or '' }}</textarea>
+  </details>
+
+  <div class="rs-editor-actions">
+    <button class="btn" type="submit">{{ icon('check', 18) }} Speichern</button>
+    {% if note %}<a class="btn-ghost" href="{{ url('/recherche/' ~ note.id) }}" data-pane-link>Abbrechen</a>
+    {% else %}<a class="btn-ghost" href="{{ url('/recherche') }}" {% if pane %}data-pane-cancel{% endif %}>Abbrechen</a>{% endif %}
+  </div>
+</form>

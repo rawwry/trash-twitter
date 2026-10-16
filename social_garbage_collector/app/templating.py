@@ -231,6 +231,11 @@ def _qs_without(query_string: str, key: str, value: str | None = None) -> str:
             rest = [t for t in v.split(",") if t.strip() and t.strip() != value]
             if rest:
                 pairs.append((k, ",".join(rest)))
+        elif k == "q" and key == "tags" and value is not None:
+            # Tag kam als "#tag" aus der Suche -> dort mit entfernen
+            rest_q = " ".join(w for w in v.split() if w.lower().lstrip("#") != value or not w.startswith("#"))
+            if rest_q:
+                pairs.append((k, rest_q))
         elif k == key or (key == "from" and k == "to"):
             continue
         else:

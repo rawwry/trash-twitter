@@ -5,29 +5,33 @@
 {% block title %}{{ plist.title }}{% endblock %}
 {% block content %}
 <a class="back-link" href="{{ url('/lists') }}">{{ icon('chev-left', 18) }} Listen</a>
-<div class="page-head" style="margin-top:10px">
-  <form method="post" action="{{ url('/lists/' ~ plist.id ~ '/rename') }}" class="row grow" style="min-width:260px">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <input name="title" value="{{ plist.title }}" required maxlength="120" class="title-input" aria-label="Titel der Liste (zum Umbenennen anklicken)">
-    <button class="btn-ghost sm" type="submit">Speichern</button>
-  </form>
-  <div class="actions">
-    <a class="btn-ghost sm" href="{{ url('/') }}?list={{ plist.id }}">{{ icon('search', 16) }} Im Archiv filtern</a>
-    <a class="btn-danger sm" href="{{ url('/lists/' ~ plist.id ~ '/delete') }}">{{ icon('trash', 16) }} Löschen</a>
+<header class="page-header list-header">
+  <div class="ph-text">
+    <p class="eyebrow">{{ icon('lists', 13) }} Liste</p>
+    <div data-edit-view="title"><h1>{{ plist.title }}</h1></div>
+    <form method="post" action="{{ url('/lists/' ~ plist.id ~ '/rename') }}" class="row list-rename" data-edit-form="title" hidden>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input name="title" value="{{ plist.title }}" required maxlength="120" aria-label="Titel der Liste">
+      <button class="btn sm" type="submit">Speichern</button>
+      <button class="btn-ghost sm" type="button" data-edit-cancel="title">Abbrechen</button>
+    </form>
+    <div class="list-desc" data-edit-view="desc">
+      {% if plist.description %}<p class="sub">{{ plist.description }}</p>{% endif %}
+      <button class="link-btn" type="button" data-edit="desc">{{ 'Beschreibung bearbeiten' if plist.description else '+ Beschreibung hinzufügen' }}</button>
+    </div>
+    <form method="post" action="{{ url('/lists/' ~ plist.id ~ '/describe') }}" class="stack list-desc" data-edit-form="desc" hidden>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <textarea name="description" rows="3" maxlength="2000" placeholder="Worum geht es in dieser Liste?">{{ plist.description }}</textarea>
+      <div class="row"><button class="btn sm" type="submit">Speichern</button><button class="btn-ghost sm" type="button" data-edit-cancel="desc">Abbrechen</button></div>
+    </form>
+    <p class="ph-meta">{{ posts|length }} {{ 'Posting' if posts|length == 1 else 'Postings' }}, nach Datum geordnet{% if plist.created_by %} · angelegt von {{ plist.created_by.name }}{% endif %}</p>
   </div>
-</div>
-<div class="list-desc" data-edit-view="desc">
-  {% if plist.description %}<p class="person-note" style="margin:0">{{ plist.description }}</p>{% endif %}
-  <button class="btn-ghost sm" type="button" data-edit="desc">{{ icon('edit', 14) }} {{ 'Beschreibung bearbeiten' if plist.description else 'Beschreibung hinzufügen' }}</button>
-</div>
-<form method="post" action="{{ url('/lists/' ~ plist.id ~ '/describe') }}" class="stack list-desc" data-edit-form="desc" hidden>
-  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-  <textarea name="description" rows="3" maxlength="2000" placeholder="Worum geht es in dieser Liste?">{{ plist.description }}</textarea>
-  <div class="row"><button class="btn sm" type="submit">Speichern</button><button class="btn-ghost sm" type="button" data-edit-cancel="desc">Abbrechen</button></div>
-</form>
-<p class="muted small" style="margin-top:-8px">{{ posts|length }} {{ 'Posting' if posts|length == 1 else 'Postings' }}, nach Datum geordnet
-  {% if plist.created_by %}· angelegt von {{ plist.created_by.name }}{% endif %}
-  · Postings legst du über „Listen wählen“ auf ihrer Detailseite oder per Mehrfachauswahl im Archiv ab.</p>
+  <div class="ph-actions">
+    <button class="btn-ghost sm" type="button" data-edit="title">{{ icon('edit', 15) }} Umbenennen</button>
+    <a class="btn-soft sm" href="{{ url('/') }}?list={{ plist.id }}">{{ icon('search', 15) }} Im Idiotarium</a>
+    <a class="icon-btn danger" href="{{ url('/lists/' ~ plist.id ~ '/delete') }}" title="Liste löschen" aria-label="Liste löschen">{{ icon('trash', 18) }}</a>
+  </div>
+</header>
 
 {% if posts %}
 <div class="posts view-{{ view }}">
@@ -36,7 +40,7 @@
 {% else %}
 <div class="empty-state">
   <h2>Diese Liste ist leer</h2>
-  <p>Öffne ein Posting und lege es unter „Listen“ hier ab.</p>
+  <p>Öffne ein Posting und tippe auf „Listen“ – oder markiere im Idiotarium mehrere (☑) und lege sie gemeinsam ab.</p>
 </div>
 {% endif %}
 {% endblock %}

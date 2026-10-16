@@ -3,12 +3,12 @@
 {% set nav = 'generator' %}
 {% block title %}Suchgenerator{% endblock %}
 {% block content %}
-<div class="page-head">
-  <div>
+<header class="page-header">
+  <div class="ph-text">
     <h1>Suchgenerator</h1>
     <p class="sub">Kriterien eintragen – der fertige Suchbefehl erscheint sofort im Kasten „Suchbefehl“. Gemeinsame Felder bleiben beim Umschalten erhalten.</p>
   </div>
-</div>
+</header>
 
 {% set groups = [] %}
 {% for f in fields %}{% if f.group not in groups %}{% set _ = groups.append(f.group) %}{% endif %}{% endfor %}

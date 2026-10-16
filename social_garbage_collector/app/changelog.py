@@ -7,6 +7,23 @@ Ab 0.14 (Timo): Jede x.x-Version (Feature-Release, nicht x.x.x) bekommt
 
 CHANGES = [
     {
+        "version": "0.15.0",
+        "date": "16.10.2026",
+        "title": "Recherche-Arbeitsplatz, Tags im Griff, neues Design",
+        "highlights": [
+            ("research", "Recherche an einem Ort", "Links alle Einträge – auch nach Person sortiert –, rechts lesen, bearbeiten und neu schreiben, ohne die Seite zu wechseln."),
+            ("edit", "Einfacher schreiben", "Erst der Text, der Titel ergibt sich von selbst. Personen und Postings sucht ihr einfach per Name oder Wortlaut."),
+            ("tag", "Tags per Knopf – oder #tag", "Die Tag-Zeile ist weg: „Tags“ in der Suchleiste öffnet alle Tags. Oder tippt „#klima“ direkt ins Suchfeld."),
+            ("sparkles", "Neues Design", "Ruhigere Seitenköpfe, klarere Karten und Knöpfe, bessere Handy-Ansicht."),
+        ],
+        "items": [
+            "Recherche-Arbeitsplatz: Liste und Eintrag nebeneinander, Ansicht „Nach Person“, Filter nach Art und Person, Bearbeiten und Neu-Anlegen direkt rechts",
+            "Recherche-Formular vereinfacht: Text zuerst, Titel optional (sonst erste Zeile), Personen und Postings per Suche, Quellen einklappbar",
+            "Idiotarium: Tags als Knopf in der Suchleiste mit allen Tags nach Oberbegriffen; „#tag“ im Suchfeld schlägt Tags vor; aktive Tags als Chips mit ×",
+            "Redesign: einheitliche Seitenköpfe, neue Farben und Abstände, Karten, Knöpfe, Eingabefelder, Anmelden-Seite, Listen-Kopf, Handy-Reiter",
+        ],
+    },
+    {
         "version": "0.14.0",
         "date": "16.10.2026",
         "title": "Recherche, Tags mit Oberbegriffen, Threads",

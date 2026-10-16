@@ -397,12 +397,15 @@ def delete_post(request: Request, post_id: int, db: Session = Depends(get_db),
 
 
 @router.get("/tags/suggest")
-def tag_suggest(request: Request, tq: str = "", tags: str = "", db: Session = Depends(get_db)):
-    """Tag-Auswahl: vorhandene Tags zum Eingetippten (auch aehnlich geschriebene)."""
+def tag_suggest(request: Request, tq: str = "", tags: str = "", mode: str = "", db: Session = Depends(get_db)):
+    """Tag-Auswahl: vorhandene Tags zum Eingetippten (auch aehnlich geschriebene).
+    mode=pick: fuer "#…" im Suchfeld des Idiotariums - nur vorhandene Tags."""
     from ..services import tags as tag_service
 
     taken = set(post_service.parse_tag_input(tags))
     suggestions, new = tag_service.suggest(db, tq[:64], taken)
+    if mode == "pick":
+        return render(request, "partials/tag_pick.html", suggestions=suggestions, query=post_service.normalize_tag(tq))
     return render(request, "partials/tag_suggestions.html", suggestions=suggestions, new=new,
                   query=post_service.normalize_tag(tq))
 

@@ -7,6 +7,7 @@
       {% macro off(label, key, value=None, tag=False) %}<a class="chip {{ '' if tag else 'neutral' }} chip-off" href="{{ url('/') }}?{{ query_string|qs_without(key, value) }}" title="Filter entfernen">{{ label }}<span aria-hidden="true">×</span><span class="sr-only"> entfernen</span></a>{% endmacro %}
       {% if f.q %}{{ off('„' ~ f.q ~ '“', 'q') }}{% endif %}
       {% if f.platform %}{{ off(PLATFORM_LABELS[f.platform], 'platform') }}{% endif %}
+      {% for t in f.tags %}{{ off('#' ~ t, 'tags', t, True) }}{% endfor %}
       {% if filter_person %}{{ off('Person: ' ~ filter_person.name, 'person') }}{% elif f.person_id %}{{ off('Person #' ~ f.person_id, 'person') }}{% endif %}
       {% if f.author %}{{ off('Verfasser: ' ~ f.author, 'author') }}{% endif %}
       {% if f.date_from or f.date_to %}{{ off((f.date_from.strftime('%d.%m.%Y') if f.date_from else '…') ~ ' – ' ~ (f.date_to.strftime('%d.%m.%Y') if f.date_to else '…'), 'from') }}{% endif %}

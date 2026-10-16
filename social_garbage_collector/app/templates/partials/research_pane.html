@@ -1,0 +1,56 @@
+{# Ein Recherche-Eintrag zum Lesen - im Arbeitsplatz rechts und als eigene Seite. #}
+{% from "partials/icons.html" import icon %}
+{% if note %}
+<article class="rs-read">
+  <div class="rs-read-top">
+    <span class="rs-kind kind-{{ note.kind }}">{{ note.kind_label }}</span>
+    <span class="spacer"></span>
+    <a class="btn-soft sm" href="{{ url('/recherche/' ~ note.id ~ '/bearbeiten') }}" data-pane-link>{{ icon('edit', 15) }} Bearbeiten</a>
+  </div>
+  <h2 class="rs-read-title">{{ note.title }}</h2>
+  <div class="rs-persons-row">
+    {% for p in note.persons %}
+    <a class="rs-person" href="{{ url('/personen/' ~ p.id) }}">
+      {% if p.avatar_path %}<img class="q-avatar" src="{{ file_url(p.avatar_path) }}" alt="" width="26" height="26">
+      {% else %}<span class="q-avatar q-avatar-empty" aria-hidden="true">{{ p.name.lstrip('@')[:1] }}</span>{% endif %}{{ p.name }}</a>
+    {% endfor %}
+  </div>
+  {% if note.body %}<div class="rs-body">{{ note.body|richtext }}</div>{% endif %}
+  {% if note.source_list %}
+  <section class="rs-sources">
+    <h3>Quellen</h3>
+    <ol>{% for src in note.source_list %}<li>{{ src|richtext }}</li>{% endfor %}</ol>
+  </section>
+  {% endif %}
+  {% if note.posts %}
+  <section class="rs-linked">
+    <h3>Dazugehörige Postings</h3>
+    <ul class="rs-post-list">
+      {% for post in note.posts %}
+      <li><a class="rs-post" href="{{ url('/posts/' ~ post.id) }}">
+        <span class="rs-post-head"><strong>{{ post.author_name }}</strong><span class="faint xs">{{ post.posted_at|localtime('%d.%m.%Y') if post.posted_at else '' }} · Nr. {{ archive_no(post) }}</span></span>
+        <span class="rs-post-text">{{ (post.text or 'Kein Wortlaut')|truncate(220, True, ' …') }}</span>
+      </a></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+  <footer class="rs-read-foot">
+    <span class="faint xs">Angelegt {{ note.created_at|localtime('%d.%m.%Y') }}{% if note.created_by %} von {{ note.created_by.name }}{% endif %}{% if note.updated_by and (note.updated_at - note.created_at).total_seconds() > 60 %} · bearbeitet {{ note.updated_at|localtime('%d.%m.%Y, %H:%M') }} von {{ note.updated_by.name }}{% endif %}</span>
+    {% if may_delete %}
+    <form method="post" action="{{ url('/recherche/' ~ note.id ~ '/loeschen') }}" data-confirm="Diesen Recherche-Eintrag endgültig löschen?"
+          hx-post="{{ url('/recherche/' ~ note.id ~ '/loeschen') }}" hx-target="#rs-pane" hx-swap="innerHTML" hx-confirm="Diesen Recherche-Eintrag endgültig löschen?">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button class="link-danger small" type="submit">{{ icon('trash', 14) }} Löschen</button>
+    </form>
+    {% endif %}
+  </footer>
+</article>
+{% else %}
+<div class="rs-pane-empty">
+  <span class="rs-pane-icon">{{ icon('research', 28) }}</span>
+  <h2>Was habt ihr herausgefunden?</h2>
+  <p class="muted">Widersprüche, belegte Fakten, Hintergründe – jeder Eintrag gehört zu einer Person und kann auf Postings verweisen.</p>
+  <a class="btn" href="{{ url('/recherche/neu') }}" data-pane-link>{{ icon('plus', 18) }} Neue Recherche</a>
+</div>
+{% endif %}
