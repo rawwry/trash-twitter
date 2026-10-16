@@ -9,6 +9,7 @@
   {# Reiter: ohne JS normale Links auf /add?mode=..., mit JS nur Umschalten #}
   <nav class="seg full add-tabs" aria-label="Art des Hinzufügens">
     <a href="{{ url('/add') }}" data-add-tab="link" {% if add_mode == 'link' %}aria-current="true"{% endif %}><span>{{ icon('link', 16) }} Link</span></a>
+    <a href="{{ url('/add') }}?mode=thread" data-add-tab="thread" {% if add_mode == 'thread' %}aria-current="true"{% endif %}><span>{{ icon('timeline', 16) }} Thread</span></a>
     <a href="{{ url('/add') }}?mode=upload" data-add-tab="upload" {% if add_mode == 'upload' %}aria-current="true"{% endif %}><span>{{ icon('download', 16) }} Screenshot</span></a>
     <a href="{{ url('/add') }}?mode=bulk" data-add-tab="bulk" {% if add_mode == 'bulk' %}aria-current="true"{% endif %}><span>{{ icon('lists', 16) }} Viele Links</span></a>
   </nav>
@@ -24,24 +25,14 @@
     <label for="add-url-{{ 'd' if in_dialog else 'p' }}" class="sr-only">Link zum Posting</label>
     <input id="add-url-{{ 'd' if in_dialog else 'p' }}" name="url" value="{{ form_url or '' }}" required inputmode="url"
            autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="500"
-           placeholder="Link von X oder Bluesky einfügen"
+           placeholder="Link von X (Twitter) oder Bluesky einfügen"
            hx-get="{{ url('/posts/check') }}" hx-trigger="input changed delay:250ms, paste delay:50ms{% if form_url %}, load{% endif %}"
            hx-target="next .link-check" hx-swap="outerHTML" data-url-input>
     <button type="button" class="btn-soft sm paste-btn" data-paste hidden>{{ icon('clipboard', 16) }} Einfügen</button>
   </div>
   {% if check %}{% include "partials/link_check.html" %}{% else %}<div class="link-check" aria-live="polite"></div>{% endif %}
 
-  {# Threads: nur von Hand (automatische Erkennung seit 0.6.1 aus) #}
-  <div class="thread-opts">
-    <details {% if form_thread_extra %}open{% endif %}>
-      <summary class="muted small">Teil eines Threads? Weitere Teile hinzufügen</summary>
-      <label class="stack" style="margin-top:10px">
-        <textarea name="thread_extra" rows="3" maxlength="5000" autocapitalize="off" spellcheck="false"
-                  placeholder="Ein Link pro Zeile – in der Reihenfolge des Threads">{{ form_thread_extra or '' }}</textarea>
-        <span class="hint">Oben steht der erste Teil, hier die folgenden. Wortlaut aller Teile und ein gemeinsamer Beleg.</span>
-      </label>
-    </details>
-  </div>
+  <p class="thread-switch faint small">Mehrere zusammenhängende Postings? <a href="{{ url('/add') }}?mode=thread" data-add-tab="thread" data-carry-url>Als Thread hinzufügen →</a></p>
   <details {% if prefs.add_expanded == 'on' or form_note or form_tags %}open{% endif %}>
     <summary class="muted small" style="cursor:pointer">Anmerkung &amp; Tags (optional)</summary>
     <div class="stack" style="margin-top:12px">
@@ -53,6 +44,37 @@
   </details>
   <button class="btn lg" type="submit">{{ icon('plus', 20) }} Posting hinzufügen</button>
   <p class="faint xs center" style="margin:0">Wortlaut, Verfasser, Datum und Beleg-Screenshot kommen automatisch. Unterstützt: x.com, twitter.com, bsky.app</p>
+</form>
+
+{# --- Thread: alle Teile in Reihenfolge (0.14) ------------------------------------------ #}
+<form method="post" action="{{ url('/posts/thread') }}" class="stack" data-add-panel="thread" {% if add_mode != 'thread' %}hidden{% endif %}>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <p class="upload-hint">{{ icon('timeline', 16) }}<span>Füge die Links aller Teile in der richtigen Reihenfolge ein. Daraus wird <strong>ein</strong> Posting
+    mit dem Wortlaut aller Teile und einem gemeinsamen Beleg-Screenshot.</span></p>
+  <ol class="thread-links" data-thread-links>
+    {% set parts = form_thread_urls or ['', ''] %}
+    {% for part in parts %}
+    <li class="thread-link">
+      <span class="tl-no" aria-hidden="true">{{ loop.index }}</span>
+      <input name="thread_url" value="{{ part }}" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="500"
+             placeholder="{{ 'Link zum ersten Teil (Anfang)' if loop.first else 'Link zu Teil ' ~ loop.index }}"
+             aria-label="Link zu Teil {{ loop.index }}" data-thread-url>
+      <button type="button" class="icon-btn" data-thread-remove aria-label="Teil entfernen" title="Teil entfernen">{{ icon('close', 16) }}</button>
+    </li>
+    {% endfor %}
+  </ol>
+  <button type="button" class="btn-ghost sm thread-add" data-thread-add>{{ icon('plus', 16) }} Weiteren Teil hinzufügen</button>
+  <p class="faint xs" style="margin:0">Tipp: Mehrere Links auf einmal (z. B. aus einer Nachricht) einfach ins erste Feld einfügen – sie werden auf die Felder verteilt.</p>
+  <details {% if prefs.add_expanded == 'on' or form_note or form_tags %}open{% endif %}>
+    <summary class="muted small" style="cursor:pointer">Anmerkung &amp; Tags (optional)</summary>
+    <div class="stack" style="margin-top:12px">
+      <label>Anmerkung
+        <textarea name="note" rows="2" maxlength="2000" placeholder="Kontext oder Einordnung">{{ form_note or '' }}</textarea>
+      </label>
+      {% with field_value=form_tags or '' %}{% include "partials/tag_input.html" %}{% endwith %}
+    </div>
+  </details>
+  <button class="btn lg" type="submit">{{ icon('plus', 20) }} Thread hinzufügen</button>
 </form>
 
 {# --- Eigenen Screenshot hochladen ------------------------------------------------- #}
@@ -79,7 +101,7 @@
     <span class="label-text">Plattform</span>
     <div class="seg" role="radiogroup" aria-label="Plattform">
       <label><input type="radio" name="platform" value="" {% if form_platform not in ('x', 'bluesky') %}checked{% endif %}><span>Automatisch</span></label>
-      <label><input type="radio" name="platform" value="x" {% if form_platform == 'x' %}checked{% endif %}><span>X</span></label>
+      <label><input type="radio" name="platform" value="x" {% if form_platform == 'x' %}checked{% endif %}><span>X (Twitter)</span></label>
       <label><input type="radio" name="platform" value="bluesky" {% if form_platform == 'bluesky' %}checked{% endif %}><span>Bluesky</span></label>
     </div>
   </div>

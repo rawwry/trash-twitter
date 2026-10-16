@@ -1,0 +1,20 @@
+{# Recherche-Eintraege als kompakte Liste (Personenseite, Posting, Uebersicht). Erwartet notes. #}
+<ul class="rs-list">
+  {% for n in notes %}
+  <li>
+    <a class="rs-item" href="{{ url('/recherche/' ~ n.id) }}">
+      <span class="rs-kind kind-{{ n.kind }}">{{ n.kind_label }}</span>
+      <span class="rs-main">
+        <strong class="rs-title">{{ n.title }}</strong>
+        {% if n.body %}<span class="rs-excerpt">{{ n.body|truncate(160, True, ' …') }}</span>{% endif %}
+        <span class="rs-meta">
+          {% if show_persons and n.persons %}{{ n.persons|map(attribute='name')|join(', ') }} · {% endif %}
+          {% if n.posts %}{{ n.posts|length }} {{ 'Posting' if n.posts|length == 1 else 'Postings' }} · {% endif %}
+          {% if n.source_list %}{{ n.source_list|length }} {{ 'Quelle' if n.source_list|length == 1 else 'Quellen' }} · {% endif %}
+          {{ n.updated_at|localtime('%d.%m.%Y') }}
+        </span>
+      </span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>

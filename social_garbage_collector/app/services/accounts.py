@@ -165,9 +165,12 @@ def prune_empty(db: Session) -> int:
 
 def _cleanup_person(db: Session, person: Person) -> None:
     """Personen ohne Accounts verschwinden - ausser jemand hat sie bearbeitet."""
+    from ..models import research_persons
+
     db.refresh(person)
+    has_research = db.scalar(select(research_persons.c.research_id).where(research_persons.c.person_id == person.id).limit(1))
     if (not person.accounts and not person.name_locked and not (person.note or "").strip()
-            and not person.subtitle and not person.photo_path):
+            and not person.subtitle and not person.photo_path and not has_research):
         db.delete(person)
         db.flush()
 
@@ -224,6 +227,13 @@ def merge_persons(db: Session, source: Person, target: Person) -> None:
     target.subtitle = target.subtitle or source.subtitle
     if source.photo_path and not target.photo_path:
         target.photo_path, source.photo_path = source.photo_path, None
+    # Recherche-Eintraege (0.14) wandern mit
+    from ..models import research_persons
+
+    moved = set(db.scalars(select(research_persons.c.research_id).where(research_persons.c.person_id == source.id)))
+    have = set(db.scalars(select(research_persons.c.research_id).where(research_persons.c.person_id == target.id)))
+    for rid in moved - have:
+        db.execute(research_persons.insert().values(research_id=rid, person_id=target.id))
     db.flush()
     db.delete(source)
     db.flush()

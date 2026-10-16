@@ -1,6 +1,31 @@
-"""Versionsverlauf - erscheint in Einstellungen → Über."""
+"""Versionsverlauf - erscheint in Einstellungen → Über.
+
+Ab 0.14 (Timo): Jede x.x-Version (Feature-Release, nicht x.x.x) bekommt
+"highlights" - die zeigt die App jedem Mitglied einmal als Fenster
+"Neu in TrashTwitter x.x" (siehe release_notice). Je Punkt: (Symbol, Titel, Satz).
+"""
 
 CHANGES = [
+    {
+        "version": "0.14.0",
+        "date": "16.10.2026",
+        "title": "Recherche, Tags mit Oberbegriffen, Threads",
+        "highlights": [
+            ("research", "Recherche", "Ein gemeinsamer Ort für eure eigenen Fakten und Hintergründe – zugeordnet zu Personen und den Postings, um die es geht."),
+            ("tag", "Tags mit Oberbegriffen", "Beim Vergeben schlägt die App vorhandene Tags vor. Unter „Tags organisieren“ fasst ihr ähnliche Tags unter Oberbegriffen zusammen."),
+            ("timeline", "Threads hinzufügen", "Eigener Reiter „Thread“: Links aller Teile der Reihe nach eintragen – fertig."),
+            ("help", "Hilfe & Anleitung", "Alle Funktionen kurz erklärt – jederzeit über das Fragezeichen oben rechts."),
+        ],
+        "items": [
+            "Neuer Bereich „Recherche“: Widersprüche, Fakten und Hintergründe mit Quellen, zugeordnet zu Personen und Postings",
+            "Tags: Auswahl aus vorhandenen Tags (auch ähnlich geschriebene), neue nur per Extra-Klick; Oberbegriffe mit Unter-Tags; „Alle Tags“ im Idiotarium",
+            "„Tags organisieren“: einordnen, zusammenführen, löschen – auch mehrere auf einmal",
+            "Threads: eigener Reiter beim Hinzufügen, „Thread ergänzen“ direkt unter dem Wortlaut",
+            "Hilfe mit Grundlagen zu allen Funktionen, erreichbar über das Fragezeichen oben",
+            "Das Archiv heißt jetzt „Das Idiotarium“; X heißt überall „X (Twitter)“",
+            "Neu-Fenster bei jeder größeren Version; frischeres Design",
+        ],
+    },
     {
         "version": "0.13.1",
         "date": "16.10.2026",
@@ -242,3 +267,16 @@ CHANGES = [
         ],
     },
 ]
+
+
+def release_notice(version: str, seen: str):
+    """Eintrag fuer das "Neu in …"-Fenster: nur bei x.x-Versionen mit highlights,
+    die das Mitglied noch nicht gesehen hat. Rueckgabe: (x.x, Eintrag) oder None."""
+    parts = version.split(".")
+    minor = ".".join(parts[:2])
+    if seen == minor:
+        return None
+    for entry in CHANGES:
+        if ".".join(entry["version"].split(".")[:2]) == minor and entry.get("highlights"):
+            return minor, entry
+    return None

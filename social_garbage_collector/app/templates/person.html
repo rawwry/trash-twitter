@@ -52,6 +52,15 @@
 </div>
 
 <div class="person-layout">
+  <div class="stack">
+  <section class="card rs-card" aria-labelledby="research-title" id="recherche">
+    <div class="section-title">
+      <h2 id="research-title">{{ icon('research', 18) }} Recherche <span class="faint small">({{ notes|length }})</span></h2>
+      <a class="btn-soft sm" href="{{ url('/recherche/neu') }}?person={{ person.id }}">{{ icon('plus', 15) }} Recherche hinzufügen</a>
+    </div>
+    {% if notes %}{% include "partials/research_items.html" %}
+    {% else %}<p class="muted small" style="margin:0">Noch keine eigenen Fakten oder Hintergründe zu {{ person.name }}. Was ihr herausfindet – Widersprüche, Belege, Kontext – gehört hierher.</p>{% endif %}
+  </section>
   <section aria-labelledby="statements-title">
     <div class="section-title">
       <h2 id="statements-title">Postings</h2>
@@ -65,6 +74,7 @@
     <p class="muted">Keine archivierten Postings.</p>
     {% endif %}
   </section>
+  </div>
 
   <aside class="stack">
     <section class="card" aria-labelledby="accounts-title">

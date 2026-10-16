@@ -35,7 +35,7 @@ def excerpt(text: str, limit: int = EXCERPT_CHARS) -> str:
 def citation(post: Post, full_text: bool = False) -> str:
     """Zitierfertige Quellenangabe, z. B.
 
-    Jack Dorsey (@jack): „just setting up my twttr“. X, 21.03.2006, 22:50.
+    Jack Dorsey (@jack): „just setting up my twttr“. X (Twitter), 21.03.2006, 22:50.
     https://x.com/jack/status/20 – archiviert am 13.10.2026 in TrashTwitter, Archiv-Nr. 000020.
     """
     who = post.author_display_name or ""

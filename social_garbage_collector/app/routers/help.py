@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
+from fastapi.responses import Response
+from sqlalchemy.orm import Session
 
+from .. import VERSION
 from ..models import User
-from ..security import require_user
-from ..templating import render, root_path
+from ..security import get_db, require_user
+from ..templating import redirect, render, root_path
 
 router = APIRouter(dependencies=[Depends(require_user)])
 
@@ -28,3 +31,13 @@ def help_page(request: Request, user: User = Depends(require_user)):
     base = direct_url(request)
     return render(request, "help.html", nav="help", base=base, api_url=f"{base}/api/teilen",
                   via_ingress=bool(root_path(request)), is_https=base.startswith("https://"))
+
+
+@router.post("/neuigkeiten/gesehen")
+def release_seen(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """Das "Neu in x.x"-Fenster nicht noch einmal zeigen (gilt bis zur naechsten x.x-Version)."""
+    user.release_seen = ".".join(VERSION.split(".")[:2])
+    db.commit()
+    if request.headers.get("hx-request") or request.headers.get("x-requested-with"):
+        return Response(status_code=204)
+    return redirect(request, "/")

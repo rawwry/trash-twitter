@@ -63,7 +63,12 @@
       <p class="lead-meta">
         <time datetime="{{ post.said_at.isoformat() }}Z">{{ said(post) }}</time>
         <span class="sep-dot" aria-hidden="true">·</span><span class="mono">Nr.&nbsp;{{ archive_no(post) }}</span>
+        {% if post.thread_count %}<span class="sep-dot" aria-hidden="true">·</span><span>Thread, {{ post.thread_count }} Teile</span>{% endif %}
         {% if post.text_source == 'ocr' %}<span class="sep-dot" aria-hidden="true">·</span><span class="lead-ocr" title="{{ TEXT_SOURCE_HELP[post.text_source] }}">per Texterkennung gelesen</span>{% endif %}
+        <span class="lead-links">
+          <button class="link-btn" type="button" data-edit="text">Wortlaut korrigieren</button>
+          {% if post.url %}<a class="link-btn" href="#thread">{{ 'Thread ändern' if post.thread_count else 'Thread ergänzen' }}</a>{% endif %}
+        </span>
       </p>
 
       {# Anmerkung & Tags: nur zeigen, wenn es welche gibt - bearbeiten ueber den Stift #}
@@ -87,9 +92,19 @@
         <button class="act" type="button" data-open="list-dialog" title="In Listen ablegen"
                 hx-get="{{ url('/lists/picker') }}?post={{ post.id }}" hx-target="#list-dialog-body" hx-swap="innerHTML">{{ icon('lists', 18) }}<span>Listen</span></button>
         <button class="act" type="button" data-edit="note" title="Anmerkung und Tags bearbeiten">{{ icon('tag', 18) }}<span>Tags</span></button>
-        <button class="act" type="button" data-edit="text" title="Wortlaut bearbeiten">{{ icon('edit', 18) }}<span>Wortlaut</span></button>
+        <a class="act" href="{{ url('/recherche/neu') }}?post={{ post.id }}" title="Recherche zu diesem Posting hinzufügen">{{ icon('research', 18) }}<span>Recherche</span></a>
       </div>
     </article>
+
+    {% if notes %}
+    <section class="card rs-card" aria-labelledby="post-research-title">
+      <div class="section-title">
+        <h2 id="post-research-title">{{ icon('research', 18) }} Recherche dazu <span class="faint small">({{ notes|length }})</span></h2>
+        <a class="btn-ghost sm" href="{{ url('/recherche/neu') }}?post={{ post.id }}">{{ icon('plus', 15) }} Hinzufügen</a>
+      </div>
+      {% with show_persons=False %}{% include "partials/research_items.html" %}{% endwith %}
+    </section>
+    {% endif %}
   </div>
 
   <div class="stack side-col">
@@ -112,8 +127,8 @@
         {% endif %}
       </div>
       {% if post.shot_reconstructed and post.shot_source != 'upload' %}
-      <p class="flash flash-info small" style="margin:10px 0 0"><strong>Text ergänzt:</strong> X zeigt diesen langen Beitrag nur gekürzt („Mehr anzeigen“).
-        Für den Beleg hat die App den vollständigen Wortlaut in die Ansicht eingesetzt – Aussehen, Verfasser und Datum stammen von X, der Text-Rest von der App.</p>
+      <p class="flash flash-info small" style="margin:10px 0 0"><strong>Text ergänzt:</strong> X (Twitter) zeigt diesen langen Beitrag nur gekürzt („Mehr anzeigen“).
+        Für den Beleg hat die App den vollständigen Wortlaut in die Ansicht eingesetzt – Aussehen, Verfasser und Datum stammen von X (Twitter), der Text-Rest von der App.</p>
       {% elif post.long_post and post.shot_source != 'upload' %}
       <p class="flash flash-info small" style="margin:10px 0 0">Langer Beitrag: Der Beleg zeigt nur den Anfang. „Neu erfassen“ setzt den vollständigen Wortlaut ein,
         oder du lädst einen eigenen Screenshot hoch.</p>

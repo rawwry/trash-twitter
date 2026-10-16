@@ -97,6 +97,7 @@ _ADDED_COLUMNS = {
         ("api_token_hash", "VARCHAR(64)"),
         ("api_token_hint", "VARCHAR(8) NOT NULL DEFAULT ''"),
         ("api_token_created_at", "DATETIME"),
+        ("release_seen", "VARCHAR(16) NOT NULL DEFAULT ''"),
     ],
     "posts": [
         ("shot_w", "INTEGER"),
@@ -123,6 +124,10 @@ _ADDED_COLUMNS = {
     ],
     "lists": [
         ("description", "TEXT NOT NULL DEFAULT ''"),
+    ],
+    "tags": [
+        ("parent_id", "INTEGER REFERENCES tags(id) ON DELETE SET NULL"),
+        ("is_group", "BOOLEAN NOT NULL DEFAULT 0"),
     ],
     "gallery_images": [
         ("taken_at", "DATETIME"),

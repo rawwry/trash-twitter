@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.14.0 – Recherche, Tags mit Oberbegriffen, Threads (16.10.2026)
+
+- **Recherche** (`/recherche`, `routers/research.py`, Tabellen `research_notes`, `research_persons`, `research_posts`): eigene Fakten und Hintergründe des Teams. Art (Widerspruch, Fakt, Hintergrund), Titel, Text (Links klickbar), Quellen (eine pro Zeile), Personen (mind. eine) und Postings per Archiv-Nummer – deren Personen werden automatisch zugeordnet. Alle lesen und bearbeiten, löschen nur Anlegende oder Admins. Erscheint auf der Personenseite und am Posting („Recherche dazu“), Aktion „Recherche“ in der Aktionsleiste. Beim Zusammenführen von Personen wandern die Einträge mit; Personen mit Recherche werden nicht automatisch aufgeräumt.
+- **Tags mit zwei Ebenen** (`tags.parent_id`, `tags.is_group`, `services/tags.py`): Oberbegriffe fassen Tags zusammen, Filtern nach dem Oberbegriff findet alle Unter-Tags mit. Oberbegriffe bleiben auch ohne eigene Postings bestehen.
+  - **Tag-Auswahl** statt Freitext: Chips + Suche; Vorschläge in der Reihenfolge Anfang → enthalten → ähnlich geschrieben („Meintest du …?“, difflib ≥ 0,72). Enter übernimmt nur einen passenden vorhandenen Tag, ein neuer Tag braucht den Klick auf „+ Neuen Tag anlegen“.
+  - **Idiotarium:** Tag-Leiste mit den 12 häufigsten (Oberbegriffe hervorgehoben) und „Alle Tags“ als durchsuchbare Übersicht nach Oberbegriffen.
+  - **Tags organisieren** (vorher „Tags verwalten“): Oberbegriff anlegen, je Tag einordnen/umbenennen/löschen, Mehrfachauswahl zum Einordnen, Zusammenführen, Löschen; Oberbegriff auflösen.
+- **Threads:** eigener Reiter „Thread“ beim Hinzufügen – Links der Reihe nach, Felder wachsen mit, mehrere eingefügte Links werden verteilt (`POST /posts/thread`). Im Link-Reiter: „Als Thread hinzufügen →“ (nimmt den Link mit). Detailseite: „Thread ergänzen“ und „Wortlaut korrigieren“ direkt unter dem Text.
+- **Hilfe & Anleitung:** neuer Abschnitt „Grundlagen“ zu allen Funktionen, Hilfe-Knopf (?) immer oben rechts, am Handy zusätzlich unter „Mehr“.
+- **Neu-Fenster:** Bei jeder x.x-Version sieht jedes Mitglied einmal die wichtigsten Neuerungen (`highlights` in `changelog.py`, `users.release_seen`, `POST /neuigkeiten/gesehen`). x.x.x-Versionen zeigen nichts.
+- **Benennung:** Das Archiv heißt „Das Idiotarium“; X heißt überall „X (Twitter)“ (auch in der Quellenangabe).
+- **Navigation:** „Recherche“ in der Kopfzeile; am Handy Tab-Leiste Archiv · Personen · + · Recherche · Mehr (Listen, Galerie, Suchgenerator, Tags, Hilfe, Ideen).
+- **Design:** zweiter, warmer Akzent (Widerspruch, Neu-Badge, Anführungszeichen am Idiotarium), runderere Karten (18 px), Primärknöpfe mit leichtem Verlauf, sichtbare Fokusringe, Wortmarke mit Farbverlauf.
+
 ## 0.13.1 – Belege ohne Bedienleiste (16.10.2026)
 
 - X-Screenshots (Embed und x.com direkt): Vor der Aufnahme entfernt `TRIM_JS` alles, was im Beitrag nach der `<time>` kommt – Aktionsleiste (Herz, Antworten, Link kopieren), „n Antworten lesen“, „Auf X weiterlesen“, Info-Symbol. Gearbeitet wird von der Zeit aus nach oben bis zum `<article>`, nicht über X’ Klassennamen. Unter der Zeitzeile bleiben 10 px Luft. Gilt für jeden Thread-Teil, der Sammel-Beleg wirkt dadurch ruhiger.

@@ -144,7 +144,7 @@ def test_generator_pages(user_client, harness):
     assert user_client.get("/generator").status_code == 200
     assert user_client.get("/generator?platform=bluesky&preset=german_week").status_code == 200
     r = user_client.get("/generator/preview?platform=x&from_account=name&min_faves=100")
-    assert "from:name min_faves:100" in r.text and "Auf X öffnen" in r.text
+    assert "from:name min_faves:100" in r.text and "Auf X (Twitter) öffnen" in r.text
     r = user_client.get("/generator/preview?platform=bluesky&from_account=name&min_faves=100")
     assert "from:name.bsky.social" in r.text and "min_faves" not in r.text and "Auf Bluesky öffnen" in r.text
     r = user_client.post("/generator/save", data={"platform": "x", "search_name": "Katzen", "all_words": "katze",

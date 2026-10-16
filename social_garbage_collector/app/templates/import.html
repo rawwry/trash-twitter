@@ -35,7 +35,7 @@
 {% endif %}
 {% if invalid %}
 <details class="card import-skip" open>
-  <summary><strong>Nicht erkannt</strong> <span class="faint">({{ invalid|length }}) – kein Link zu einem Beitrag auf X oder Bluesky</span></summary>
+  <summary><strong>Nicht erkannt</strong> <span class="faint">({{ invalid|length }}) – kein Link zu einem Beitrag auf X (Twitter) oder Bluesky</span></summary>
   <ul>{% for u in invalid %}<li class="break">{{ u }}</li>{% endfor %}</ul>
 </details>
 {% endif %}

@@ -69,6 +69,8 @@ class User(Base):
     api_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     api_token_hint: Mapped[str] = mapped_column(String(8), default="")
     api_token_created_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # 0.14: bis zu welcher x.x-Version das "Neu in …"-Fenster schon gezeigt wurde
+    release_seen: Mapped[str] = mapped_column(String(16), default="")
     # Persoenliche Einstellungen als JSON (siehe app/prefs.py).
     prefs: Mapped[str] = mapped_column(Text, default="{}")
     # Seit 0.6 ungenutzt ("Neu fuer dich" entfernt), bleiben fuer alte Datenbanken stehen.
@@ -239,8 +241,14 @@ class Tag(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     # Immer klein geschrieben gespeichert, siehe services/posts.normalize_tag.
     name: Mapped[str] = mapped_column(String(64), unique=True)
+    # 0.14: zwei Ebenen. Ein Tag kann unter einem Oberbegriff stehen (parent_id);
+    # Oberbegriffe (is_group) bleiben auch ohne eigene Postings bestehen.
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("tags.id", ondelete="SET NULL"), nullable=True, index=True)
+    is_group: Mapped[bool] = mapped_column(Boolean, default=False)
 
     posts: Mapped[list[Post]] = relationship(secondary=post_tags, back_populates="tags")
+    parent: Mapped["Tag | None"] = relationship(remote_side="Tag.id", back_populates="children")
+    children: Mapped[list["Tag"]] = relationship(back_populates="parent", order_by="Tag.name")
 
 
 class PostList(Base):
@@ -534,3 +542,56 @@ class IdeaVote(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     idea: Mapped[FeatureIdea] = relationship(back_populates="votes")
+
+
+# --------------------------------------------------------------------------
+# Recherche (0.14): eigene Fakten und Hintergruende des Teams, zugeordnet zu
+# Personen und - optional - zu den Postings, um die es geht.
+# --------------------------------------------------------------------------
+
+RESEARCH_KINDS = {
+    "widerspruch": "Widerspruch",   # Person relativiert/entlarvt sich selbst
+    "fakt": "Fakt",                 # belegte Tatsache, die einer Aussage gegenuebersteht
+    "hintergrund": "Hintergrund",   # Kontext, Zusammenhaenge
+}
+
+research_persons = Table(
+    "research_persons",
+    Base.metadata,
+    Column("research_id", ForeignKey("research_notes.id", ondelete="CASCADE"), primary_key=True),
+    Column("person_id", ForeignKey("persons.id", ondelete="CASCADE"), primary_key=True),
+)
+
+research_posts = Table(
+    "research_posts",
+    Base.metadata,
+    Column("research_id", ForeignKey("research_notes.id", ondelete="CASCADE"), primary_key=True),
+    Column("post_id", ForeignKey("posts.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
+class ResearchNote(Base):
+    __tablename__ = "research_notes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(200))
+    kind: Mapped[str] = mapped_column(String(16), default="hintergrund")
+    body: Mapped[str] = mapped_column(Text, default="")
+    sources: Mapped[str] = mapped_column(Text, default="")    # ein Link oder eine Quelle pro Zeile
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    created_by: Mapped[User | None] = relationship(foreign_keys=[created_by_id])
+    updated_by: Mapped[User | None] = relationship(foreign_keys=[updated_by_id])
+    persons: Mapped[list[Person]] = relationship(secondary=research_persons, order_by="Person.name")
+    posts: Mapped[list[Post]] = relationship(secondary=research_posts, order_by="Post.id")
+
+    @property
+    def kind_label(self) -> str:
+        return RESEARCH_KINDS.get(self.kind, self.kind)
+
+    @property
+    def source_list(self) -> list[str]:
+        return [s.strip() for s in (self.sources or "").splitlines() if s.strip()]

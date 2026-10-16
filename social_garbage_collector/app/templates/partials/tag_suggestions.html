@@ -1,1 +1,23 @@
-{% for name in names %}<button type="button" class="chip chip-btn" data-tag="{{ name }}">#{{ name }}</button>{% endfor %}
+{# Vorschlaege zur Tag-Auswahl. Vorhandene Tags zuerst - neu anlegen nur bewusst. #}
+{% set exact = suggestions|rejectattr('similar')|list %}
+{% set similar = suggestions|selectattr('similar')|list %}
+{% if exact %}
+<div class="tp-group">
+  {% if not query %}<span class="tp-head">Häufig verwendet</span>{% endif %}
+  {% for s in exact %}<button type="button" class="tp-option" data-tag-add="{{ s.name }}">#{{ s.name }}{% if s.parent %}<small>in #{{ s.parent }}</small>{% endif %}<span>{{ s.count }}</span></button>{% endfor %}
+</div>
+{% endif %}
+{% if similar %}
+<div class="tp-group">
+  <span class="tp-head">Meintest du …?</span>
+  {% for s in similar %}<button type="button" class="tp-option is-similar" data-tag-add="{{ s.name }}" data-similar>#{{ s.name }}{% if s.parent %}<small>in #{{ s.parent }}</small>{% endif %}<span>{{ s.count }}</span></button>{% endfor %}
+</div>
+{% endif %}
+{% if new %}
+<div class="tp-new-wrap">
+  <button type="button" class="tp-new" data-tag-add="{{ new }}" data-tag-new>+ Neuen Tag „#{{ new }}“ anlegen</button>
+  {% if suggestions %}<span class="tp-hint">Passt keiner der vorhandenen?</span>{% endif %}
+</div>
+{% elif query and not suggestions %}
+<p class="tp-hint">Schon ausgewählt.</p>
+{% endif %}

@@ -1,21 +1,113 @@
 {% extends "base.html" %}
 {% from "partials/icons.html" import icon %}
 {% set nav = 'help' %}
-{% block title %}Hilfe & FAQ{% endblock %}
+{% block title %}Hilfe & Anleitung{% endblock %}
 {% block container_class %}narrow help-page{% endblock %}
 {% block content %}
 <header class="help-hero">
-  <p class="eyebrow">Hilfe &amp; FAQ</p>
-  <h1>Postings direkt aus X und Bluesky teilen</h1>
-  <p class="sub">Einmal einrichten, danach reicht in der X- oder Bluesky-App: <strong>Teilen → TrashTwitter</strong>. Das Posting landet ohne Umweg im Archiv.</p>
+  <p class="eyebrow">Hilfe &amp; Anleitung</p>
+  <h1>So funktioniert TrashTwitter</h1>
+  <p class="sub">Ein gemeinsames Quellenarchiv für öffentliche Postings von X (Twitter) und Bluesky: im Wortlaut, mit Beleg-Screenshot,
+    nach Personen geordnet und mit eurer eigenen Recherche daneben.</p>
   <nav class="help-jump" aria-label="Springen zu">
-    <a href="#iphone">{{ icon('share', 15) }} iPhone &amp; iPad</a>
-    <a href="#android">{{ icon('share', 15) }} Android</a>
-    <a href="#computer">{{ icon('monitor', 15) }} Computer</a>
-    <a href="#faq">{{ icon('info', 15) }} Häufige Fragen</a>
-    <a href="{{ url('/ideen') }}">{{ icon('sparkles', 15) }} Ideen</a>
+    <a href="#grundlagen">{{ icon('info', 15) }} Grundlagen</a>
+    <a href="#teilen">{{ icon('share', 15) }} Teilen vom Handy</a>
+    <a href="#faq">{{ icon('help', 15) }} Häufige Fragen</a>
+    <a href="{{ url('/ideen') }}">{{ icon('sparkles', 15) }} Ideen &amp; Wünsche</a>
   </nav>
 </header>
+
+{# --- Grundlagen -------------------------------------------------------------------- #}
+<section class="help-basics" id="grundlagen" aria-labelledby="basics-title">
+  <h2 id="basics-title" class="help-section-title">Grundlagen</h2>
+  <div class="basics-grid">
+    <article class="basic">
+      <span class="basic-icon">{{ icon('plus', 20) }}</span>
+      <h3>Posting hinzufügen</h3>
+      <p>Über <strong>„Posting hinzufügen“</strong> oben rechts (am Handy: das Plus unten, am Computer: Taste <kbd>n</kbd>).</p>
+      <ul>
+        <li><strong>Link:</strong> Link von X (Twitter) oder Bluesky einfügen – Wortlaut, Verfasser, Datum, Bilder/Videos und Beleg kommen automatisch.</li>
+        <li><strong>Thread:</strong> Links aller Teile der Reihe nach eintragen – daraus wird ein Posting mit gemeinsamem Beleg.</li>
+        <li><strong>Screenshot:</strong> für gelöschte Postings. Verfasser, Datum und Text liest die App selbst aus dem Bild.</li>
+        <li><strong>Viele Links:</strong> bis zu 500 auf einmal, Doppelte werden übersprungen.</li>
+      </ul>
+    </article>
+    <article class="basic">
+      <span class="basic-icon">{{ icon('archive', 20) }}</span>
+      <h3>Das Idiotarium</h3>
+      <p>Die Sammlung aller Postings, standardmäßig die zuletzt archivierten zuerst.</p>
+      <ul>
+        <li><strong>Suche</strong> im Wortlaut, nach Verfasser und Anmerkung.</li>
+        <li><strong>Tags antippen</strong> filtert sofort; „Alle Tags“ zeigt die komplette Übersicht.</li>
+        <li><strong>Filter:</strong> Plattform, Verfasser, Zeitraum, Liste, wer archiviert hat. Aktive Filter stehen als Chips mit × über den Ergebnissen.</li>
+        <li><strong>Ansichten:</strong> Karten, Raster, Liste, Zeitachse (Symbole rechts).</li>
+        <li><strong>Auswählen</strong> (☑) markiert mehrere – zum Ablegen in Listen oder Löschen.</li>
+      </ul>
+    </article>
+    <article class="basic">
+      <span class="basic-icon">{{ icon('quote', 20) }}</span>
+      <h3>Ein Posting im Detail</h3>
+      <p>Antippen öffnet das Posting mit Beleg-Screenshot.</p>
+      <ul>
+        <li><strong>Zitieren</strong> kopiert eine fertige Quellenangabe.</li>
+        <li><strong>Listen, Tags, Recherche</strong> direkt in der Aktionsleiste.</li>
+        <li><strong>Wortlaut korrigieren</strong>, <strong>Thread ergänzen</strong> und Datum ändern, falls etwas nicht stimmt.</li>
+        <li>„Angaben &amp; Quellenangabe“ zeigt Account, Konto-ID und Herkunft der Daten.</li>
+      </ul>
+    </article>
+    <article class="basic">
+      <span class="basic-icon">{{ icon('tag', 20) }}</span>
+      <h3>Tags &amp; Oberbegriffe</h3>
+      <p>Beim Vergeben schlägt die App vorhandene Tags vor – auch ähnlich geschriebene. Neue Tags anzulegen ist ein bewusster Extra-Klick.</p>
+      <ul>
+        <li><strong>Tags organisieren</strong> (Menü oder Stift in der Tag-Leiste): umbenennen, zusammenführen, löschen.</li>
+        <li><strong>Oberbegriffe</strong> fassen Tags zusammen, z. B. #umwelt mit #klima und #energie. Wer nach dem Oberbegriff filtert, findet alle Unter-Tags mit.</li>
+      </ul>
+    </article>
+    <article class="basic">
+      <span class="basic-icon">{{ icon('people', 20) }}</span>
+      <h3>Personen &amp; Accounts</h3>
+      <p>Jedes Posting gehört zu einem Account, jeder Account zu einer Person. Die App erkennt Namens- und Handle-Wechsel selbst.</p>
+      <ul>
+        <li>Hat jemand mehrere Accounts: auf der Personenseite <strong>zusammenführen</strong>.</li>
+        <li><strong>Bearbeiten</strong> ändert nur die Darstellung (Name, Foto, Beschreibung) – die Postings bleiben im Original.</li>
+      </ul>
+    </article>
+    <article class="basic">
+      <span class="basic-icon">{{ icon('research', 20) }}</span>
+      <h3>Recherche</h3>
+      <p>Euer gemeinsamer Ort für selbst recherchierte Fakten und Hintergründe – sichtbar für alle Mitglieder.</p>
+      <ul>
+        <li>Jeder Eintrag gehört zu einer oder mehreren <strong>Personen</strong> und kann auf <strong>Postings</strong> verweisen.</li>
+        <li>Arten: <strong>Widerspruch</strong> (jemand relativiert sich selbst), <strong>Fakt</strong>, <strong>Hintergrund</strong>. Quellen eine pro Zeile.</li>
+        <li>Schnell anlegen: auf der Personenseite oder im Posting über „Recherche“.</li>
+      </ul>
+    </article>
+    <article class="basic">
+      <span class="basic-icon">{{ icon('lists', 20) }}</span>
+      <h3>Listen</h3>
+      <p>Gemeinsame Sammlungen zu einem Thema oder Ereignis. Postings legst du über „Listen“ im Posting oder per Mehrfachauswahl im Idiotarium ab.</p>
+    </article>
+    <article class="basic">
+      <span class="basic-icon">{{ icon('image', 20) }}</span>
+      <h3>Galerie</h3>
+      <p>Eigene Bilder und Videos, nach selbst angelegten Kategorien geordnet. Sortieren (zufällig, neu, nach Aufnahmedatum), Mosaik oder Quadrate, Größe per Regler.</p>
+    </article>
+    <article class="basic">
+      <span class="basic-icon">{{ icon('search', 20) }}</span>
+      <h3>Suchgenerator</h3>
+      <p>Baut Suchbefehle für X (Twitter) und Bluesky zusammen – etwa „alle Postings von @… mit Wort … im Zeitraum …“ – und öffnet die Suche direkt auf der Plattform.</p>
+    </article>
+    <article class="basic">
+      <span class="basic-icon">{{ icon('settings', 20) }}</span>
+      <h3>Einstellungen</h3>
+      <p>Über dein Profilbild oben rechts: Passwort ändern, hell/dunkel, Akzentfarbe, Standard-Ansicht und -Sortierung, Tastenkürzel (<kbd>?</kbd> zeigt alle).</p>
+    </article>
+  </div>
+</section>
+
+<h2 class="help-section-title" id="teilen">Postings direkt aus X (Twitter) und Bluesky teilen</h2>
+<p class="muted" style="margin:-4px 0 16px">Einmal einrichten, danach reicht in der X- oder Bluesky-App: <strong>Teilen → TrashTwitter</strong>. Das Posting landet ohne Umweg im Idiotarium.</p>
 
 <section class="help-card" aria-labelledby="key-title">
   <div class="help-step-num">1</div>
@@ -60,7 +152,7 @@
         </ul>
       </li>
       <li>Aktion <strong>„Mitteilung anzeigen“</strong> hinzufügen, als Text die Variable <strong>„Inhalte von URL“</strong> wählen.</li>
-      <li>Fertig. In X oder Bluesky: <strong>Teilen</strong> (bzw. „Teilen über …“) → <strong>Zu TrashTwitter</strong>. Nach ein, zwei Sekunden kommt „Archiviert: @… (Nr. …)“ – oder „Schon im Archiv“.</li>
+      <li>Fertig. In X (Twitter) oder Bluesky: <strong>Teilen</strong> (bzw. „Teilen über …“) → <strong>Zu TrashTwitter</strong>. Nach ein, zwei Sekunden kommt „Archiviert: @… (Nr. …)“ – oder „Schon im Archiv“.</li>
     </ol>
     <details class="help-more">
       <summary>Alternative ohne Schlüssel</summary>
@@ -91,7 +183,7 @@
       <li><strong>Anfrage-Header:</strong> <code>Authorization</code> = <code>Bearer </code> + dein Schlüssel.</li>
       <li><strong>Anfragekörper:</strong> „Formular-Daten“ → Parameter <code>url</code>, Wert: Variable <strong>„Geteilter Text“</strong> (unter „Variablen“ → „+“ → Typ „Geteilter Text“ anlegen).</li>
       <li><strong>Trigger &amp; Ausführungseinstellungen:</strong> „Im Teilen-Menü anzeigen“ einschalten. <strong>Antwortverarbeitung:</strong> „Als Toast anzeigen“.</li>
-      <li>Fertig: In X oder Bluesky <strong>Teilen → HTTP Shortcuts → Zu TrashTwitter</strong>.</li>
+      <li>Fertig: In X (Twitter) oder Bluesky <strong>Teilen → HTTP Shortcuts → Zu TrashTwitter</strong>.</li>
     </ol>
   </div>
 </section>
@@ -101,20 +193,22 @@
   <div class="help-step-num">{{ icon('monitor', 18) }}</div>
   <div class="help-body">
     <h2 id="pc-title">Computer: Lesezeichen</h2>
-    <p class="muted">Den Knopf in die Lesezeichenleiste ziehen. Auf einem Posting bei X oder Bluesky anklicken – TrashTwitter öffnet sich mit dem Link.</p>
+    <p class="muted">Den Knopf in die Lesezeichenleiste ziehen. Auf einem Posting bei X (Twitter) oder Bluesky anklicken – TrashTwitter öffnet sich mit dem Link.</p>
     <a class="bookmarklet" href="javascript:(()=>{location.href='{{ base }}/teilen?url='+encodeURIComponent(location.href)})()" data-bookmarklet>{{ icon('plus', 15) }} Zu TrashTwitter</a>
   </div>
 </section>
 
 {# --- FAQ ------------------------------------------------------------------------ #}
 <section class="faq" id="faq" aria-labelledby="faq-title">
-  <h2 id="faq-title">Häufige Fragen</h2>
+  <h2 id="faq-title" class="help-section-title">Häufige Fragen</h2>
   {% set faqs = [
     ('Was genau wird gesichert?', 'Der Wortlaut (wörtlich von der Plattform), Verfasser mit Profilbild, Datum, ein Beleg-Screenshot und – sofern enthalten – Bilder, GIFs und Videos in Originalqualität. Alles liegt bei dir auf dem Raspberry Pi, nicht in einer Cloud.'),
     ('Was passiert, wenn ich ein Posting doppelt teile?', 'Nichts Schlimmes: TrashTwitter erkennt es (auch in anderer Schreibweise des Links oder als Teil eines Threads) und meldet „Schon im Archiv“ mit der Archiv-Nummer.'),
     ('Funktioniert das auch mit gelöschten Tweets?', 'Wenn du einen Screenshot hast: ja. „Posting hinzufügen“ → Reiter „Screenshot“, Bild hochladen. Die App liest Verfasser, @Handle, Plattform, Datum und Wortlaut selbst aus dem Bild und übernimmt das Profilbild. Bei Bluesky sucht sie zusätzlich das Original.'),
-    ('Wie benenne ich einen Tag um?', 'Im Menü (dein Profilbild oben rechts) → „Tags verwalten“, oder im Archiv auf den Stift am Ende der Tag-Leiste. Heißt der neue Name wie ein vorhandener Tag, werden beide zusammengeführt.'),
-    ('Warum sehe ich bei langen Tweets „Text ergänzt“?', 'X zeigt lange Beiträge im eingebetteten Tweet nur gekürzt. TrashTwitter holt den vollen Wortlaut und setzt ihn für den Beleg in die Ansicht ein – das ist gekennzeichnet, damit klar ist, dass der Screenshot ergänzt wurde.'),
+    ('Wie benenne ich einen Tag um?', 'Im Menü (dein Profilbild oben rechts) → „Tags organisieren“, oder im Idiotarium auf den Stift am Ende der Tag-Leiste. Heißt der neue Name wie ein vorhandener Tag, werden beide zusammengeführt.'),
+    ('Wie lege ich einen Thread an?', '„Posting hinzufügen“ → Reiter „Thread“. Links aller Teile der Reihe nach eintragen (mehrere auf einmal ins erste Feld einfügen geht auch). Bei einem schon archivierten Posting: „Thread ergänzen“ unter dem Wortlaut.'),
+    ('Wer sieht die Recherche?', 'Alle Mitglieder dieser TrashTwitter-Instanz – sie ist für die gemeinsame Arbeit gedacht. Bearbeiten können alle, löschen nur wer den Eintrag angelegt hat oder ein Admin. Von außen ist nichts sichtbar.'),
+    ('Warum sehe ich bei langen Tweets „Text ergänzt“?', 'X (Twitter) zeigt lange Beiträge im eingebetteten Tweet nur gekürzt. TrashTwitter holt den vollen Wortlaut und setzt ihn für den Beleg in die Ansicht ein – das ist gekennzeichnet, damit klar ist, dass der Screenshot ergänzt wurde.'),
     ('Wie lege ich viele Postings auf einmal an?', '„Posting hinzufügen“ → Reiter „Viele Links“: bis zu 500 Links einfügen, auch einfach einen ganzen Text. Duplikate werden übersprungen, den Fortschritt siehst du live.'),
     ('Wer sieht, was ich archiviere?', 'Alle Mitglieder dieser TrashTwitter-Instanz sehen das gemeinsame Archiv, die Listen und die Galerie. Von außen ist nichts öffentlich. Passwörter kann niemand einsehen, auch kein Admin.'),
     ('Ich habe mein Passwort vergessen.', 'Bitte einen Admin, es unter Einstellungen → Benutzer zurückzusetzen. Kommt kein Admin mehr hinein, gibt es den Notfall-Zugang über die Add-on-Option „reset_password“ (steht in der Add-on-Dokumentation).'),

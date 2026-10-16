@@ -82,7 +82,9 @@ def set_post_tags(db: Session, post: Post, raw: str) -> None:
 
 
 def remove_orphan_tags(db: Session) -> None:
-    db.execute(text("DELETE FROM tags WHERE id NOT IN (SELECT DISTINCT tag_id FROM post_tags)"))
+    """Tags ohne Postings verschwinden - ausser Oberbegriffe (0.14)."""
+    db.execute(text("DELETE FROM tags WHERE id NOT IN (SELECT DISTINCT tag_id FROM post_tags) AND is_group = 0 "
+                    "AND id NOT IN (SELECT parent_id FROM tags WHERE parent_id IS NOT NULL)"))
 
 
 def suggest_tags(db: Session, prefix: str, limit: int = 8) -> list[str]:
@@ -317,10 +319,11 @@ def archive_query(f: ArchiveFilter) -> Select:
         ))
     if f.platform:
         conds.append(Post.platform == f.platform)
-    for tag in f.tags:  # mehrere Tags = UND
+    for tag in f.tags:  # mehrere Tags = UND; ein Oberbegriff schliesst seine Unter-Tags ein (0.14)
+        group = select(Tag.id).where(Tag.name == tag).scalar_subquery()
         conds.append(exists().where(
             post_tags.c.post_id == Post.id,
-            post_tags.c.tag_id == select(Tag.id).where(Tag.name == tag).scalar_subquery(),
+            post_tags.c.tag_id.in_(select(Tag.id).where(or_(Tag.id == group, Tag.parent_id == group))),
         ))
     if f.author:
         like = f"%{f.author.lower()}%"
@@ -385,7 +388,7 @@ def check_url(db: Session, url: str) -> LinkCheck:
         return LinkCheck("empty")
     found = detect(url)
     if not found:
-        return LinkCheck("invalid", message="Kein Beitrags-Link von X oder Bluesky erkannt.")
+        return LinkCheck("invalid", message="Kein Beitrags-Link von X (Twitter) oder Bluesky erkannt.")
     service, parsed = found
     key = service.dedup_key(parsed)
     dup = find_duplicate(db, parsed.platform, key, parsed.post_id, parsed.author_handle, parsed.author_did)
@@ -430,10 +433,8 @@ def rename_tag(db: Session, tag: Tag, new_raw: str) -> str | None:
     if target is None:
         tag.name = new
     else:
-        for post in list(tag.posts):
-            if target not in post.tags:
-                post.tags.append(target)
-        db.delete(tag)
+        from .tags import merge_into
+        merge_into(db, tag, target)
     db.commit()
     return None
 
@@ -486,7 +487,7 @@ async def add_upload(db: Session, user: User, settings, blobs: list[bytes], link
     if link:
         found = detect(link)
         if not found:
-            raise AddPostError("Der Link ist kein Beitrags-Link von X oder Bluesky. Lass ihn leer, wenn du keinen hast.")
+            raise AddPostError("Der Link ist kein Beitrags-Link von X (Twitter) oder Bluesky. Lass ihn leer, wenn du keinen hast.")
         service, parsed = found
         if network:
             async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}) as client:

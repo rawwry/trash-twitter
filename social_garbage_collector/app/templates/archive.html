@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% from "partials/icons.html" import icon, platform_icon %}
 {% set nav = 'archive' %}
-{% block title %}Archiv{% endblock %}
+{% block title %}Das Idiotarium{% endblock %}
 {% block content %}
 <div class="archive-title">
-  <h1>Archiv</h1>
+  <h1>Das Idiotarium</h1>
 </div>
 
 <form class="archive-search atb-form" method="get" action="{{ url('/') }}" role="search"
@@ -38,7 +38,7 @@
       <span class="label-text">Plattform</span>
       <div class="seg" role="radiogroup" aria-label="Plattform">
         <label><input type="radio" name="platform" value="" {% if not f.platform %}checked{% endif %}><span>Alle</span></label>
-        <label><input type="radio" name="platform" value="x" {% if f.platform == 'x' %}checked{% endif %}><span>X</span></label>
+        <label><input type="radio" name="platform" value="x" {% if f.platform == 'x' %}checked{% endif %}><span>X (Twitter)</span></label>
         <label><input type="radio" name="platform" value="bluesky" {% if f.platform == 'bluesky' %}checked{% endif %}><span>{{ platform_icon('bluesky', 12) }} Bluesky</span></label>
       </div>
     </div>
@@ -81,16 +81,54 @@
     </div>
   </div>
 
-  {# Tags antippen statt eintippen. Mehrere = alle muessen passen. #}
-  {% set all_tags = tag_choices() %}
-  {% if all_tags %}
+  {# Tags antippen statt eintippen. Mehrere = alle muessen passen. Oberbegriffe (0.14)
+     schliessen ihre Unter-Tags ein. In der Leiste: die haeufigsten, der Rest unter "Alle Tags". #}
+  {% set groups, loose = tag_tree() %}
+  {% if groups or loose %}
+  {% set items = [] %}
+  {% for g in groups if g.total %}{% set _ = items.append((g.tag.name, g.total, True)) %}{% endfor %}
+  {% for n in loose if n.count %}{% set _ = items.append((n.tag.name, n.count, False)) %}{% endfor %}
+  {% set items = items|sort(attribute='1', reverse=True) %}
+  {% set shown = items[:12] %}
+  {% set shown_names = shown|map(attribute=0)|list %}
   <input type="hidden" name="tags" value="{{ f.tags|join(',') }}" data-tag-filter>
-  <div class="tag-bar {{ 'is-open' if f.tags|length and f.tags|select('in', (all_tags[18:]|map(attribute=0)|list))|list }}" data-tag-bar>
-    {% for name, n in all_tags %}
-    <button type="button" class="tag-pill {{ 'is-extra' if loop.index > 18 }}" data-tag-toggle="{{ name }}" aria-pressed="{{ 'true' if name in f.tags else 'false' }}">#{{ name }} <span>{{ n }}</span></button>
+  <div class="tag-bar" data-tag-bar>
+    {% for name in f.tags if name not in shown_names %}
+    <button type="button" class="tag-pill" data-tag-toggle="{{ name }}" aria-pressed="true">#{{ name }}</button>
     {% endfor %}
-    {% if all_tags|length > 18 %}<button type="button" class="tag-pill tag-more" data-tag-more>+{{ all_tags|length - 18 }} weitere</button>{% endif %}
-    <a class="tag-edit" href="{{ url('/settings/tags') }}" title="Tags umbenennen oder löschen" aria-label="Tags umbenennen oder löschen">{{ icon('edit', 15) }}</a>
+    {% for name, n, is_group in shown %}
+    <button type="button" class="tag-pill {{ 'is-group' if is_group }}" data-tag-toggle="{{ name }}" aria-pressed="{{ 'true' if name in f.tags else 'false' }}"
+            {% if is_group %}title="Oberbegriff – mit allen Unter-Tags"{% endif %}>#{{ name }} <span>{{ n }}</span></button>
+    {% endfor %}
+    <button type="button" class="tag-pill tag-all" data-toggle="tag-browser" aria-expanded="false" aria-controls="tag-browser">{{ icon('tag', 14) }} Alle Tags</button>
+    <a class="tag-edit" href="{{ url('/settings/tags') }}" title="Tags organisieren" aria-label="Tags organisieren">{{ icon('edit', 15) }}</a>
+  </div>
+  <div class="tag-browser" id="tag-browser" hidden>
+    <div class="tb-head">
+      <label class="tb-search">{{ icon('search', 16) }}<input type="text" placeholder="Tag suchen" aria-label="Tags durchsuchen" data-tb-search autocomplete="off" enterkeyhint="search"></label>
+      <a class="btn-ghost sm" href="{{ url('/settings/tags') }}">{{ icon('edit', 14) }} Organisieren</a>
+    </div>
+    <div class="tb-groups">
+      {% for g in groups %}
+      <div class="tb-group" data-tb-group>
+        <button type="button" class="tag-pill is-group" data-tag-toggle="{{ g.tag.name }}" data-tb-name="{{ g.tag.name }}"
+                aria-pressed="{{ 'true' if g.tag.name in f.tags else 'false' }}">#{{ g.tag.name }} <span>{{ g.total }}</span></button>
+        <div class="tb-children">
+          {% for c in g.children %}<button type="button" class="tag-pill" data-tag-toggle="{{ c.tag.name }}" data-tb-name="{{ c.tag.name }}"
+                  aria-pressed="{{ 'true' if c.tag.name in f.tags else 'false' }}">#{{ c.tag.name }} <span>{{ c.count }}</span></button>{% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+      {% if loose %}
+      <div class="tb-group" data-tb-group>
+        {% if groups %}<span class="tb-label">Ohne Oberbegriff</span>{% endif %}
+        <div class="tb-children">
+          {% for n in loose %}<button type="button" class="tag-pill" data-tag-toggle="{{ n.tag.name }}" data-tb-name="{{ n.tag.name }}"
+                  aria-pressed="{{ 'true' if n.tag.name in f.tags else 'false' }}">#{{ n.tag.name }} <span>{{ n.count }}</span></button>{% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
   </div>
   {% endif %}
   <noscript><button class="btn" type="submit">Suchen</button></noscript>

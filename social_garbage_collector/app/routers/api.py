@@ -51,7 +51,7 @@ async def share(request: Request, db: Session = Depends(get_db), settings: Setti
     candidates = _URL.findall(raw) or [raw.strip()]
     url = next((c for c in candidates if post_service.detect_ok(c)), "")
     if not url:
-        return _reply(request, False, "Kein Link zu einem Posting auf X oder Bluesky gefunden.", 400)
+        return _reply(request, False, "Kein Link zu einem Posting auf X (Twitter) oder Bluesky gefunden.", 400)
     try:
         post = await post_service.add_post(db, user, url, "", "", network=settings.network_enabled)
     except post_service.AddPostError as exc:

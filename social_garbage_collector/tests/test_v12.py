@@ -270,7 +270,7 @@ def test_tag_rename_and_merge_for_everyone(user_client, harness):
         q.tags = [db.query(Tag).filter_by(name="klma").one()]
         db.commit()
         tid = db.query(Tag).filter_by(name="klma").one().id
-    assert "Tags verwalten" in user_client.get("/").text  # Menue + Stift in der Tag-Leiste
+    assert "Tags organisieren" in user_client.get("/").text  # Menue + Stift in der Tag-Leiste
     page = user_client.get("/settings/tags").text
     assert f'data-edit-form="tag-{tid}"' in page
     r = user_client.post(f"/settings/tags/{tid}/rename", data={"name": "#Klima", "csrf_token": user_client.csrf})

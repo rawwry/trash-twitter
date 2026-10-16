@@ -188,7 +188,7 @@ def test_quote_card_and_citation(user_client, harness):
     with harness.db() as db:
         text = citation(db.get(Post, pid))
     assert text.startswith("jack (@jack): „just setting up my twttr“.")
-    assert "X, 21.03.2006" in text and "https://x.com/jack/status/20" in text and "Archiv-Nr. 000001" in text
+    assert "X (Twitter), 21.03.2006" in text and "https://x.com/jack/status/20" in text and "Archiv-Nr. 000001" in text
 
 
 def test_citation_without_link_or_date(harness):

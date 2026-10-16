@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% set nav = 'research' %}
+{% block title %}Recherche{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Recherche</h1>
+    <p class="sub">Fakten und Hintergründe, die wir selbst zusammentragen – zugeordnet zu Personen und den Postings, um die es geht.</p>
+  </div>
+  <a class="btn" href="{{ url('/recherche/neu') }}{% if filter_person %}?person={{ filter_person.id }}{% endif %}">{{ icon('plus', 18) }} Recherche hinzufügen</a>
+</div>
+
+<form class="atb rs-filter" method="get" action="{{ url('/recherche') }}" role="search">
+  <label class="atb-search">{{ icon('search', 18) }}<input type="search" name="q" value="{{ q }}" placeholder="Recherche durchsuchen" aria-label="Recherche durchsuchen"></label>
+  <label class="atb-sort" title="Art">{{ icon('filter', 17) }}
+    <select name="art" aria-label="Art" onchange="this.form.requestSubmit()">
+      <option value="">Alle Arten</option>
+      {% for key, label in kinds.items() %}<option value="{{ key }}" {% if art == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </label>
+  {% if person_id %}<input type="hidden" name="person" value="{{ person_id }}">{% endif %}
+  <noscript><button class="btn-soft sm" type="submit">Suchen</button></noscript>
+</form>
+
+{% if person_counts %}
+<nav class="gal-filter rs-persons" aria-label="Nach Person filtern">
+  <a class="gal-chip {{ 'is-on' if not person_id }}" href="{{ url('/recherche') }}{% if art %}?art={{ art }}{% endif %}">Alle <span>{{ total }}</span></a>
+  {% for p, n in person_counts %}
+  <a class="gal-chip {{ 'is-on' if person_id == p.id }}" href="{{ url('/recherche') }}?person={{ p.id }}{% if art %}&art={{ art }}{% endif %}">
+    {% if p.avatar_path %}<img class="rs-face" src="{{ file_url(p.avatar_path) }}" alt="" width="20" height="20">{% endif %}{{ p.name }} <span>{{ n }}</span></a>
+  {% endfor %}
+</nav>
+{% endif %}
+
+{% if notes %}
+{% with show_persons=True %}{% include "partials/research_items.html" %}{% endwith %}
+{% elif total %}
+<div class="empty-state"><h2>Nichts gefunden</h2><p><a href="{{ url('/recherche') }}">Alle Einträge zeigen</a></p></div>
+{% else %}
+<div class="empty-state">
+  <h2>Noch keine Recherche</h2>
+  <p>Hier sammelt ihr, was ihr selbst herausgefunden habt: Widersprüche, belegte Fakten, Hintergründe. Jeder Eintrag gehört zu einer Person
+    und kann auf die Postings verweisen, um die es geht.</p>
+  <a class="btn" href="{{ url('/recherche/neu') }}">{{ icon('plus', 18) }} Erste Recherche hinzufügen</a>
+</div>
+{% endif %}
+{% endblock %}

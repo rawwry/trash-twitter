@@ -63,8 +63,10 @@ def detail(request: Request, person_id: int, db: Session = Depends(get_db)):
         select(Post.account_id, func.count()).where(Post.account_id.in_([a.id for a in person.accounts]))
         .group_by(Post.account_id)).all()) if person.accounts else {}
     others = list(db.scalars(select(Person).where(Person.id != person.id).order_by(func.lower(Person.name))))
+    from .research import notes_for_person
+
     return render(request, "person.html", person=person, posts=posts, total=total, stats=stats,
-                  account_counts=counts, others=others, view="cards")
+                  account_counts=counts, others=others, view="cards", notes=notes_for_person(db, person.id))
 
 
 @router.post("/personen/{person_id}/bearbeiten")

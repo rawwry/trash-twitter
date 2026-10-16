@@ -91,7 +91,7 @@ TRIM_JS = """sel => {
 
 class XService:
     name = PLATFORM_X
-    label = "X"
+    label = "X (Twitter)"
     prefers_api_text = True
 
     def parse_url(self, url: str) -> ParsedPost | None:

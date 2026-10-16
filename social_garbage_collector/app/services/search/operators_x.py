@@ -15,9 +15,9 @@ import re
 from .fields import Field, Option
 
 PLATFORM = "x"
-LABEL = "X"
+LABEL = "X (Twitter)"
 SEARCH_URL = "https://x.com/search"
-OPEN_LABEL = "Auf X öffnen"
+OPEN_LABEL = "Auf X (Twitter) öffnen"
 
 # Sortierung ueber den URL-Parameter f: "top" bzw. "live" (= Neueste).
 SORT_IN_URL = True

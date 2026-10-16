@@ -166,34 +166,75 @@
       .forEach((b) => b.setAttribute("aria-expanded", String(!panel.hidden)));
   });
 
-  // --- Tag-Vorschlaege -----------------------------------------------------------------
+  // --- Tag-Auswahl (0.14): Chips + Suche in vorhandenen Tags ---------------------------
+  const pickerTags = (picker) => ($("[data-tag-value]", picker).value || "").split(",").map((t) => t.trim()).filter(Boolean);
+  function setPickerTags(picker, tags) {
+    const field = $("[data-tag-value]", picker);
+    field.value = tags.join(", ");
+    const chips = $("[data-tag-chips]", picker);
+    chips.replaceChildren(...tags.map((t) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "tp-chip"; b.dataset.tagRemove = t; b.title = `#${t} entfernen`;
+      b.textContent = "#" + t;
+      const x = document.createElement("span"); x.setAttribute("aria-hidden", "true"); x.textContent = "×";
+      b.appendChild(x);
+      return b;
+    }));
+    const q = $("[data-tag-query]", picker);
+    q.placeholder = tags.length ? "Weiteren Tag suchen …" : "Tag suchen …";
+    field.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  function refreshSuggestions(picker) {
+    const q = $("[data-tag-query]", picker);
+    if (window.htmx) window.htmx.trigger(q, "focus");
+  }
   document.addEventListener("click", (ev) => {
-    const tagBtn = ev.target.closest("[data-tag]");
-    if (!tagBtn) return;
-    const box = tagBtn.closest(".tag-input");
-    const input = box && $("[data-tag-input]", box);
-    if (!input) return;
-    const parts = input.value.split(",");
-    parts[parts.length - 1] = " " + tagBtn.dataset.tag;
-    input.value = parts.map((p) => p.trim()).filter(Boolean).join(", ") + ", ";
-    input.focus();
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-    tagBtn.parentElement.innerHTML = "";
+    const add = ev.target.closest("[data-tag-add]");
+    if (add) {
+      const picker = add.closest("[data-tag-picker]");
+      if (!picker) return;
+      const tags = pickerTags(picker);
+      if (!tags.includes(add.dataset.tagAdd)) tags.push(add.dataset.tagAdd);
+      setPickerTags(picker, tags);
+      const q = $("[data-tag-query]", picker);
+      q.value = "";
+      q.focus();
+      refreshSuggestions(picker);
+      return;
+    }
+    const rm = ev.target.closest("[data-tag-remove]");
+    if (rm) {
+      const picker = rm.closest("[data-tag-picker]");
+      setPickerTags(picker, pickerTags(picker).filter((t) => t !== rm.dataset.tagRemove));
+      return;
+    }
+    // Klick daneben: Vorschlaege zu
+    $$("[data-tag-picker]").forEach((p) => { if (!p.contains(ev.target)) $("[data-tag-results]", p).replaceChildren(); });
+    const box = ev.target.closest("[data-tag-box]");
+    if (box) $("[data-tag-query]", box).focus();
+  });
+  document.addEventListener("keydown", (ev) => {
+    const q = ev.target.closest && ev.target.closest("[data-tag-query]");
+    if (!q) return;
+    const picker = q.closest("[data-tag-picker]");
+    if (ev.key === "Backspace" && !q.value) {
+      const tags = pickerTags(picker);
+      if (tags.length) { tags.pop(); setPickerTags(picker, tags); }
+      return;
+    }
+    if (ev.key === "Escape") { $("[data-tag-results]", picker).replaceChildren(); return; }
+    if (ev.key !== "Enter" && ev.key !== ",") return;
+    ev.preventDefault();  // Enter soll nie das ganze Formular abschicken
+    const typed = q.value.trim().toLowerCase().replace(/^#/, "");
+    if (!typed) return;
+    // Nur ein vorhandener Tag, der mit dem Eingetippten beginnt, wird per Enter uebernommen.
+    // Neue Tags gibt es nur per Klick auf "+ Neuen Tag anlegen".
+    const first = $$("[data-tag-results] [data-tag-add]:not([data-tag-new]):not([data-similar])", picker)
+      .find((b) => b.dataset.tagAdd.startsWith(typed));
+    if (first) first.click();
+    else $("[data-tag-new]", picker)?.classList.add("is-nudged");
   });
 
-  // Schnellauswahl unter der Tag-Eingabe: antippen = hinzufuegen bzw. wieder entfernen
-  document.addEventListener("click", (ev) => {
-    const pill = ev.target.closest("[data-tag-quick]");
-    if (!pill) return;
-    const input = $("[data-tag-input]", pill.closest(".tag-input"));
-    const name = pill.dataset.tagQuick;
-    let tags = input.value.split(",").map((t) => t.trim().replace(/^#/, "")).filter(Boolean);
-    const has = tags.some((t) => t.toLowerCase() === name);
-    tags = has ? tags.filter((t) => t.toLowerCase() !== name) : tags.concat(name);
-    input.value = tags.join(", ");
-    pill.setAttribute("aria-pressed", String(!has));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-  });
   // Archiv: Tag-Leiste filtert sofort (mehrere = alle muessen passen)
   document.addEventListener("click", (ev) => {
     const more = ev.target.closest("[data-tag-more]");
@@ -202,9 +243,12 @@
     if (!pill) return;
     const form = pill.closest("form");
     const field = $("[data-tag-filter]", form);
+    const name = pill.dataset.tagToggle;
     const on = pill.getAttribute("aria-pressed") !== "true";
-    pill.setAttribute("aria-pressed", String(on));
-    field.value = $$("[data-tag-toggle][aria-pressed=true]", form).map((b) => b.dataset.tagToggle).join(",");
+    // Derselbe Tag kann in Leiste und "Alle Tags" stehen - beide gleich schalten
+    $$(`[data-tag-toggle="${CSS.escape(name)}"]`, form).forEach((b) => b.setAttribute("aria-pressed", String(on)));
+    const active = new Set($$("[data-tag-toggle][aria-pressed=true]", form).map((b) => b.dataset.tagToggle));
+    field.value = [...active].join(",");
     field.dispatchEvent(new Event("change", { bubbles: true }));
   });
 
@@ -435,8 +479,81 @@
     const tab = ev.target.closest("[data-add-tab]");
     if (!tab) return;
     ev.preventDefault();
-    showAddTab(tab.closest("[data-add-tabs]"), tab.dataset.addTab);
+    const root = tab.closest("[data-add-tabs]");
+    // "Als Thread hinzufuegen": schon eingefuegten Link als ersten Teil mitnehmen
+    if (tab.hasAttribute("data-carry-url")) {
+      const url = $("[data-url-input]", root)?.value.trim();
+      const first = $("[data-thread-url]", root);
+      if (url && first && !first.value) first.value = url;
+    }
+    showAddTab(root, tab.dataset.addTab);
+    if (tab.dataset.addTab === "thread") {
+      const empty = $$("[data-thread-url]", root).find((i) => !i.value);
+      (empty || $("[data-thread-url]", root))?.focus();
+    }
   });
+
+  // --- Thread-Teile (0.14): Felder hinzufuegen/entfernen, mehrere Links verteilen ----------------
+  function threadRenumber(list) {
+    $$(".thread-link", list).forEach((li, i) => {
+      $(".tl-no", li).textContent = i + 1;
+      const input = $("[data-thread-url]", li);
+      input.placeholder = i === 0 ? "Link zum ersten Teil (Anfang)" : `Link zu Teil ${i + 1}`;
+      input.setAttribute("aria-label", `Link zu Teil ${i + 1}`);
+    });
+  }
+  function threadAddRow(list, value = "") {
+    const rows = $$(".thread-link", list);
+    if (rows.length >= 25) return null;
+    const li = rows[rows.length - 1].cloneNode(true);
+    const input = $("[data-thread-url]", li);
+    input.value = value;
+    list.appendChild(li);
+    threadRenumber(list);
+    return input;
+  }
+  document.addEventListener("click", (ev) => {
+    const add = ev.target.closest("[data-thread-add]");
+    if (add) {
+      const list = $("[data-thread-links]", add.closest("form"));
+      threadAddRow(list)?.focus();
+      return;
+    }
+    const rm = ev.target.closest("[data-thread-remove]");
+    if (rm) {
+      const list = rm.closest("[data-thread-links]");
+      const li = rm.closest(".thread-link");
+      if ($$(".thread-link", list).length > 2) li.remove();
+      else $("[data-thread-url]", li).value = "";
+      threadRenumber(list);
+    }
+  });
+  document.addEventListener("input", (ev) => {
+    const input = ev.target.closest && ev.target.closest("[data-thread-url]");
+    if (!input) return;
+    const list = input.closest("[data-thread-links]");
+    const rows = $$("[data-thread-url]", list);
+    // Letztes Feld ausgefuellt -> automatisch ein neues leeres darunter
+    if (input === rows[rows.length - 1] && input.value.trim()) threadAddRow(list);
+  });
+  document.addEventListener("paste", (ev) => {
+    const input = ev.target.closest && ev.target.closest("[data-thread-url]");
+    if (!input) return;
+    const links = (ev.clipboardData?.getData("text") || "").match(/https?:\/\/\S+/g) || [];
+    if (links.length < 2) return;
+    ev.preventDefault();
+    const list = input.closest("[data-thread-links]");
+    let rows = $$("[data-thread-url]", list);
+    let i = rows.indexOf(input);
+    links.forEach((url) => {
+      rows = $$("[data-thread-url]", list);
+      const target = rows[i] || threadAddRow(list);
+      if (target) target.value = url;
+      i += 1;
+    });
+    if ($$("[data-thread-url]", list).every((r) => r.value.trim())) threadAddRow(list);
+    toast(`${links.length} Links verteilt`);
+  }, true);
 
   // --- Screenshot-Upload: Auswahl, Ziehen & Ablegen, Einfuegen (Cmd/Strg+V) -----------------------
   const isVideoFile = (f) => (f.type || "").startsWith("video/") || /\.(mp4|m4v|mov|webm)$/i.test(f.name || "");
@@ -716,11 +833,42 @@
     }, 120);
   });
 
+  // --- Auswahlfeld schickt sein Formular sofort ab (z. B. Tag einordnen) -------------------------
+  document.addEventListener("change", (ev) => {
+    if (ev.target.matches && ev.target.matches("select[data-autosubmit]")) ev.target.form?.requestSubmit();
+    if (ev.target.matches && ev.target.matches("[data-tag-select]")) {
+      const n = $$("[data-tag-select]:checked").length;
+      const bar = $("[data-tag-bulk]");
+      if (bar) { bar.hidden = n === 0; $("[data-tag-count]", bar).textContent = n; }
+    }
+  });
+
+  // --- Recherche: Personen-Auswahl filtern (ausgewaehlte bleiben sichtbar) --------------------
+  document.addEventListener("input", (ev) => {
+    if (!ev.target.matches || !ev.target.matches("[data-person-filter]")) return;
+    const q = ev.target.value.trim().toLowerCase();
+    $$("[data-person-name]").forEach((el) => {
+      el.hidden = q && !el.dataset.personName.includes(q) && !$("input", el).checked;
+    });
+  });
+
+  // --- Alle Tags (Archiv): filtern ------------------------------------------------------------
+  document.addEventListener("input", (ev) => {
+    if (!ev.target.matches || !ev.target.matches("[data-tb-search]")) return;
+    const q = ev.target.value.trim().toLowerCase().replace(/^#/, "");
+    $$("[data-tb-group]").forEach((g) => {
+      let any = false;
+      $$("[data-tb-name]", g).forEach((b) => { const hit = !q || b.dataset.tbName.includes(q); b.hidden = !hit; any = any || hit; });
+      g.hidden = !any;
+    });
+  });
+
   // --- Tags verwalten: Liste filtern ----------------------------------------------------------
   document.addEventListener("input", (ev) => {
     if (!ev.target.matches || !ev.target.matches("[data-tag-search]")) return;
     const q = ev.target.value.trim().toLowerCase().replace(/^#/, "");
     $$("[data-tag-name]").forEach((row) => { row.hidden = q && !row.dataset.tagName.includes(q); });
+    $$("[data-tg-card]").forEach((card) => { card.hidden = q && !$$("[data-tag-name]", card).some((r) => !r.hidden); });
   });
 
   // --- Galerie: Darstellung und Groesse (0.12, pro Browser gemerkt) ---------------------------
@@ -799,8 +947,25 @@
   }
   window.addEventListener("hashchange", openHashTarget);
 
+  // --- "Neu in x.x" (0.14): beim ersten Laden zeigen, Schliessen merkt es sich -------------------
+  function initRelease() {
+    const dlg = $("[data-release-dialog]");
+    if (!dlg || dlg.open || $("dialog[open]")) return;
+    const form = $("[data-release-form]", dlg);
+    const markSeen = () => {
+      if (dlg.dataset.sent) return;
+      dlg.dataset.sent = "1";
+      fetch(form.action, { method: "POST", body: new FormData(form), headers: { "X-Requested-With": "fetch" }, credentials: "same-origin" })
+        .catch(() => { /* naechstes Mal wieder */ });
+    };
+    form.addEventListener("submit", (ev) => { ev.preventDefault(); markSeen(); dlg.close(); });
+    dlg.addEventListener("close", markSeen);
+    setTimeout(() => dlg.showModal(), 350);
+  }
+
   function init(scope) {
     $$("[data-autoclose]", scope).forEach(autoclose);
+    if (scope === document) initRelease();
     if (scope === document) openHashTarget();
     const form = $("#gen-form");
     if (scope === document && form && form.dataset.focus) {

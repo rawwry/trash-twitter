@@ -35,7 +35,7 @@ def test_tag_bar_and_quick_pick(user_client, harness):
     assert user_client.get("/?tags=energie,klima").text.count('data-post="') == 1
     pid = _ids(harness)[0]
     detail = user_client.get(f"/posts/{pid}").text
-    assert 'data-tag-quick="energie"' in detail
+    assert 'data-tag-remove="energie"' in detail and 'data-tag-picker' in detail  # 0.14: Auswahl-Chips
 
 
 # --- Personen ohne Postings ---------------------------------------------------------------

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% set nav = 'research' %}
+{% block title %}{{ note.title }} · Recherche{% endblock %}
+{% block container_class %}narrow{% endblock %}
+{% block content %}
+<div class="detail-toolbar">
+  <a class="back-link" href="{{ url('/recherche') }}">{{ icon('chev-left', 18) }}<span class="label-hide">Recherche</span></a>
+  <span class="spacer"></span>
+  <a class="btn-soft sm" href="{{ url('/recherche/' ~ note.id ~ '/bearbeiten') }}">{{ icon('edit', 15) }} Bearbeiten</a>
+</div>
+
+<article class="card rs-article">
+  <span class="rs-kind kind-{{ note.kind }}">{{ note.kind_label }}</span>
+  <h1>{{ note.title }}</h1>
+  <div class="rs-persons-row">
+    {% for p in note.persons %}
+    <a class="rs-person" href="{{ url('/personen/' ~ p.id) }}">
+      {% if p.avatar_path %}<img class="q-avatar" src="{{ file_url(p.avatar_path) }}" alt="" width="26" height="26">
+      {% else %}<span class="q-avatar q-avatar-empty" aria-hidden="true">{{ p.name.lstrip('@')[:1] }}</span>{% endif %}{{ p.name }}</a>
+    {% endfor %}
+  </div>
+  {% if note.body %}<div class="rs-body">{{ note.body|richtext }}</div>{% endif %}
+  {% if note.source_list %}
+  <section class="rs-sources">
+    <h2>Quellen</h2>
+    <ol>{% for src in note.source_list %}<li>{{ src|richtext }}</li>{% endfor %}</ol>
+  </section>
+  {% endif %}
+  <p class="rs-byline faint xs">
+    Angelegt {{ note.created_at|localtime('%d.%m.%Y') }}{% if note.created_by %} von {{ note.created_by.name }}{% endif %}
+    {% if note.updated_at and note.updated_by and (note.updated_at - note.created_at).total_seconds() > 60 %} · zuletzt bearbeitet {{ note.updated_at|localtime('%d.%m.%Y, %H:%M') }} von {{ note.updated_by.name }}{% endif %}
+  </p>
+</article>
+
+<section class="rs-posts">
+  <div class="section-title"><h2>Dazugehörige Postings <span class="faint small">({{ posts|length }})</span></h2></div>
+  {% if posts %}
+  <div class="posts view-cards one-col">
+    {% for post in posts %}{% with plist=None %}{% include "partials/quote.html" %}{% endwith %}{% endfor %}
+  </div>
+  {% else %}
+  <p class="muted small">Noch keine Postings verknüpft. Unter „Bearbeiten“ kannst du Archiv-Nummern eintragen.</p>
+  {% endif %}
+</section>
+
+{% if may_delete %}
+<form method="post" action="{{ url('/recherche/' ~ note.id ~ '/loeschen') }}" class="danger-zone" data-confirm="Diesen Recherche-Eintrag endgültig löschen?">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <button class="link-danger small" type="submit">{{ icon('trash', 14) }} Eintrag löschen</button>
+</form>
+{% endif %}
+{% endblock %}

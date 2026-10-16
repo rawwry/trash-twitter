@@ -156,10 +156,93 @@ def rename_tag(request: Request, tag_id: int, name: str = Form(""), user: User =
                     toast=f"#{old} mit #{new} zusammengeführt" if merged else f"#{old} heißt jetzt #{new}")
 
 
+@router.post("/tags/group")
+def create_group(request: Request, name: str = Form(""), user: User = Depends(require_user), db: Session = Depends(get_db)):
+    from ..services import tags as tag_service
+
+    try:
+        tag = tag_service.get_or_create_group(db, name)
+    except tag_service.TagError as exc:
+        db.rollback()
+        return redirect(request, "/settings/tags", toast=str(exc), kind="error")
+    db.commit()
+    return redirect(request, "/settings/tags", toast=f"Oberbegriff #{tag.name} angelegt")
+
+
+@router.post("/tags/{tag_id}/move")
+def move_tag(request: Request, tag_id: int, parent: str = Form(""), user: User = Depends(require_user),
+             db: Session = Depends(get_db)):
+    from ..services import tags as tag_service
+
+    tag = _get_tag(db, tag_id)
+    target = db.get(Tag, int(parent)) if parent.isdigit() else None
+    try:
+        tag_service.move(db, tag, target)
+    except tag_service.TagError as exc:
+        db.rollback()
+        return redirect(request, "/settings/tags", toast=str(exc), kind="error")
+    db.commit()
+    msg = f"#{tag.name} steht jetzt unter #{target.name}" if target else f"#{tag.name} hat keinen Oberbegriff mehr"
+    return redirect(request, "/settings/tags", toast=msg)
+
+
+@router.post("/tags/{tag_id}/ungroup")
+def ungroup_tag(request: Request, tag_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    from ..services import tags as tag_service
+
+    tag = _get_tag(db, tag_id)
+    name = tag.name
+    tag_service.ungroup(db, tag)
+    db.commit()
+    return redirect(request, "/settings/tags", toast=f"Oberbegriff #{name} aufgelöst")
+
+
+@router.post("/tags/bulk")
+def bulk_tags(request: Request, ids: list[int] = Form(default=[]), action: str = Form(""), parent: str = Form(""),
+              name: str = Form(""), user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """Mehrere Tags auf einmal: einordnen, zusammenfuehren, loeschen."""
+    from ..services import tags as tag_service
+
+    tags = [t for t in (db.get(Tag, i) for i in dict.fromkeys(ids[:500])) if t is not None]
+    if not tags:
+        return redirect(request, "/settings/tags", toast="Keine Tags ausgewählt.", kind="error")
+    try:
+        if action == "move":
+            target = db.get(Tag, int(parent)) if parent.isdigit() else None
+            for tag in tags:
+                tag_service.move(db, tag, target)
+            msg = f"{len(tags)} Tags unter #{target.name} eingeordnet" if target else f"{len(tags)} Tags ohne Oberbegriff"
+        elif action == "merge":
+            new = post_service.normalize_tag(name) or tags[0].name
+            target = db.scalar(select(Tag).where(Tag.name == new))
+            if target is None:
+                target = tags[0]
+                target.name = new
+            for tag in tags:
+                if tag.id != target.id:
+                    tag_service.merge_into(db, tag, target)
+            msg = f"{len(tags)} Tags zu #{new} zusammengeführt"
+        elif action == "delete":
+            for tag in tags:
+                for child in list(tag.children):
+                    child.parent_id = None
+                db.delete(tag)
+            msg = f"{len(tags)} Tags gelöscht"
+        else:
+            return redirect(request, "/settings/tags", toast="Unbekannte Aktion.", kind="error")
+    except tag_service.TagError as exc:
+        db.rollback()
+        return redirect(request, "/settings/tags", toast=str(exc), kind="error")
+    db.commit()
+    return redirect(request, "/settings/tags", toast=msg)
+
+
 @router.post("/tags/{tag_id}/delete")
 def delete_tag(request: Request, tag_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
     tag = _get_tag(db, tag_id)
     name = tag.name
+    for child in list(tag.children):  # Unter-Tags bleiben, nur ohne Oberbegriff
+        child.parent_id = None
     db.delete(tag)
     db.commit()
     return redirect(request, "/settings/tags", toast=f"#{name} gelöscht")

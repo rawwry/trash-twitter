@@ -85,7 +85,8 @@ _URL_IN_TEXT = re.compile(r"https?://\S+")
 def add_page(request: Request, url: str = "", mode: str = "link", user: User = Depends(require_user),
              db: Session = Depends(get_db)):
     check = post_service.check_url(db, url) if url else None
-    return render(request, "add.html", form_url=url, check=check, mode=mode if mode in ("upload", "bulk") else "link")
+    return render(request, "add.html", form_url=url, check=check,
+                  mode=mode if mode in ("upload", "bulk", "thread") else "link")
 
 
 @router.get("/teilen")
@@ -159,6 +160,33 @@ async def add_post(request: Request, url: str = Form(""), note: str = Form(""), 
     return redirect(request, target, toast="Archiviert. Text, Verfasser und Beleg werden geholt …")
 
 
+@router.post("/posts/thread")
+async def add_thread(request: Request, thread_url: list[str] = Form(default=[]), note: str = Form(""),
+                     tags: str = Form(""), user: User = Depends(require_user), db: Session = Depends(get_db),
+                     settings: Settings = Depends(get_settings)):
+    """Thread (0.14): alle Teile als Liste. Der erste ist das Posting, die weiteren
+    werden wie "von Hand ergaenzte Teile" zu Wortlaut und Beleg zusammengesetzt."""
+    urls = []
+    for raw in thread_url[:40]:
+        for part in (_URL_IN_TEXT.findall(raw) or [raw.strip()]):
+            if part and part not in urls:
+                urls.append(part[:500])
+    if len(urls) < 2:
+        error = "Bitte mindestens zwei Links eintragen – für ein einzelnes Posting reicht der Reiter „Link“."
+        return render(request, "add.html", status_code=400, add_error=error, mode="thread",
+                      form_thread_urls=urls + [""] * (2 - len(urls)), form_note=note, form_tags=tags)
+    try:
+        post = await post_service.add_post(db, user, urls[0], note, tags, network=settings.network_enabled,
+                                           thread_extra="\n".join(urls[1:]))
+    except post_service.AddPostError as exc:
+        db.rollback()
+        return render(request, "add.html", status_code=400, add_error=str(exc), existing=exc.existing, mode="thread",
+                      form_thread_urls=urls, form_note=note, form_tags=tags)
+    _enqueue(request, post)
+    target = "/" if get_prefs(user)["after_add"] == "archive" else f"/posts/{post.id}"
+    return redirect(request, target, toast=f"Thread mit {len(urls)} Teilen archiviert. Wortlaut und Beleg werden geholt …")
+
+
 async def _read_files(files: list[UploadFile]) -> list[bytes]:
     from ..services.uploads import MAX_BYTES, MAX_FILES
 
@@ -214,7 +242,10 @@ def post_detail(request: Request, post_id: int, user: User = Depends(require_use
     in_lists = {link.list_id for link in post.list_links}
     other_lists = [pl for pl in db.scalars(select(PostList).order_by(PostList.title)) if pl.id not in in_lists]
     newer, older = post_service.neighbors(db, post)
-    return render(request, "post.html", post=post, other_lists=other_lists, newer=newer, older=older)
+    from .research import notes_for_post
+
+    return render(request, "post.html", post=post, other_lists=other_lists, newer=newer, older=older,
+                  notes=notes_for_post(db, post.id))
 
 
 @router.get("/posts/{post_id}/status")
@@ -366,12 +397,14 @@ def delete_post(request: Request, post_id: int, db: Session = Depends(get_db),
 
 
 @router.get("/tags/suggest")
-def tag_suggest(request: Request, tags: str = "", db: Session = Depends(get_db)):
-    # Vorschlaege fuer das zuletzt angefangene Tag (nach dem letzten Komma).
-    last = tags.split(",")[-1]
-    taken = set(post_service.parse_tag_input(",".join(tags.split(",")[:-1])))
-    names = [n for n in post_service.suggest_tags(db, last) if n not in taken]
-    return render(request, "partials/tag_suggestions.html", names=names)
+def tag_suggest(request: Request, tq: str = "", tags: str = "", db: Session = Depends(get_db)):
+    """Tag-Auswahl: vorhandene Tags zum Eingetippten (auch aehnlich geschriebene)."""
+    from ..services import tags as tag_service
+
+    taken = set(post_service.parse_tag_input(tags))
+    suggestions, new = tag_service.suggest(db, tq[:64], taken)
+    return render(request, "partials/tag_suggestions.html", suggestions=suggestions, new=new,
+                  query=post_service.normalize_tag(tq))
 
 
 @router.get("/avatars/{name}")

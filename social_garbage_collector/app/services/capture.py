@@ -219,7 +219,7 @@ class CaptureWorker:
                 if metas and metas[0]:
                     self._apply_metadata(db, post, main, metas[0])
                     if metas[0].long_post and not metas[0].text_complete:
-                        problems.append("Langer Beitrag: X liefert nur den Anfang, der Wortlaut ist gekürzt – bitte ergänzen.")
+                        problems.append("Langer Beitrag: X (Twitter) liefert nur den Anfang, der Wortlaut ist gekürzt – bitte ergänzen.")
                     # Wer hat das gesagt? Account + Profilbild sichern.
                     await accounts.apply_metadata(db, self.settings, client, post, metas[0])
                 # Bilder, GIFs, Videos aller Teile sichern (0.10.0)

@@ -6,7 +6,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}{% endblock %} · {{ APP_NAME }}</title>
-  <meta name="description" content="Quellenarchiv für öffentliche Postings von X und Bluesky">
+  <meta name="description" content="Quellenarchiv für öffentliche Postings von X (Twitter) und Bluesky">
   {# Homescreen: Vollbild ohne Browserleiste, Statusleiste über dem eigenen Hintergrund #}
   <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#16181c" media="(prefers-color-scheme: dark)">
@@ -41,6 +41,7 @@
     <nav class="nav-tabs" aria-label="Hauptnavigation">
       <a href="{{ url('/') }}" {% if nav == 'archive' %}aria-current="page"{% endif %}>Archiv</a>
       <a href="{{ url('/personen') }}" {% if nav == 'persons' %}aria-current="page"{% endif %}>Personen</a>
+      <a href="{{ url('/recherche') }}" {% if nav == 'research' %}aria-current="page"{% endif %}>Recherche</a>
       <a href="{{ url('/lists') }}" {% if nav == 'lists' %}aria-current="page"{% endif %}>Listen</a>
       <a href="{{ url('/galerie') }}" {% if nav == 'gallery' %}aria-current="page"{% endif %}>Galerie</a>
       <a href="{{ url('/generator') }}" {% if nav == 'generator' %}aria-current="page"{% endif %}>Suchgenerator</a>
@@ -52,14 +53,15 @@
       {% else %}
       <button class="btn sm btn-add" type="button" data-open="add-dialog" title="Posting zum Archiv hinzufügen (n)" aria-label="Posting hinzufügen">{{ icon('plus', 18) }}<span class="btn-add-label"> Posting hinzufügen</span></button>
       {% endif %}
+      <a class="hdr-help {{ 'is-current' if nav == 'help' }}" href="{{ url('/hilfe') }}" title="Hilfe & Anleitung" aria-label="Hilfe & Anleitung">{{ icon('help', 20) }}<span>Hilfe</span></a>
       <details class="menu">
         <summary aria-label="Kontomenü">{{ avatar(user, 36, "ring") }}</summary>
         <div class="menu-panel" role="menu">
           <div class="who">{{ avatar(user, 40) }}<div><strong>{{ user.name }}</strong><span class="faint xs">@{{ user.username }} · {{ 'Admin' if user.is_admin else 'Mitglied' }}</span></div></div>
           <a href="{{ url('/settings') }}" role="menuitem">{{ icon('settings', 18) }} Einstellungen</a>
           <a href="{{ url('/settings/konto') }}#passwort" role="menuitem">{{ icon('shield', 18) }} Passwort ändern</a>
-          <a href="{{ url('/settings/tags') }}" role="menuitem">{{ icon('tag', 18) }} Tags verwalten</a>
-          <a href="{{ url('/hilfe') }}" role="menuitem">{{ icon('share', 18) }} Teilen vom Handy &amp; FAQ</a>
+          <a href="{{ url('/settings/tags') }}" role="menuitem">{{ icon('tag', 18) }} Tags organisieren</a>
+          <a href="{{ url('/hilfe') }}" role="menuitem">{{ icon('help', 18) }} Hilfe &amp; Anleitung</a>
           <a href="{{ url('/ideen') }}" role="menuitem">{{ icon('sparkles', 18) }} Ideen &amp; Wünsche</a>
           {# Admin-Links existieren fuer Nicht-Admins gar nicht im HTML. #}
           {% if user.is_admin %}
@@ -83,7 +85,7 @@
 
 <footer class="app-footer">
   {{ APP_NAME }} <span class="version">v{{ VERSION }}</span> · Quellenarchiv für öffentliche Postings
-  {% if logged_in %}· <a href="{{ url('/hilfe') }}">Hilfe &amp; FAQ</a> · <a href="{{ url('/ideen') }}">Ideen</a>{% endif %}
+  {% if logged_in %}· <a href="{{ url('/hilfe') }}">Hilfe &amp; Anleitung</a> · <a href="{{ url('/ideen') }}">Ideen</a>{% endif %}
 </footer>
 
 {% if logged_in %}
@@ -93,9 +95,50 @@
   </a>
   <a href="{{ url('/personen') }}" {% if nav == 'persons' %}aria-current="page"{% endif %}>{{ icon('people', 25) }}<span>Personen</span></a>
   <button type="button" class="tab-add" data-open="{{ 'gallery-upload' if nav == 'gallery' else 'add-dialog' }}" aria-label="{{ 'Bilder & Videos hinzufügen' if nav == 'gallery' else 'Posting hinzufügen' }}"><span class="plus">{{ icon('plus', 26) }}</span></button>
-  <a href="{{ url('/lists') }}" {% if nav == 'lists' %}aria-current="page"{% endif %}>{{ icon('lists', 25) }}<span>Listen</span></a>
-  <a href="{{ url('/galerie') }}" {% if nav == 'gallery' %}aria-current="page"{% endif %}>{{ icon('image', 25) }}<span>Galerie</span></a>
+  <a href="{{ url('/recherche') }}" {% if nav == 'research' %}aria-current="page"{% endif %}>{{ icon('research', 25) }}<span>Recherche</span></a>
+  <button type="button" data-open="more-sheet" {% if nav in ('lists', 'gallery', 'generator', 'help', 'ideas') %}aria-current="page"{% endif %}>{{ icon('menu', 25) }}<span>Mehr</span></button>
 </nav>
+
+{# Handy: alles, was nicht in die Tab-Leiste passt #}
+<dialog class="sheet more-sheet" id="more-sheet" aria-labelledby="more-title">
+  <div class="sheet-grip"></div>
+  <div class="sheet-inner">
+    <div class="sheet-head"><h2 id="more-title">Mehr</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close') }}</button></div>
+    <div class="more-grid">
+      <a href="{{ url('/lists') }}">{{ icon('lists', 24) }}<span>Listen</span></a>
+      <a href="{{ url('/galerie') }}">{{ icon('image', 24) }}<span>Galerie</span></a>
+      <a href="{{ url('/generator') }}">{{ icon('search', 24) }}<span>Suchgenerator</span></a>
+      <a href="{{ url('/settings/tags') }}">{{ icon('tag', 24) }}<span>Tags</span></a>
+      <a href="{{ url('/hilfe') }}">{{ icon('help', 24) }}<span>Hilfe</span></a>
+      <a href="{{ url('/ideen') }}">{{ icon('sparkles', 24) }}<span>Ideen</span></a>
+    </div>
+  </div>
+</dialog>
+
+{# "Neu in x.x" (0.14): einmal je Feature-Version und Mitglied #}
+{% if release %}
+{% set rel_minor, rel = release %}
+<dialog class="sheet release-sheet" id="release-dialog" aria-labelledby="release-title" data-release-dialog>
+  <div class="sheet-grip"></div>
+  <form class="sheet-inner" method="post" action="{{ url('/neuigkeiten/gesehen') }}" data-release-form>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="release-head">
+      <span class="release-badge">Neu in {{ rel_minor }}</span>
+      <h2 id="release-title">{{ rel.title }}</h2>
+    </div>
+    <ul class="release-list">
+      {% for ico, title, text in rel.highlights %}
+      <li><span class="release-icon">{{ icon(ico, 20) }}</span><div><strong>{{ title }}</strong><p>{{ text }}</p></div></li>
+      {% endfor %}
+    </ul>
+    <div class="release-actions">
+      <a class="btn-ghost sm" href="{{ url('/settings/info') }}">Alle Änderungen</a>
+      <button class="btn" type="submit">Alles klar</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}
 
 {# Hinzufuegen-Sheet: von ueberall erreichbar (Knopf, Plus-Tab, Taste "n") #}
 <dialog class="sheet" id="add-dialog" aria-labelledby="add-title">

@@ -51,8 +51,8 @@ PREFS: tuple[Pref, ...] = (
          (("off", "Eingeklappt"), ("on", "Aufgeklappt")), "archiv"),
     # --- Suchgenerator ------------------------------------------------------
     Pref("gen_platform", "Standard-Plattform", "Mit welcher Plattform der Generator startet.", "x",
-         (("x", "X"), ("bluesky", "Bluesky")), "suchgenerator"),
-    Pref("gen_sort", "Sortierung bei X", "Ob „Auf X öffnen“ die neuesten oder die Top-Beiträge zeigt.", "latest",
+         (("x", "X (Twitter)"), ("bluesky", "Bluesky")), "suchgenerator"),
+    Pref("gen_sort", "Sortierung bei X (Twitter)", "Ob „Auf X (Twitter) öffnen“ die neuesten oder die Top-Beiträge zeigt.", "latest",
          (("latest", "Neueste"), ("top", "Top")), "suchgenerator"),
     # --- Bedienung ----------------------------------------------------------
     Pref("shortcuts", "Tastenkürzel", "„/“ sucht, „n“ fügt hinzu, „?“ zeigt alle.", "on",

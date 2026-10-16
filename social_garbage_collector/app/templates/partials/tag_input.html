@@ -1,19 +1,18 @@
-{# Tag-Eingabe mit Autovervollstaendigung und Schnellauswahl der meistgenutzten Tags.
+{# Tag-Auswahl (0.14): vorhandene Tags zuerst. Eintippen sucht in den vorhandenen
+   (auch aehnlich geschriebene), ein neuer Tag ist ein bewusster Extra-Klick.
    Erwartet field_value, optional field_label. Das Feld heisst immer "tags". #}
+{% from "partials/icons.html" import icon %}
 {% set _sid = 'tagsugg-' ~ range(100000, 999999)|random %}
-{% set _chosen = field_value.lower().replace('#', '').split(',') | map('trim') | list %}
-<div class="tag-input">
-  <label>{{ field_label or 'Tags' }} <small class="muted">(antippen oder mit Komma trennen)</small>
-    <input name="tags" value="{{ field_value }}" autocomplete="off" maxlength="600"
-           placeholder="z. B. energie, klima"
-           hx-get="{{ url('/tags/suggest') }}" hx-trigger="input changed delay:200ms"
-           hx-target="#{{ _sid }}" data-tag-input>
-  </label>
-  <div class="tag-suggestions" id="{{ _sid }}" aria-live="polite"></div>
-  {% set _quick = tag_choices(14) %}
-  {% if _quick %}
-  <div class="tag-quick" aria-label="Häufige Tags">
-    {% for name, n in _quick %}<button type="button" class="tag-pill" data-tag-quick="{{ name }}" aria-pressed="{{ 'true' if name in _chosen else 'false' }}">#{{ name }}</button>{% endfor %}
+{% set _chosen = field_value.lower().replace('#', '').split(',') | map('trim') | select | list %}
+<div class="tag-picker" data-tag-picker>
+  <span class="label-text">{{ field_label or 'Tags' }}</span>
+  <input type="hidden" name="tags" value="{{ _chosen|join(', ') }}" data-tag-value>
+  <div class="tp-box" data-tag-box>
+    <span class="tp-chips" data-tag-chips>{% for t in _chosen %}<button type="button" class="tp-chip" data-tag-remove="{{ t }}" title="#{{ t }} entfernen">#{{ t }}<span aria-hidden="true">×</span></button>{% endfor %}</span>
+    <input type="text" class="tp-input" name="tq" placeholder="{{ 'Weiteren Tag suchen …' if _chosen else 'Tag suchen …' }}" autocomplete="off"
+           autocapitalize="off" spellcheck="false" maxlength="64" aria-label="Tag suchen"
+           hx-get="{{ url('/tags/suggest') }}" hx-trigger="input changed delay:150ms, focus" hx-target="#{{ _sid }}"
+           hx-include="closest [data-tag-picker]" data-tag-query>
   </div>
-  {% endif %}
+  <div class="tp-results" id="{{ _sid }}" aria-live="polite" data-tag-results></div>
 </div>

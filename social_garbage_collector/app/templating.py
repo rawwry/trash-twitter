@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -75,6 +76,17 @@ def _tag_choices(ctx, limit: int = 200) -> list[tuple[str, int]]:
 
     rows = sorted(((t.name, n) for t, n in tag_counts(db) if n), key=lambda r: (-r[1], r[0]))
     return rows[:limit]
+
+
+@pass_context
+def _tag_tree(ctx):
+    """Oberbegriffe mit Unter-Tags und lose Tags (Archiv-Tagleiste, Tags verwalten)."""
+    db = getattr(ctx["request"].state, "db", None)
+    if db is None:
+        return [], []
+    from .services.tags import tree
+
+    return tree(db)
 
 
 @pass_context
@@ -193,6 +205,7 @@ env.globals.update(
     file_url=_file_url,
     list_choices=_all_lists,
     tag_choices=_tag_choices,
+    tag_tree=_tag_tree,
     post_avatar=_post_avatar,
     citation=citation,
     archive_no=archive_no,
@@ -226,6 +239,25 @@ def _qs_without(query_string: str, key: str, value: str | None = None) -> str:
 
 
 env.filters["qs_without"] = _qs_without
+
+_URL_RE = re.compile(r"https?://[^\s<>\"']+")
+
+
+def _richtext(text: str):
+    """Freitext sicher anzeigen: maskieren, Links klickbar, Absaetze und Zeilenumbrueche."""
+    from markupsafe import Markup, escape
+
+    def link(m):
+        url = m.group(0).rstrip(".,;:!?)")
+        rest = m.group(0)[len(url):]
+        return f'<a href="{url}" target="_blank" rel="noopener noreferrer">{url}</a>{rest}'
+
+    paras = [p.strip() for p in re.split(r"\n\s*\n", text or "") if p.strip()]
+    html = "".join(f"<p>{_URL_RE.sub(link, str(escape(p))).replace(chr(10), '<br>')}</p>" for p in paras)
+    return Markup(html)
+
+
+env.filters["richtext"] = _richtext
 
 
 # --- Toasts ------------------------------------------------------------------
@@ -266,6 +298,10 @@ def render(request: Request, name: str, status_code: int = 200, **context) -> HT
     prefs = context.setdefault("prefs", get_prefs(user))
     toast = _decode_toast(request.cookies.get(TOAST_COOKIE))
     context.setdefault("toast", toast)
+    if user is not None and not getattr(user, "must_change_password", False):
+        from .changelog import release_notice
+
+        context.setdefault("release", release_notice(VERSION, user.release_seen or ""))
     response = templates.TemplateResponse(request, name, context, status_code=status_code)
     if toast:
         response.delete_cookie(TOAST_COOKIE, path=(root_path(request) or "") + "/")
