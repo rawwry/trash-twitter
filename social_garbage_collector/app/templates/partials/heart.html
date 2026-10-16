@@ -1,0 +1,8 @@
+{# Herz-Knopf (0.16). Erwartet post; optional on (sonst aus my_hearts()), big (Detailseite). #}
+{% from "partials/icons.html" import icon %}
+{% set _on = on if on is defined else (post.id in my_hearts()) %}
+<button type="button" class="heart {{ 'is-on' if _on }} {{ 'act' if big }}" aria-pressed="{{ 'true' if _on else 'false' }}"
+        hx-post="{{ url('/posts/' ~ post.id ~ '/herz') }}{{ '?gross=1' if big }}" hx-swap="outerHTML"
+        title="{{ 'Herz zurücknehmen' if _on else 'Herz geben – richtig gutes Posting' }}" aria-label="{{ 'Herz zurücknehmen' if _on else 'Herz geben' }}">
+  {{ icon('heart', 18) }}<span class="heart-n">{% if big %}{{ post.hearts ~ ' ' if post.hearts }}Herz{{ 'en' if post.hearts != 1 }}{% else %}{{ post.hearts or '' }}{% endif %}</span>
+</button>

@@ -79,6 +79,24 @@ def _tag_choices(ctx, limit: int = 200) -> list[tuple[str, int]]:
 
 
 @pass_context
+def _my_hearts(ctx) -> set[int]:
+    """IDs der Postings, die das angemeldete Mitglied mit Herz markiert hat (einmal je Anfrage)."""
+    request = ctx["request"]
+    cached = getattr(request.state, "my_hearts", None)
+    if cached is not None:
+        return cached
+    db, user = getattr(request.state, "db", None), getattr(request.state, "user", None)
+    if db is None or user is None:
+        return set()
+    from sqlalchemy import select
+
+    from .models import PostHeart
+
+    request.state.my_hearts = set(db.scalars(select(PostHeart.post_id).where(PostHeart.user_id == user.id)))
+    return request.state.my_hearts
+
+
+@pass_context
 def _tag_tree(ctx):
     """Oberbegriffe mit Unter-Tags und lose Tags (Archiv-Tagleiste, Tags verwalten)."""
     db = getattr(ctx["request"].state, "db", None)
@@ -206,6 +224,7 @@ env.globals.update(
     list_choices=_all_lists,
     tag_choices=_tag_choices,
     tag_tree=_tag_tree,
+    my_hearts=_my_hearts,
     post_avatar=_post_avatar,
     citation=citation,
     archive_no=archive_no,

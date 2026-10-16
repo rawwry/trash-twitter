@@ -25,7 +25,7 @@
     <label class="atb-sort" title="Sortierung">
       {{ icon('sort', 17) }}
       <select name="sort" aria-label="Sortierung">
-        {% for key, label in [('new', 'Zuletzt archiviert'), ('old', 'Zuerst archiviert'), ('posted', 'Neueste Postings'), ('posted_old', 'Älteste Postings')] %}
+        {% for key, label in [('new', 'Zuletzt archiviert'), ('old', 'Zuerst archiviert'), ('posted', 'Neueste Postings'), ('posted_old', 'Älteste Postings'), ('herzen', '♥ Meiste Herzen')] %}
         <option value="{{ key }}" {% if f.sort == key %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>

@@ -256,6 +256,7 @@ class CaptureWorker:
                     if meta is not None and meta.long_post and meta.text_complete and meta.text:
                         part.full_text = meta.text
                 for i, part in enumerate(parts):
+                    part.thread_index = i
                     raw = target.with_name(f"{target.stem}.teil{i}.png")
                     try:
                         captures.append(await service.capture(part, browser, raw, dark=dark))

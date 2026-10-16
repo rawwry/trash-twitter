@@ -271,7 +271,7 @@ class ArchiveFilter:
 
 
 # posted: nach Datum des Postings (Standard), new/old: nach Archivierung.
-SORTS = {"posted", "posted_old", "new", "old"}
+SORTS = {"posted", "posted_old", "new", "old", "herzen"}
 
 
 def _parse_date(value: str | None) -> date | None:
@@ -364,6 +364,8 @@ def archive_query(f: ArchiveFilter) -> Select:
     if conds:
         stmt = stmt.where(and_(*conds))
 
+    if f.sort == "herzen":
+        return stmt.where(Post.hearts > 0).order_by(Post.hearts.desc(), said.desc(), Post.id.desc())
     if f.sort == "new":
         return stmt.order_by(Post.created_at.desc(), Post.id.desc())
     if f.sort == "old":

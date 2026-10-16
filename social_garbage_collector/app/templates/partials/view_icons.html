@@ -1,0 +1,7 @@
+{# Ansicht umschalten (Raster, Liste, Zeitachse) - fuer Listen. Erwartet view und base_url. #}
+{% from "partials/icons.html" import icon %}
+<nav class="view-icons" aria-label="Darstellung">
+  {% for key, ico, label in [('raster', 'grid', 'Raster'), ('list', 'rows', 'Liste'), ('timeline', 'timeline', 'Zeitachse')] %}
+  <a href="{{ base_url }}?view={{ key }}" title="{{ label }}" aria-label="{{ label }}" {% if view == key %}aria-current="true"{% endif %}>{{ icon(ico, 19) }}</a>
+  {% endfor %}
+</nav>

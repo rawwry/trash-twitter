@@ -27,10 +27,10 @@ def _png(w=800, h=600, color=(200, 30, 30)) -> bytes:
 # --- Darstellungen -----------------------------------------------------------------
 
 def test_views_render_and_are_remembered(user_client, harness):
-    """Seit 0.6: Karten, Liste, Zeitachse (Raster/Mosaik zeigten Screenshots)."""
+    """Seit 0.16: Raster (Standard), Liste, Zeitachse - die Karten-Ansicht ist entfallen."""
     for i in range(3):
         _add(user_client, f"https://x.com/a/status/{100 + i}")
-    for view, marker in (("cards", 'class="quote '), ("timeline", 'class="tl-month'), ("list", 'class="qrow')):
+    for view, marker in (("raster", 'class="qtile"'), ("timeline", 'class="tl-month'), ("list", 'class="qrow')):
         page = user_client.get(f"/?view={view}").text
         assert marker in page, view
         assert get_prefs(harness.get_user("anna"))["archive_view"] == view
@@ -39,7 +39,7 @@ def test_views_render_and_are_remembered(user_client, harness):
     user_client.get("/?view=timeline")
     assert 'class="tl-month' in user_client.get("/").text
     # ungueltige (auch alte) Ansicht wird ignoriert
-    user_client.get("/?view=mosaic")
+    user_client.get("/?view=cards")  # alte Karten-Ansicht wird ignoriert
     assert get_prefs(harness.get_user("anna"))["archive_view"] == "timeline"
 
 

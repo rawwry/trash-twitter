@@ -181,7 +181,7 @@ def test_quote_card_and_citation(user_client, harness):
         p.posted_at = datetime(2006, 3, 21, 20, 50)
         db.commit()
         pid = p.id
-    page = user_client.get("/").text
+    page = user_client.get("/?view=timeline").text
     assert 'class="quote ' in page and "just setting up my twttr" in page and "Nr. 000001" in page
     detail = user_client.get(f"/posts/{pid}").text
     assert "Quellenangabe" in detail and "Archiv-Nr." in detail

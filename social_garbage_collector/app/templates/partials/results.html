@@ -24,7 +24,7 @@
       {% endif %}
       {# Darstellung umschalten - wird pro Person gemerkt #}
       <nav class="view-icons" aria-label="Darstellung">
-        {% for key, ico, label in [('cards', 'cards', 'Karten'), ('raster', 'grid', 'Raster'), ('list', 'rows', 'Liste'), ('timeline', 'timeline', 'Zeitachse')] %}
+        {% for key, ico, label in [('raster', 'grid', 'Raster'), ('list', 'rows', 'Liste'), ('timeline', 'timeline', 'Zeitachse')] %}
         <a href="{{ url('/') }}?{{ query_string }}{{ '&' if query_string }}view={{ key }}" title="{{ label }}" aria-label="{{ label }}"
            {% if view == key %}aria-current="true"{% endif %}>{{ icon(ico, 19) }}</a>
         {% endfor %}

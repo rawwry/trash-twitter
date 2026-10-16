@@ -31,6 +31,9 @@ class ParsedPost:
     # Voller Wortlaut eines langen Beitrags (falls bekannt). Die Aufnahme setzt ihn
     # dann anstelle der gekuerzten Fassung ("Mehr anzeigen") ins Bild.
     full_text: str | None = None
+    # 0.16: Position im Thread (0 = Anfang). Ab Teil 2 zeigt der Beleg nur noch
+    # Wortlaut und Medien - Kopf, "Antwort an" und Zeit stehen schon im ersten Teil.
+    thread_index: int = 0
 
 
 @dataclass

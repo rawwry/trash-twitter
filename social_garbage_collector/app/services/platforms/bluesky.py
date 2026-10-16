@@ -53,6 +53,40 @@ FLATTEN_CSS = (
 )
 
 
+# Beleg ohne Bedienelemente (0.16): "Follow" und die Zaehler (Likes, Reposts,
+# Antworten) fallen weg. Ab dem zweiten Thread-Teil (cont) auch Kopf und
+# Zeitzeile - die stehen im ersten Teil.
+CLEAN_JS = """cont => {
+  // Die Karte ist das Element, in dem der Wortlaut-Absatz direkt steht.
+  const text = document.querySelector('#app p');
+  const card = text && text.parentElement;
+  if (!card) return 0;
+  let n = 0;
+  for (const a of card.querySelectorAll('a')) {
+    if (/^(Follow|Folgen)$/.test((a.textContent || '').trim())) {
+      const dot = a.previousElementSibling;
+      if (dot && (dot.textContent || '').trim() === '·') dot.remove();
+      a.remove();
+      n++;
+    }
+  }
+  const time = card.querySelector('time');
+  const link = time && time.closest('a');
+  const stats = link && link.previousElementSibling;
+  if (stats && !stats.querySelector('time') && /\\d/.test(stats.textContent || '')) { stats.remove(); n++; }
+  if (cont) {
+    const head = card.firstElementChild;
+    if (head && !head.matches('p') && head.querySelector('a[href*="/profile/"]') && !head.querySelector('time')) { head.remove(); n++; }
+    if (time) {
+      let row = time;
+      while (row.parentElement && row.parentElement !== card) row = row.parentElement;
+      if (row.parentElement === card) { row.remove(); n++; }
+    }
+  }
+  return n;
+}"""
+
+
 def is_did(value: str) -> bool:
     return bool(_DID.match(value or ""))
 
@@ -214,6 +248,7 @@ class BlueskyService:
                 raise PlatformError("Embed zeigt keinen Beitrag")
             await page.wait_for_load_state("networkidle", timeout=10_000)
             await page.add_style_tag(content=FLATTEN_CSS)
+            await page.evaluate(CLEAN_JS, parsed.thread_index > 0)
             await fill_page_background(card)
             await card.screenshot(path=str(target))
             return CaptureResult(screenshot=target, method="embed")

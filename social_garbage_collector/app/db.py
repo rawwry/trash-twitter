@@ -117,6 +117,7 @@ _ADDED_COLUMNS = {
         ("import_batch", "VARCHAR(16)"),
         ("media_checked", "BOOLEAN NOT NULL DEFAULT 0"),
         ("platform_auto", "BOOLEAN NOT NULL DEFAULT 0"),
+        ("hearts", "INTEGER NOT NULL DEFAULT 0"),
         ("shot_parsed", "BOOLEAN NOT NULL DEFAULT 0"),
     ],
     "post_media": [
@@ -171,7 +172,16 @@ def _migrate(conn) -> None:
     conn.execute(text("UPDATE posts SET date_source = 'manual', date_has_time = 0 WHERE date_source IS NULL "
                       "AND posted_at IS NOT NULL AND shot_source = 'upload' AND url = ''"))
     conn.execute(text("UPDATE posts SET date_source = 'api' WHERE date_source IS NULL AND posted_at IS NOT NULL"))
-    conn.execute(text("PRAGMA user_version = 7"))
+    # 0.16: Herz-Zaehler mit der Tabelle abgleichen (billig, haelt ihn ehrlich)
+    conn.execute(text("UPDATE posts SET hearts = (SELECT count(*) FROM post_hearts WHERE post_hearts.post_id = posts.id) "
+                      "WHERE hearts != (SELECT count(*) FROM post_hearts WHERE post_hearts.post_id = posts.id)"))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_posts_hearts ON posts(hearts)"))
+    # 0.16: Thread-Belege einmal neu aufnehmen - ab Teil 2 ohne Kopf, "Antwort an",
+    # "Folgen" und Datum. Nur automatisch aufgenommene, von Hand ersetzte bleiben.
+    if (conn.execute(text("PRAGMA user_version")).scalar() or 0) < 8:
+        conn.execute(text("UPDATE posts SET status = 'pending', status_message = 'Thread-Beleg wird neu aufgenommen …' "
+                          "WHERE thread_count > 1 AND shot_source != 'upload' AND status = 'done'"))
+    conn.execute(text("PRAGMA user_version = 8"))
 
 
 def backup_database(db_path: Path, backup_dir: Path, keep: int) -> Path | None:

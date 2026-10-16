@@ -7,8 +7,30 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from ..models import Account, ListPost, Post, PostList, User
+from ..prefs import get_prefs, update_prefs
 from ..security import get_db, require_user
 from ..templating import redirect, render
+
+VIEWS = ("raster", "list", "timeline")
+
+
+def _remember(request: Request, user: User, db: Session, key: str, param: str) -> dict:
+    """?view=/?ansicht= umschalten und fuer das naechste Mal merken."""
+    value = request.query_params.get(param)
+    if value and update_prefs(user, {key: value}):
+        db.commit()
+    return get_prefs(user)
+
+
+def _hearts_summary(db: Session) -> tuple[int, list]:
+    """Herzstuecke: Anzahl und bis zu 5 Gesichter."""
+    from ..models import Person
+
+    n = db.scalar(select(func.count()).select_from(Post).where(Post.hearts > 0)) or 0
+    faces = list(db.scalars(
+        select(Person).join(Account, Account.person_id == Person.id).join(Post, Post.account_id == Account.id)
+        .where(Post.hearts > 0).group_by(Person.id).order_by(func.sum(Post.hearts).desc()).limit(5)))
+    return n, faces
 
 router = APIRouter(dependencies=[Depends(require_user)])
 
@@ -53,9 +75,25 @@ def _faces(db: Session, list_ids: list[int]) -> dict[int, list]:
 
 
 @router.get("/lists")
-def overview(request: Request, db: Session = Depends(get_db)):
+def overview(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    prefs = _remember(request, user, db, "lists_overview", "ansicht")
     rows = _overview_rows(db)
-    return render(request, "lists.html", lists=rows, faces=_faces(db, [r[0].id for r in rows]))
+    hearts_n, hearts_faces = _hearts_summary(db)
+    return render(request, "lists.html", lists=rows, faces=_faces(db, [r[0].id for r in rows]),
+                  ansicht=prefs["lists_overview"], hearts_n=hearts_n, hearts_faces=hearts_faces)
+
+
+@router.get("/lists/herzstuecke")
+def hearts_list(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """Automatische Liste (0.16): alle Postings mit Herz, die meisten zuerst."""
+    prefs = _remember(request, user, db, "list_view", "view")
+    posts = list(db.scalars(
+        select(Post).where(Post.hearts > 0)
+        .options(selectinload(Post.tags), selectinload(Post.added_by), selectinload(Post.media),
+                 selectinload(Post.account).selectinload(Account.person))
+        .order_by(Post.hearts.desc(), func.coalesce(Post.posted_at, Post.created_at).desc(), Post.id.desc())
+    ))
+    return render(request, "list_hearts.html", posts=posts, view=prefs["list_view"], nav="lists")
 
 
 @router.post("/lists")
@@ -149,14 +187,15 @@ def describe(request: Request, list_id: int, description: str = Form(""), db: Se
 @router.get("/lists/{list_id}")
 def detail(request: Request, list_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
     pl = _get_list(db, list_id)
+    prefs = _remember(request, user, db, "list_view", "view")
     posts = list(db.scalars(
         select(Post).join(ListPost, ListPost.post_id == Post.id)
         .where(ListPost.list_id == pl.id)
-        .options(selectinload(Post.tags), selectinload(Post.added_by),
+        .options(selectinload(Post.tags), selectinload(Post.added_by), selectinload(Post.media),
                  selectinload(Post.account).selectinload(Account.person))
         .order_by(func.coalesce(Post.posted_at, Post.created_at).asc(), Post.id.asc())
     ))
-    return render(request, "list.html", plist=pl, posts=posts)
+    return render(request, "list.html", plist=pl, posts=posts, view=prefs["list_view"])
 
 
 @router.post("/lists/{list_id}/rename")

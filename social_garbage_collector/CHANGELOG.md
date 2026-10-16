@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.0 – Herzstücke, aufgeräumte Threads, neue Handy-Leiste (17.10.2026)
+
+- **Herzen:** Tabelle `post_hearts` (ein Herz je Mitglied und Posting), Zähler `posts.hearts` (beim Start mit der Tabelle abgeglichen). Herz-Knopf in Raster (unten rechts, bei Herzen immer sichtbar), Liste, Zeitachse und Detailseite (`POST /posts/{id}/herz`, htmx). Automatische Liste **Herzstücke** (`/lists/herzstuecke`, meiste Herzen zuerst) als erste Kachel unter Listen; Sortierung „Meiste Herzen“ im Idiotarium.
+- **Thread-Belege:** `ParsedPost.thread_index`; ab Teil 2 entfernt `CLEAN_JS` alles vor dem Wortlaut (Profilbild, Name, Handle, Plattform-Logo, „Antwort an …“) und die Zeitzeile. „Folgen“/„Follow“ fällt in allen Teilen weg, bei Bluesky zusätzlich die Zähler (Likes, Reposts, Antworten). Bestehende Thread-Postings werden beim ersten Start einmal neu aufgenommen (`PRAGMA user_version` 8).
+- **Ansichten:** Karten-Ansicht im Idiotarium entfernt, Raster ist Standard (gespeicherte „Karten“ fallen auf Raster zurück). Listen: Übersicht Kacheln/Zeilen (`lists_overview`), jede Liste Raster/Liste/Zeitachse (`list_view`), jeweils gemerkt.
+- **Handy-Leiste:** Archiv · Personen · Recherche · Listen · Galerie, „Hinzufügen“ als schwebender Knopf (FAB) rechts unten; „Mehr“-Sheet entfernt, Suchgenerator im Profil-Menü. Detail-Aktionen am Handy in zwei Reihen.
+
 ## 0.15.1 – Keine Fehler 500 mehr, Feinschliff (17.10.2026)
 
 - **Verbindungs-Leck behoben (Hauptursache der 500er):** `get_db()` schließt die Sitzung bei einer Exception *vor* dem Fehler-Handler. Der rendert die Fehlerseite und fragt dabei erneut die DB → neue Verbindung, die nie zurückkam. Nach 15 Fehlerseiten (404/403) war der Pool (5 + 10) leer, jede weitere Anfrage wartete 30 s und endete in `QueuePool limit … reached` → 500. Jetzt schließt die Middleware die Sitzung am Ende jeder Anfrage, die Fehler-Handler ebenfalls (`_close_request_db`). Test: 80 Fehlerseiten, danach 0 ausgeliehene Verbindungen.

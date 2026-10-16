@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse, Response
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..config import Settings, UnsafePathError, safe_path
@@ -394,6 +394,26 @@ def delete_post(request: Request, post_id: int, db: Session = Depends(get_db),
 
         return toast_header(Response(status_code=200), "Posting gelöscht")
     return redirect(request, "/", toast="Posting aus dem Archiv gelöscht")
+
+
+@router.post("/posts/{post_id}/herz")
+def toggle_heart(request: Request, post_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
+    """Herz an/aus (0.16). Antwortet htmx mit dem neuen Knopf."""
+    from ..models import PostHeart
+
+    post = _get_post(db, post_id)
+    existing = db.get(PostHeart, (post.id, user.id))
+    if existing:
+        db.delete(existing)
+    else:
+        db.add(PostHeart(post_id=post.id, user_id=user.id))
+    db.flush()
+    post.hearts = db.scalar(select(func.count()).select_from(PostHeart).where(PostHeart.post_id == post.id)) or 0
+    db.commit()
+    if request.headers.get("hx-request"):
+        return render(request, "partials/heart.html", post=post, on=existing is None,
+                      big=request.query_params.get("gross") == "1")
+    return redirect(request, f"/posts/{post.id}")
 
 
 @router.get("/tags/suggest")

@@ -35,9 +35,13 @@ PREFS: tuple[Pref, ...] = (
     Pref("motion", "Animationen", "„Reduziert“ schaltet Übergänge ab.", "system",
          (("system", "System"), ("full", "An"), ("reduced", "Reduziert")), "darstellung", live=True),
     # --- Archiv -------------------------------------------------------------
-    Pref("archive_view", "Ansicht", "Karten: Zitate mit allen Angaben. Raster: gleich große Kacheln, nur Name, Text und Datum. Liste: eine Zeile pro Posting. "
-         "Zeitachse: nach Monaten, in voller Länge.", "cards",
-         (("cards", "Karten"), ("raster", "Raster"), ("list", "Liste"), ("timeline", "Zeitachse")), "archiv"),
+    Pref("archive_view", "Ansicht", "Raster: Kacheln mit dem ganzen Wortlaut. Liste: eine Zeile pro Posting. "
+         "Zeitachse: nach Monaten, mit allen Angaben.", "raster",
+         (("raster", "Raster"), ("list", "Liste"), ("timeline", "Zeitachse")), "archiv"),
+    Pref("list_view", "Ansicht in Listen", "Wie die Postings einer Liste erscheinen.", "raster",
+         (("raster", "Raster"), ("list", "Liste"), ("timeline", "Zeitachse")), "archiv"),
+    Pref("lists_overview", "Listen-Übersicht", "Kacheln mit Gesichtern oder kompakte Zeilen.", "tiles",
+         (("tiles", "Kacheln"), ("rows", "Zeilen")), "archiv"),
     Pref("sort", "Sortierung", "Standard: zuletzt archivierte Postings zuerst.", "new",
          (("new", "Zuletzt archiviert"), ("old", "Zuerst archiviert"),
           ("posted", "Neueste Postings"), ("posted_old", "Älteste Postings")), "archiv"),

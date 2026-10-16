@@ -86,6 +86,7 @@
       </form>
 
       <div class="lead-actions" role="toolbar" aria-label="Aktionen">
+        {% with big=True %}{% include "partials/heart.html" %}{% endwith %}
         {% if post.url %}<a class="act" href="{{ post.url }}" target="_blank" rel="noopener noreferrer" title="Original öffnen">{{ icon('external', 18) }}<span>Original</span></a>{% endif %}
         {% if post.text %}<button class="act" type="button" data-copy-text="{{ post.text }}" title="Wortlaut kopieren">{{ icon('copy', 18) }}<span>Text</span></button>{% endif %}
         <button class="act" type="button" data-copy-text="{{ citation(post) }}" title="Quellenangabe kopieren: {{ citation(post) }}">{{ icon('quote', 18) }}<span>Zitieren</span></button>

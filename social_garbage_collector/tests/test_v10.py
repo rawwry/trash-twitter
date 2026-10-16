@@ -159,7 +159,7 @@ def test_save_media_and_serve(user_client, harness, monkeypatch):
         paths = [m.path for m in items]
     page = user_client.get(f"/posts/{pid}").text
     assert "lead-media" in page and "<video" in page and "Grafik" in page
-    assert "▶ 2 Videos" in user_client.get("/").text
+    assert "▶ 2 Videos" in user_client.get("/?view=timeline").text
     r = user_client.get("/medien/" + paths[1], headers={"Range": "bytes=0-9"})
     assert r.status_code == 206 and len(r.content) == 10  # Spulen in Videos
     assert user_client.get("/medien/db/archiv.sqlite").status_code == 404

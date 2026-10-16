@@ -172,3 +172,47 @@ def test_error_pages_do_not_leak_db_connections(user_client, harness):
         assert user_client.get(f"/recherche/{900000 + i}").status_code == 404
     assert pool.checkedout() == 0
     assert user_client.get("/").status_code == 200
+
+
+# --- 0.16: Herzen, Listen-Ansichten, Thread-Belege ----------------------------------------------
+
+def test_hearts_and_herzstuecke(user_client, admin_client, harness):
+    from app.models import Post
+    _add(user_client, "https://x.com/a/status/1")
+    _add(user_client, "https://x.com/a/status/2")
+    r = user_client.post("/posts/2/herz", data={"csrf_token": user_client.csrf}, headers={"HX-Request": "true"})
+    assert r.status_code == 200 and 'aria-pressed="true"' in r.text and "is-on" in r.text
+    admin_client.post("/posts/2/herz", data={"csrf_token": admin_client.csrf}, headers={"HX-Request": "true"})
+    admin_client.post("/posts/1/herz", data={"csrf_token": admin_client.csrf}, headers={"HX-Request": "true"})
+    with harness.db() as db:
+        assert db.get(Post, 2).hearts == 2 and db.get(Post, 1).hearts == 1
+    page = user_client.get("/lists/herzstuecke").text
+    assert page.index('data-post="2"') < page.index('data-post="1"')  # meiste Herzen zuerst
+    assert "Herzstücke" in user_client.get("/lists").text
+    assert user_client.get("/?sort=herzen").text.count('data-post="') == 2
+    # zuruecknehmen
+    r = user_client.post("/posts/2/herz", data={"csrf_token": user_client.csrf}, headers={"HX-Request": "true"})
+    assert 'aria-pressed="false"' in r.text
+    with harness.db() as db:
+        assert db.get(Post, 2).hearts == 1
+
+
+def test_list_views(user_client, harness):
+    from app.prefs import get_prefs
+    _add(user_client, "https://x.com/a/status/1")
+    user_client.post("/lists", data={"title": "Klima", "csrf_token": user_client.csrf})
+    user_client.post("/posts/1/lists/1/toggle", data={"csrf_token": user_client.csrf})
+    assert 'class="qtile"' in user_client.get("/lists/1").text  # Standard: Raster
+    assert 'class="qrow"' in user_client.get("/lists/1?view=list").text
+    assert get_prefs(harness.get_user("anna"))["list_view"] == "list"
+    assert 'class="list-rows"' in user_client.get("/lists?ansicht=rows").text
+    assert 'class="list-tiles"' in user_client.get("/lists?ansicht=tiles").text
+    assert 'view=cards' not in user_client.get("/").text  # Karten-Ansicht entfallen
+
+
+def test_thread_parts_know_their_position():
+    from app.services.platforms import bluesky, x
+    from app.services.platforms.base import ParsedPost
+    assert ParsedPost("x", "1", "a", "u").thread_index == 0
+    assert "tweetText" in x.CLEAN_JS and "Folgen" in x.CLEAN_JS
+    assert "#app p" in bluesky.CLEAN_JS

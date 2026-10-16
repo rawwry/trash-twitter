@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% set nav = 'lists' %}
+{% block title %}Herzstücke{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url('/lists') }}">{{ icon('chev-left', 18) }} Listen</a>
+<header class="page-header">
+  <div class="ph-text">
+    <p class="eyebrow hearts-eyebrow">{{ icon('heart', 13) }} Automatische Liste</p>
+    <h1>Herzstücke</h1>
+    <p class="sub">Die Postings, die euch am meisten überzeugt haben – je mehr Herzen, desto weiter oben. Herzen gibst du mit ♥ an jedem Posting.</p>
+  </div>
+</header>
+{% if posts %}
+<div class="results-bar list-results">
+  <span class="result-count"><strong>{{ posts|length }}</strong> {{ 'Posting' if posts|length == 1 else 'Postings' }} mit Herz</span>
+  {% with base_url=url('/lists/herzstuecke') %}{% include "partials/view_icons.html" %}{% endwith %}
+</div>
+<div class="posts view-{{ view }}" {% if view == 'raster' %}id="post-grid"{% endif %}>
+  {% with plist=None %}{% include "partials/cards_page.html" %}{% endwith %}
+</div>
+{% else %}
+<div class="empty-state">
+  <span class="empty-icon hearts">{{ icon('heart', 30) }}</span>
+  <h2>Noch keine Herzstücke</h2>
+  <p>Gib einem richtig guten Posting ein Herz (♥ an der Kachel oder in der Detailansicht) – es landet automatisch hier.</p>
+  <a class="btn" href="{{ url('/') }}">Zum Idiotarium</a>
+</div>
+{% endif %}
+{% endblock %}

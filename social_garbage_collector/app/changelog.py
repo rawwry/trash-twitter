@@ -7,6 +7,24 @@ Ab 0.14 (Timo): Jede x.x-Version (Feature-Release, nicht x.x.x) bekommt
 
 CHANGES = [
     {
+        "version": "0.16.0",
+        "date": "17.10.2026",
+        "title": "Herzstücke, aufgeräumte Threads, neue Handy-Leiste",
+        "highlights": [
+            ("heart", "Herzen & Herzstücke", "Gib richtig guten Postings ein Herz. Sie landen automatisch in der Liste „Herzstücke“ – die mit den meisten Herzen zuerst."),
+            ("timeline", "Threads wie aus einem Guss", "Im Beleg stehen Name, Handle und Datum nur noch einmal oben – ohne „Folgen“ und „Antwort an“. Vorhandene Threads werden einmal neu aufgenommen."),
+            ("lists", "Listen mit Ansichten", "Übersicht als Kacheln oder Zeilen, jede Liste als Raster, Liste oder Zeitachse."),
+            ("image", "Galerie direkt in der Handy-Leiste", "Unten: Archiv, Personen, Recherche, Listen, Galerie. Das Plus schwebt rechts darüber."),
+        ],
+        "items": [
+            "Herzen für Postings (je Mitglied eins), automatische Liste „Herzstücke“, Sortierung „Meiste Herzen“",
+            "Thread-Belege: ab dem zweiten Teil nur noch Wortlaut und Medien; „Folgen“ und Bluesky-Zähler fallen immer weg; bestehende Threads werden einmal neu aufgenommen",
+            "Idiotarium: Karten-Ansicht entfallen, Raster ist Standard",
+            "Listen: Übersicht als Kacheln oder Zeilen, Listen als Raster, Liste oder Zeitachse",
+            "Handy: fünf Ziele unten inklusive Galerie, „Hinzufügen“ als schwebender Knopf, „Mehr“ entfällt (Suchgenerator im Profil-Menü)",
+        ],
+    },
+    {
         "version": "0.15.1",
         "date": "17.10.2026",
         "title": "Keine Fehler 500 mehr, Feinschliff",

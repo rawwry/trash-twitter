@@ -61,6 +61,7 @@
           <a href="{{ url('/settings') }}" role="menuitem">{{ icon('settings', 18) }} Einstellungen</a>
           <a href="{{ url('/settings/konto') }}#passwort" role="menuitem">{{ icon('shield', 18) }} Passwort ändern</a>
           <a href="{{ url('/settings/tags') }}" role="menuitem">{{ icon('tag', 18) }} Tags organisieren</a>
+          <a href="{{ url('/generator') }}" role="menuitem" class="menu-mobile">{{ icon('search', 18) }} Suchgenerator</a>
           <a href="{{ url('/hilfe') }}" role="menuitem">{{ icon('help', 18) }} Hilfe &amp; Anleitung</a>
           <a href="{{ url('/ideen') }}" role="menuitem">{{ icon('sparkles', 18) }} Ideen &amp; Wünsche</a>
           {# Admin-Links existieren fuer Nicht-Admins gar nicht im HTML. #}
@@ -90,31 +91,15 @@
 
 {% if logged_in %}
 <nav class="tabbar" aria-label="Navigation">
-  <a href="{{ url('/') }}" {% if nav == 'archive' %}aria-current="page"{% endif %}>
-    {{ icon('archive', 25) }}<span>Archiv</span>
-  </a>
-  <a href="{{ url('/personen') }}" {% if nav == 'persons' %}aria-current="page"{% endif %}>{{ icon('people', 25) }}<span>Personen</span></a>
-  <button type="button" class="tab-add" data-open="{{ 'gallery-upload' if nav == 'gallery' else 'add-dialog' }}" aria-label="{{ 'Bilder & Videos hinzufügen' if nav == 'gallery' else 'Posting hinzufügen' }}"><span class="plus">{{ icon('plus', 26) }}</span></button>
-  <a href="{{ url('/recherche') }}" {% if nav == 'research' %}aria-current="page"{% endif %}>{{ icon('research', 25) }}<span>Recherche</span></a>
-  <button type="button" data-open="more-sheet" {% if nav in ('lists', 'gallery', 'generator', 'help', 'ideas') %}aria-current="page"{% endif %}>{{ icon('menu', 25) }}<span>Mehr</span></button>
+  <a href="{{ url('/') }}" {% if nav == 'archive' %}aria-current="page"{% endif %}>{{ icon('archive', 24) }}<span>Archiv</span></a>
+  <a href="{{ url('/personen') }}" {% if nav == 'persons' %}aria-current="page"{% endif %}>{{ icon('people', 24) }}<span>Personen</span></a>
+  <a href="{{ url('/recherche') }}" {% if nav == 'research' %}aria-current="page"{% endif %}>{{ icon('research', 24) }}<span>Recherche</span></a>
+  <a href="{{ url('/lists') }}" {% if nav == 'lists' %}aria-current="page"{% endif %}>{{ icon('lists', 24) }}<span>Listen</span></a>
+  <a href="{{ url('/galerie') }}" {% if nav == 'gallery' %}aria-current="page"{% endif %}>{{ icon('image', 24) }}<span>Galerie</span></a>
 </nav>
-
-{# Handy: alles, was nicht in die Tab-Leiste passt #}
-<dialog class="sheet more-sheet" id="more-sheet" aria-labelledby="more-title">
-  <div class="sheet-grip"></div>
-  <div class="sheet-inner">
-    <div class="sheet-head"><h2 id="more-title">Mehr</h2>
-      <button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close') }}</button></div>
-    <div class="more-grid">
-      <a href="{{ url('/lists') }}">{{ icon('lists', 24) }}<span>Listen</span></a>
-      <a href="{{ url('/galerie') }}">{{ icon('image', 24) }}<span>Galerie</span></a>
-      <a href="{{ url('/generator') }}">{{ icon('search', 24) }}<span>Suchgenerator</span></a>
-      <a href="{{ url('/settings/tags') }}">{{ icon('tag', 24) }}<span>Tags</span></a>
-      <a href="{{ url('/hilfe') }}">{{ icon('help', 24) }}<span>Hilfe</span></a>
-      <a href="{{ url('/ideen') }}">{{ icon('sparkles', 24) }}<span>Ideen</span></a>
-    </div>
-  </div>
-</dialog>
+{# Handy: Hinzufuegen als schwebender Knopf - richtet sich nach dem Bereich #}
+<button type="button" class="fab" data-open="{{ 'gallery-upload' if nav == 'gallery' else 'add-dialog' }}"
+        aria-label="{{ 'Bilder & Videos hinzufügen' if nav == 'gallery' else 'Posting hinzufügen' }}">{{ icon('plus', 26) }}</button>
 
 {# "Neu in x.x" (0.14): einmal je Feature-Version und Mitglied #}
 {% if release %}

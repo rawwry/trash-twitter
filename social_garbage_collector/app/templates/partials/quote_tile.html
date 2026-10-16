@@ -19,4 +19,5 @@
     {% if first and post.text %}<span class="qtile-media"><img src="{{ url('/medien/' ~ first.thumb_path) }}" alt="" loading="lazy" decoding="async">{% if post.media|length > 1 %}<span class="q-more">+{{ post.media|length - 1 }}</span>{% endif %}</span>{% endif %}
     <time class="qtile-date" datetime="{{ post.said_at.isoformat() }}Z">{{ post.posted_at|localtime('%d.%m.%Y') if post.posted_at else '' }}</time>
   </a>
+  <div class="qtile-heart {{ 'has-hearts' if post.hearts }}">{% include "partials/heart.html" %}</div>
 </article>

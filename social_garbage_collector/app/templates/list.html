@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% from "partials/icons.html" import icon %}
 {% set nav = 'lists' %}
-{% set view = 'list' if prefs.archive_view == 'list' else 'cards' %}
 {% block title %}{{ plist.title }}{% endblock %}
 {% block content %}
 <a class="back-link" href="{{ url('/lists') }}">{{ icon('chev-left', 18) }} Listen</a>
@@ -34,7 +33,11 @@
 </header>
 
 {% if posts %}
-<div class="posts view-{{ view }}">
+<div class="results-bar list-results">
+  <span class="result-count"><strong>{{ posts|length }}</strong> {{ 'Posting' if posts|length == 1 else 'Postings' }}</span>
+  {% with base_url=url('/lists/' ~ plist.id) %}{% include "partials/view_icons.html" %}{% endwith %}
+</div>
+<div class="posts view-{{ view }}" {% if view == 'raster' %}id="post-grid"{% endif %}>
   {% include "partials/cards_page.html" %}
 </div>
 {% else %}

@@ -89,6 +89,38 @@ TRIM_JS = """sel => {
 }"""
 
 
+# Thread-Belege ohne Wiederholungen (Timo, 0.16): "Folgen" faellt immer weg.
+# Ab dem zweiten Teil (cont) ausserdem alles VOR dem Wortlaut (Profilbild, Name,
+# Handle, X-Logo, "Antwort an …") und die Zeitzeile - die stehen im ersten Teil.
+CLEAN_JS = """cont => {
+  const article = document.querySelector('article');
+  if (!article) return 0;
+  let n = 0;
+  for (const a of article.querySelectorAll('a')) {
+    if (/^(Folgen|Follow)$/.test((a.textContent || '').trim())) {
+      const box = a.parentElement;
+      if (box && box !== article && /^·?\\s*(Folgen|Follow)$/.test((box.textContent || '').trim())) box.remove(); else a.remove();
+      n++;
+      break;
+    }
+  }
+  if (!cont) return n;
+  const text = article.querySelector('[data-testid="tweetText"]');
+  if (!text) return n;
+  let block = text;
+  while (block.parentElement && block.parentElement !== article) block = block.parentElement;
+  while (block.previousElementSibling) { block.previousElementSibling.remove(); n++; }
+  const time = article.querySelector('time');
+  if (time) {
+    let row = time;
+    while (row.parentElement && row.parentElement !== article) row = row.parentElement;
+    if (row !== block) { row.remove(); n++; }
+  }
+  if (article.lastElementChild) article.lastElementChild.style.paddingBottom = '10px';
+  return n;
+}"""
+
+
 class XService:
     name = PLATFORM_X
     label = "X (Twitter)"
@@ -253,6 +285,7 @@ class XService:
             if parsed.full_text:
                 reconstructed = bool(await page.evaluate(EXPAND_JS, parsed.full_text))
             await page.evaluate(TRIM_JS, "article")
+            await page.evaluate(CLEAN_JS, parsed.thread_index > 0)
             await page.wait_for_timeout(150)
             await fill_page_background(article)
             await article.screenshot(path=str(target))

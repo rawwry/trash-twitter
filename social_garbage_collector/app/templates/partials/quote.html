@@ -42,8 +42,11 @@
       <time datetime="{{ post.said_at.isoformat() }}Z" title="{{ said(post) if post.posted_at else 'Datum unbekannt – archiviert am ' ~ (post.created_at|localtime('%d.%m.%Y')) }}">{{ post.posted_at|localtime('%d.%m.%Y') if post.posted_at else 'Datum unbekannt' }}</time>
       <span class="q-no" title="Archiv-Nummer">Nr.&nbsp;{{ archive_no(post) }}</span>
     </span>
-    {% if post.url %}<a class="q-src" href="{{ post.url }}" target="_blank" rel="noopener noreferrer">Original&nbsp;↗</a>
-    {% else %}<span class="q-src is-missing" title="Archiviert aus einem eigenen Screenshot">ohne Link</span>{% endif %}
+    <span class="q-foot-end">
+      {% include "partials/heart.html" %}
+      {% if post.url %}<a class="q-src" href="{{ post.url }}" target="_blank" rel="noopener noreferrer">Original&nbsp;↗</a>
+      {% else %}<span class="q-src is-missing" title="Archiviert aus einem eigenen Screenshot">ohne Link</span>{% endif %}
+    </span>
   </footer>
   {% if post.tags %}<div class="q-tags">{% for t in post.tags[:6] %}<a href="{{ url('/') }}?tags={{ t.name|urlencode }}">#{{ t.name }}</a>{% endfor %}{% if post.tags|length > 6 %}<span>+{{ post.tags|length - 6 }}</span>{% endif %}</div>{% endif %}
   {% if plist %}{% include "partials/remove_from_list.html" %}{% endif %}

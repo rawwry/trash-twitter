@@ -120,7 +120,7 @@ def test_media_thumbs_and_archive_strip(user_client, harness, monkeypatch):
         with Image.open(harness.settings.base_path / items[0].thumb_path) as im:
             assert max(im.size) == 720
         thumbs = [m.thumb_path for m in items]
-    for view in ("cards", "timeline"):
+    for view in ("timeline",):
         page = user_client.get(f"/?view={view}").text
         assert 'class="q-media n2"' in page and thumbs[0] in page and "q-play" in page, view
     assert "qtile-" in user_client.get("/?view=raster").text

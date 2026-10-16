@@ -173,7 +173,7 @@ def test_research_follows_person_merge(user_client, harness):
 
 def test_help_is_prominent_and_explains_basics(user_client):
     page = user_client.get("/").text
-    assert 'class="hdr-help' in page and 'data-open="more-sheet"' in page
+    assert 'class="hdr-help' in page and 'class="fab"' in page and 'href="/galerie"' in page
     help_page = user_client.get("/hilfe").text
     assert 'id="grundlagen"' in help_page and "Tags &amp; Oberbegriffe" in help_page and "Recherche" in help_page
 

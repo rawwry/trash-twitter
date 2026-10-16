@@ -23,26 +23,65 @@
 </dialog>
 {% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
 
-{% if lists %}
-<div class="list-tiles">
+{% macro faces_row(people, more=0) -%}
+<span class="faces">
+  {% for p in people %}{% if p.avatar_path %}<img class="q-avatar" src="{{ file_url(p.avatar_path) }}" alt="" title="{{ p.name }}" width="30" height="30" loading="lazy">{% else %}<span class="q-avatar q-avatar-empty" title="{{ p.name }}">{{ p.name.lstrip('@')[:1] }}</span>{% endif %}{% endfor %}
+  {% if more > 0 %}<span class="faces-more">+{{ more }}</span>{% endif %}
+</span>
+{%- endmacro %}
+{% macro years(first, last) -%}
+{% if first %}{{ first|localtime('%Y') }}{% if (last|localtime('%Y')) != (first|localtime('%Y')) %}–{{ last|localtime('%Y') }}{% endif %}{% endif %}
+{%- endmacro %}
+
+<div class="results-bar list-results">
+  <span class="result-count"><strong>{{ lists|length + 1 }}</strong> Listen</span>
+  <nav class="view-icons" aria-label="Darstellung">
+    {% for key, ico, label in [('tiles', 'grid', 'Kacheln'), ('rows', 'rows', 'Zeilen')] %}
+    <a href="{{ url('/lists') }}?ansicht={{ key }}" title="{{ label }}" aria-label="{{ label }}" {% if ansicht == key %}aria-current="true"{% endif %}>{{ icon(ico, 19) }}</a>
+    {% endfor %}
+  </nav>
+</div>
+
+{% if ansicht == 'rows' %}
+<div class="list-rows">
+  <a class="list-row is-hearts" href="{{ url('/lists/herzstuecke') }}">
+    <span class="lr-icon">{{ icon('heart', 18) }}</span>
+    <span class="lr-title">Herzstücke <small>automatisch – alle Postings mit Herz</small></span>
+    <span class="lr-meta">{{ hearts_n }} {{ 'Posting' if hearts_n == 1 else 'Postings' }}</span>
+  </a>
   {% for pl, count, first, last, persons in lists %}
-  <a class="list-tile" href="{{ url('/lists/' ~ pl.id) }}">
-    <span class="list-tile-title">{{ pl.title }}</span>
-    {% if pl.description %}<span class="list-tile-desc">{{ pl.description }}</span>{% endif %}
-    <span class="faces">
-      {% for p in faces.get(pl.id, []) %}{% if p.avatar_path %}<img class="q-avatar" src="{{ file_url(p.avatar_path) }}" alt="" title="{{ p.name }}" width="30" height="30" loading="lazy">{% else %}<span class="q-avatar q-avatar-empty" title="{{ p.name }}">{{ p.name.lstrip('@')[:1] }}</span>{% endif %}{% endfor %}
-      {% if persons > 5 %}<span class="faces-more">+{{ persons - 5 }}</span>{% endif %}
-    </span>
-    <span class="list-tile-meta">
-      <span><strong>{{ count }}</strong> {{ 'Posting' if count == 1 else 'Postings' }} · {{ persons }} {{ 'Person' if persons == 1 else 'Personen' }}</span>
-      {% if first %}<span>{{ first|localtime('%Y') }}{% if (last|localtime('%Y')) != (first|localtime('%Y')) %}–{{ last|localtime('%Y') }}{% endif %}</span>{% endif %}
-    </span>
+  <a class="list-row" href="{{ url('/lists/' ~ pl.id) }}">
+    <span class="lr-icon">{{ icon('lists', 18) }}</span>
+    <span class="lr-title">{{ pl.title }}{% if pl.description %}<small>{{ pl.description|truncate(90, True, ' …') }}</small>{% endif %}</span>
+    <span class="lr-meta">{{ count }} {{ 'Posting' if count == 1 else 'Postings' }} · {{ persons }} {{ 'Person' if persons == 1 else 'Personen' }}{% if first %} · {{ years(first, last) }}{% endif %}</span>
   </a>
   {% endfor %}
 </div>
 {% else %}
-<div class="empty-state">
-  <h2>Noch keine Listen</h2>
+<div class="list-tiles">
+  <a class="list-tile is-hearts" href="{{ url('/lists/herzstuecke') }}">
+    <span class="list-tile-title">{{ icon('heart', 18) }} Herzstücke</span>
+    <span class="list-tile-desc">Automatisch: alle Postings mit Herz, die meisten zuerst.</span>
+    {{ faces_row(hearts_faces) }}
+    <span class="list-tile-meta"><span><strong>{{ hearts_n }}</strong> {{ 'Posting' if hearts_n == 1 else 'Postings' }}</span></span>
+  </a>
+  {% for pl, count, first, last, persons in lists %}
+  <a class="list-tile" href="{{ url('/lists/' ~ pl.id) }}">
+    <span class="list-tile-title">{{ pl.title }}</span>
+    {% if pl.description %}<span class="list-tile-desc">{{ pl.description }}</span>{% endif %}
+    {{ faces_row(faces.get(pl.id, []), persons - 5) }}
+    <span class="list-tile-meta">
+      <span><strong>{{ count }}</strong> {{ 'Posting' if count == 1 else 'Postings' }} · {{ persons }} {{ 'Person' if persons == 1 else 'Personen' }}</span>
+      <span>{{ years(first, last) }}</span>
+    </span>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not lists %}
+<div class="empty-state compact">
+  <h2>Noch keine eigenen Listen</h2>
   <p>Leg eine an – zum Beispiel zu einem Thema, einer Debatte oder einem Ereignis.</p>
   <button class="btn" type="button" data-open="list-new">{{ icon('plus', 18) }} Erste Liste hinzufügen</button>
 </div>

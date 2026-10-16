@@ -152,6 +152,8 @@ class Post(Base):
     shot_reconstructed: Mapped[bool] = mapped_column(Boolean, default=False)
     # Medien (0.10.0): schon nach Bildern/GIFs/Videos geschaut? (fuer das Nachholen alter Postings)
     media_checked: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 0.16: Anzahl Herzen (aus post_hearts mitgezaehlt - fuers Sortieren ohne Join)
+    hearts: Mapped[int] = mapped_column(Integer, default=0)
     # 0.12: Screenshot ohne Link - Plattform selbst erkennen; Kopf/Fuss schon ausgewertet
     platform_auto: Mapped[bool] = mapped_column(Boolean, default=False)
     shot_parsed: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -595,3 +597,17 @@ class ResearchNote(Base):
     @property
     def source_list(self) -> list[str]:
         return [s.strip() for s in (self.sources or "").splitlines() if s.strip()]
+
+
+
+# --------------------------------------------------------------------------
+# Herzen (0.16): Mitglieder markieren richtig gute Postings. Daraus entsteht
+# automatisch die Liste "Herzstuecke". Ein Herz je Mitglied und Posting.
+# --------------------------------------------------------------------------
+
+class PostHeart(Base):
+    __tablename__ = "post_hearts"
+
+    post_id: Mapped[int] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

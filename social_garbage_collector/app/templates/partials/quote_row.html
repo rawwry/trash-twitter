@@ -9,7 +9,7 @@
     <span class="qrow-name">{{ post.author_name }}</span>
   </span>
   <a class="qrow-text" href="{{ url('/posts/' ~ post.id) }}">{% if post.text %}{{ post.text }}{% else %}<span class="faint">{{ 'Wortlaut wird abgerufen …' if post.status in ('pending', 'running') else 'Kein Wortlaut erfasst' }}</span>{% endif %}</a>
-  <span class="qrow-meta">{{ PLATFORM_LABELS[post.platform] }} · Nr. {{ archive_no(post) }}{% if post.status == 'error' %} · <span class="is-error">Fehler</span>{% endif %}</span>
+  <span class="qrow-meta">{{ PLATFORM_LABELS[post.platform] }} · Nr. {{ archive_no(post) }}{% if post.status == 'error' %} · <span class="is-error">Fehler</span>{% endif %}{% include "partials/heart.html" %}</span>
   {% if not plist %}{% include "partials/quick_delete.html" %}{% endif %}
   {% if plist %}{% include "partials/remove_from_list.html" %}{% endif %}
 </article>
