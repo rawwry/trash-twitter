@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
 import logging
 import secrets
 from pathlib import Path
@@ -150,6 +151,22 @@ async def _backup_loop(settings: Settings) -> None:
         await asyncio.sleep(BACKUP_INTERVAL_S)
 
 
+def _close_request_db(request: Request) -> None:
+    """⚠️ 0.16: Die DB-Sitzung der Anfrage am Ende IMMER schliessen.
+
+    get_db() schliesst sie zwar - aber bei einem Fehler (404, 403, 500) schon
+    VOR dem Fehler-Handler. Der rendert die Fehlerseite und fragt dabei erneut
+    die Datenbank (Benutzer, Zaehler) -> neue Verbindung, die niemand mehr
+    zurueckgab. Nach 15 solchen Seiten war der Verbindungs-Pool leer und jede
+    weitere Anfrage endete nach 30 s in Fehler 500."""
+    db = getattr(request.state, "db", None)
+    if db is not None:
+        try:
+            db.close()
+        except Exception:  # pragma: no cover
+            log.warning("DB-Sitzung liess sich nicht schliessen", exc_info=True)
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
 
@@ -214,7 +231,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if (app.state.setup_code and not path.startswith(("/setup", "/static", "/health", "/manifest"))):
             response = redirect(request, "/setup")
         else:
-            response = await call_next(request)
+            try:
+                response = await call_next(request)
+            finally:
+                _close_request_db(request)
 
         if fresh:
             response.set_cookie(CSRF_COOKIE, fresh, httponly=True, samesite="strict",
@@ -252,7 +272,34 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return HTMLResponse(f'<div class="flash flash-error">{msg}</div>', status_code=exc.status_code)
         if request.url.path.startswith("/api/"):
             return JSONResponse({"detail": msg}, status_code=exc.status_code)
-        return render(request, "error.html", status_code=exc.status_code, code=exc.status_code, message=msg)
+        try:
+            return render(request, "error.html", status_code=exc.status_code, code=exc.status_code, message=msg)
+        finally:
+            _close_request_db(request)
+
+    @app.exception_handler(Exception)
+    async def _server_error(request: Request, exc: Exception):
+        """Unerwarteter Fehler: verstaendliche Seite statt "Internal Server Error".
+        Der vollstaendige Fehler steht im Add-on-Protokoll."""
+        from sqlalchemy.exc import OperationalError
+
+        busy = isinstance(exc, OperationalError) and "locked" in str(exc).lower()
+        log.error("Fehler bei %s %s: %s", request.method, request.url.path, exc, exc_info=exc)
+        code = 503 if busy else 500
+        msg = ("Die Datenbank war gerade beschäftigt – bitte in ein paar Sekunden noch einmal versuchen."
+               if busy else "Da ist etwas schiefgelaufen. Bitte noch einmal versuchen – der Fehler steht im Add-on-Protokoll.")
+        if request.headers.get("hx-request"):
+            return HTMLResponse(f'<div class="flash flash-error">{msg}</div>', status_code=code,
+                                headers={"HX-Reswap": "none",
+                                         "HX-Trigger": json.dumps({"toast": {"message": msg, "kind": "error"}})})
+        if request.url.path.startswith("/api/"):
+            return JSONResponse({"detail": msg}, status_code=code)
+        try:
+            return render(request, "error.html", status_code=code, code=code, message=msg, retry=True)
+        except Exception:  # pragma: no cover - auch das Rendern kann scheitern (z. B. DB weg)
+            return HTMLResponse(f"<!doctype html><meta charset=utf-8><title>Fehler</title><p>{msg}</p>", status_code=code)
+        finally:
+            _close_request_db(request)
 
     # --- Routen ---------------------------------------------------------------
     @app.get("/health", include_in_schema=False)

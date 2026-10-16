@@ -1,11 +1,15 @@
 {% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
 {% block title %}Fehler {{ code }}{% endblock %}
 {% block content %}
 <div class="auth-wrap">
-  <section class="auth-card">
+  <section class="auth-card error-card">
     <p class="big-code">{{ code }}</p>
     <h1>{{ message }}</h1>
-    <p style="margin-top:20px"><a class="btn" href="{{ url('/') }}">Zurück zum Archiv</a></p>
+    <p class="error-actions">
+      {% if retry %}<button class="btn" type="button" onclick="location.reload()">{{ icon('refresh', 17) }} Noch einmal versuchen</button>{% endif %}
+      <a class="{{ 'btn-ghost' if retry else 'btn' }}" href="{{ url('/') }}">Zum Idiotarium</a>
+    </p>
   </section>
 </div>
 {% endblock %}

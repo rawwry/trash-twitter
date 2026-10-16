@@ -32,7 +32,8 @@
       {% if p.subtitle %}<span class="pt-sub">{{ p.subtitle }}</span>{% endif %}
       <span class="pt-meta">
         <span>{{ st.count or 0 }} {{ 'Posting' if st.count == 1 else 'Postings' }}{% if st.first %} · {{ st.first|localtime('%Y') }}{% if st.last and (st.last|localtime('%Y')) != (st.first|localtime('%Y')) %}–{{ st.last|localtime('%Y') }}{% endif %}{% endif %}</span>
-        <span class="pt-handles">{% for a in p.accounts[:2] %}<span>{{ a.label }}</span>{% endfor %}</span>
+        {% set handles = p.accounts[:2]|map(attribute='label')|reject('equalto', p.name)|list %}
+        {% if handles %}<span class="pt-handles">{% for h in handles %}<span>{{ h }}</span>{% endfor %}</span>{% endif %}
       </span>
     </span>
   </a>

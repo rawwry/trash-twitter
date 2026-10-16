@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.15.1 – Keine Fehler 500 mehr, Feinschliff (17.10.2026)
+
+- **Verbindungs-Leck behoben (Hauptursache der 500er):** `get_db()` schließt die Sitzung bei einer Exception *vor* dem Fehler-Handler. Der rendert die Fehlerseite und fragt dabei erneut die DB → neue Verbindung, die nie zurückkam. Nach 15 Fehlerseiten (404/403) war der Pool (5 + 10) leer, jede weitere Anfrage wartete 30 s und endete in `QueuePool limit … reached` → 500. Jetzt schließt die Middleware die Sitzung am Ende jeder Anfrage, die Fehler-Handler ebenfalls (`_close_request_db`). Test: 80 Fehlerseiten, danach 0 ausgeliehene Verbindungen.
+- **Keine Schreibsperre während langer Schritte:** Der Worker hielt eine SQLite-Schreib-Transaktion offen, während er Profilbilder/Medien lud und Screenshots machte (oft > 30 s) – Speichern im Web lief dann in `database is locked`. Jetzt `commit()` vor Medien, Screenshots und Bluesky-Suche; Profilbild wird vor dem Account-Abgleich geladen; `refresh_accounts` schreibt erst nach dem Netzabruf. Massenimport: Bluesky-Handles werden vorab (parallel, 6 gleichzeitig) aufgelöst, gespeichert wird danach in einem Rutsch.
+- **Fehlerseite** für unerwartete Fehler (500) bzw. belegte Datenbank (503) mit „Noch einmal versuchen“; bei htmx-Anfragen ein Toast. Der volle Fehler steht im Protokoll.
+- Geprüft: ~10.000 GET-Aufrufe (alle Seiten, echte/unsinnige IDs und Parameter) und alle Formulare mit kaputten Eingaben – kein 5xx.
+- **Design:** Platzhalter (Skeleton) und „wird archiviert“ für Postings in Arbeit; Medienraster der Detailseite nach Anzahl (2/3/4+); Personenkacheln mit Zahlen und Handles untereinander, doppelter Handle ausgeblendet; Einstellungen-Navigation kompakter, doppelter Suchgenerator entfernt; Galerie-Sortierfeld am Handy ohne gekachelten Pfeil; „Idiotarium“ auch in Zurück-Links, Personenseite, Import und Tastenkürzeln.
+
 ## 0.15.0 – Recherche-Arbeitsplatz, Tags im Griff, neues Design (16.10.2026)
 
 - **Recherche-Arbeitsplatz** (`/recherche`): links alle Einträge (neueste zuerst oder „Nach Person“ gruppiert, Filter Art/Person, Suche auch in Personennamen), rechts der gewählte Eintrag. Lesen, Bearbeiten und Neu-Anlegen laufen rechts per htmx (`HX-Target: rs-pane`), danach lädt die Liste neu (`HX-Trigger: research-changed`), die Adresse merkt sich den Eintrag (`?id=`). Am Handy (< 1000 px) bleiben es eigene Seiten.

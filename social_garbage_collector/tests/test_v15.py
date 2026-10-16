@@ -93,3 +93,82 @@ def test_unified_page_headers(user_client, harness):
     user_client.post("/lists", data={"title": "Klima", "csrf_token": user_client.csrf})
     page = user_client.get("/lists/1").text
     assert 'class="page-header list-header"' in page and 'data-edit="title"' in page
+
+
+# --- 0.16: Fehlerseite statt "Internal Server Error" -----------------------------------------------
+
+def test_server_error_page(harness, monkeypatch):
+    from sqlalchemy.exc import OperationalError
+
+    from app.routers import lists as lists_router
+    from .conftest import USER_PW, login
+
+    def boom(*a, **kw):
+        raise OperationalError("UPDATE", {}, Exception("database is locked"))
+
+    from fastapi.testclient import TestClient
+
+    with TestClient(harness.app, follow_redirects=False, raise_server_exceptions=False) as c:
+        login(c, "anna", USER_PW)
+        monkeypatch.setattr(lists_router, "render", boom)
+        r = c.get("/lists")
+        assert r.status_code == 503 and "gerade beschäftigt" in r.text and "Noch einmal versuchen" in r.text
+        r = c.get("/lists", headers={"HX-Request": "true"})
+        assert r.status_code == 503 and "toast" in r.headers["HX-Trigger"]
+
+
+def test_worker_keeps_no_write_lock_during_downloads(tmp_path, monkeypatch):
+    """Waehrend Medien laden darf SQLite nicht gesperrt sein - sonst warten
+    Web-Anfragen bis zum Timeout und enden in Fehler 500."""
+    import asyncio
+
+    from PIL import Image
+
+    from app.models import Post
+    from app.services import capture as capture_mod
+    from app.services import media
+    from app.services.capture import CaptureWorker
+    from app.services.platforms.base import PostMetadata
+    from fastapi.testclient import TestClient
+
+    from .conftest import Harness, make_settings
+
+    class Service:
+        name, label, prefers_api_text = "x", "X", True
+
+        async def fetch_metadata(self, parsed, client):
+            return PostMetadata(display_name="Jack", handle="jack", text="hallo", author_id="12")
+
+    seen = []
+
+    async def fake_save_media(db, settings, client, post, refs):
+        raw = db.connection().connection.dbapi_connection
+        seen.append(raw.in_transaction)
+        return []
+
+    h = Harness(make_settings(tmp_path))
+    with TestClient(h.app):
+        shot = h.settings.screenshot_dir / "x" / "2026" / "u.webp"
+        shot.parent.mkdir(parents=True)
+        Image.new("RGB", (40, 40)).save(shot, "WEBP")
+        with h.db() as db:
+            p = Post(platform="x", url="https://x.com/jack/status/20", dedup_key="x:20", post_id="20",
+                     shot_source="upload", screenshot_path="screenshots/x/2026/u.webp", status="pending")
+            db.add(p)
+            db.commit()
+            pid = p.id
+        monkeypatch.setattr(capture_mod, "get_service", lambda _p: Service())
+        monkeypatch.setattr(media, "save_media", fake_save_media)
+        asyncio.run(CaptureWorker(h.settings, h.app.state.SessionLocal).process(pid))
+    assert seen == [False]
+
+
+def test_error_pages_do_not_leak_db_connections(user_client, harness):
+    """0.16: Jede 404/403-Seite liess eine DB-Verbindung offen - nach 15 Stueck
+    war der Pool leer und alles lief in Fehler 500."""
+    pool = harness.app.state.SessionLocal.kw["bind"].pool
+    for i in range(40):
+        assert user_client.get(f"/posts/{900000 + i}").status_code == 404
+        assert user_client.get(f"/recherche/{900000 + i}").status_code == 404
+    assert pool.checkedout() == 0
+    assert user_client.get("/").status_code == 200

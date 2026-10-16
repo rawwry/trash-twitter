@@ -18,7 +18,7 @@
   <a class="q-body" href="{{ url('/posts/' ~ post.id) }}" aria-label="Posting Nr. {{ archive_no(post) }} öffnen">
     {% if post.text %}<blockquote class="q-text">{{ post.text }}</blockquote>
     {% elif post.screenshot_path and not post.media %}<img class="q-shot" src="{{ shot(post) }}" alt="Beleg-Screenshot (kein Text erfasst)" loading="lazy" decoding="async">
-    {% elif post.status in ('pending', 'running') %}<p class="q-text q-missing">Wortlaut wird abgerufen …</p>
+    {% elif post.status in ('pending', 'running') %}<span class="q-skeleton" role="status" aria-label="Wortlaut wird abgerufen …"><span></span><span></span><span></span></span>
     {% else %}<p class="q-text q-missing">Kein Wortlaut erfasst.</p>{% endif %}
   </a>
   {% include "partials/media_strip.html" %}
@@ -32,6 +32,7 @@
     {% if photos %}<span class="q-flag">{{ photos }} {{ 'Bild' if photos == 1 else 'Bilder' }}</span>{% endif %}
     {% if post.thread_count %}<span class="q-flag">Thread, {{ post.thread_count }} Teile</span>{% endif %}
     {% if post.status == 'error' %}<span class="q-flag is-error">Fehler</span>
+    {% elif post.status in ('pending', 'running') %}<span class="q-flag is-busy">wird archiviert</span>
     {% elif post.status != 'done' %}<span class="q-flag">{{ STATUS_LABELS[post.status] }}</span>{% endif %}
   </div>
   {% endif %}

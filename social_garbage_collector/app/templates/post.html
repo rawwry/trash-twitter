@@ -7,7 +7,7 @@
 {% block title %}{{ post.author_name }} · Nr. {{ archive_no(post) }}{% endblock %}
 {% block content %}
 <div class="detail-toolbar">
-  <a class="back-link" href="{{ url('/') }}" aria-label="Zurück zum Archiv">{{ icon('chev-left', 18) }}<span class="label-hide">Archiv</span></a>
+  <a class="back-link" href="{{ url('/') }}" aria-label="Zurück zum Idiotarium">{{ icon('chev-left', 18) }}<span class="label-hide">Idiotarium</span></a>
   <span class="spacer"></span>
   <a class="icon-btn {{ 'is-disabled' if not newer }}" {% if newer %}href="{{ url('/posts/' ~ newer) }}"{% endif %} data-nav="newer" title="Neueres Posting (←)" aria-label="Neueres Posting">{{ icon('chev-up') }}</a>
   <a class="icon-btn {{ 'is-disabled' if not older }}" {% if older %}href="{{ url('/posts/' ~ older) }}"{% endif %} data-nav="older" title="Älteres Posting (→)" aria-label="Älteres Posting">{{ icon('chev-down') }}</a>
@@ -31,7 +31,7 @@
       </header>
       <div data-edit-view="text">
         {% if post.text %}<blockquote class="q-text">{{ post.text }}</blockquote>
-        {% else %}<p class="q-text q-missing">{{ 'Wortlaut wird abgerufen …' if post.status in ('pending', 'running') else 'Kein Wortlaut erfasst. Über „Wortlaut bearbeiten“ selbst eintragen.' }}</p>{% endif %}
+        {% else %}<p class="q-text q-missing">{{ 'Wortlaut wird abgerufen …' if post.status in ('pending', 'running') else 'Kein Wortlaut erfasst. Über „Wortlaut korrigieren“ selbst eintragen.' }}</p>{% endif %}
       </div>
       <form method="post" action="{{ url('/posts/' ~ post.id ~ '/text') }}" class="stack" data-edit-form="text" hidden>
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -44,7 +44,7 @@
       </form>
 
       {% if post.media %}
-      <div class="media-grid lead-media {{ 'single' if post.media|length == 1 }}">
+      <div class="media-grid lead-media {{ 'single' if post.media|length == 1 }} n{{ [post.media|length, 4]|min }}">
         {% for m in post.media %}
         {% set src = url('/medien/' ~ m.path) %}
         <figure class="media-item" {% if m.width and m.height %}style="--r: {{ (m.width / m.height)|round(3) }}"{% endif %}>

@@ -9,7 +9,7 @@
     <h1>Import vom {{ batch.created_at|localtime('%d.%m.%Y, %H:%M') }}</h1>
     <p class="sub">{{ batch.total_links }} {{ 'Link' if batch.total_links == 1 else 'Links' }} erkannt{% if batch.created_by %} · von {{ batch.created_by.name }}{% endif %}</p>
   </div>
-  {% if batch.created_count %}<a class="btn-soft sm" href="{{ url('/') }}?sort=new">{{ icon('archive', 16) }} Zum Archiv</a>{% endif %}
+  {% if batch.created_count %}<a class="btn-soft sm" href="{{ url('/') }}?sort=new">{{ icon('archive', 16) }} Zum Idiotarium</a>{% endif %}
 </div>
 
 <div class="import-summary">

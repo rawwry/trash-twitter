@@ -47,7 +47,7 @@
   </div>
   <div class="actions">
     <button class="btn-ghost sm" type="button" data-edit="person">{{ icon('edit', 15) }} Bearbeiten</button>
-    <a class="btn-soft sm" href="{{ url('/') }}?person={{ person.id }}">{{ icon('search', 15) }} Im Archiv</a>
+    <a class="btn-soft sm" href="{{ url('/') }}?person={{ person.id }}">{{ icon('search', 15) }} Im Idiotarium</a>
   </div>
 </div>
 
@@ -64,7 +64,7 @@
   <section aria-labelledby="statements-title">
     <div class="section-title">
       <h2 id="statements-title">Postings</h2>
-      {% if total > posts|length %}<a class="small" href="{{ url('/') }}?person={{ person.id }}">Alle {{ total }} im Archiv →</a>{% endif %}
+      {% if total > posts|length %}<a class="small" href="{{ url('/') }}?person={{ person.id }}">Alle {{ total }} im Idiotarium →</a>{% endif %}
     </div>
     {% if posts %}
     <div class="posts view-cards one-col">

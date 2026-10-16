@@ -314,14 +314,15 @@ async def apply_metadata(db: Session, settings: Settings, client: httpx.AsyncCli
     """Nach dem Abruf der Metadaten: Account bestimmen, Profilbild sichern,
     Aussage anhaengen. Das Profilbild der Aussage bleibt auf dem Stand der
     ersten Archivierung - spaetere Wechsel stehen nur im Account-Verlauf."""
+    # Profilbild ZUERST laden: waehrend des Downloads darf keine Schreib-
+    # Transaktion offen sein (resolve() schreibt), sonst sperrt SQLite (0.16).
+    rel = await download_avatar(client, settings, meta.avatar_url) if client is not None and meta.avatar_url else None
     stable = meta.author_id or (meta.did if post.platform == PLATFORM_BLUESKY else None)
     acc = resolve(db, post.platform, stable, meta.handle or post.author_handle,
                   meta.display_name or post.author_display_name, candidate=post.account)
     if acc is None:
         return None
-    if client is not None and meta.avatar_url:
-        rel = await download_avatar(client, settings, meta.avatar_url)
-        set_avatar(db, acc, rel)
+    set_avatar(db, acc, rel)
     acc.checked_at = utcnow()
     attach(db, post, acc)
     if post.author_avatar_path is None and acc.avatar_path:

@@ -2112,3 +2112,50 @@ dialog.sheet { border-radius: var(--r-xl); border: 1px solid var(--line); }
 .rs-editor-actions { display: flex; gap: 8px; align-items: center; padding-top: var(--s2); }
 .rs-form { padding: var(--s6); }
 .rs-read-top .spacer { flex: 1; }
+
+/* ==========================================================================
+   0.16 – Feinschliff nach der Durchsicht
+   ========================================================================== */
+
+/* Medien auf der Detailseite: echtes Raster statt "eins allein riesig" */
+.lead-media { gap: 6px; border-radius: 16px; overflow: hidden; }
+.lead-media:not(.single) .media-item img, .lead-media:not(.single) .media-item video {
+  width: 100%; height: 100%; max-height: none; object-fit: cover; border: 0; border-radius: 0; aspect-ratio: auto; }
+.lead-media:not(.single) .media-item, .lead-media:not(.single) .media-item > a { height: 100%; display: block; }
+.lead-media.n2 { grid-template-columns: 1fr 1fr; grid-auto-rows: 300px; }
+.lead-media.n3 { grid-template-columns: 1.5fr 1fr; grid-template-rows: 190px 190px; }
+.lead-media.n3 > .media-item:first-child { grid-row: span 2; }
+.lead-media.n4 { grid-template-columns: 1fr 1fr; grid-auto-rows: 210px; }
+.lead-media.single .media-item img, .lead-media.single .media-item video { border-radius: 16px; }
+@media (max-width: 560px) {
+  .lead-media.n2 { grid-auto-rows: 180px; }
+  .lead-media.n3 { grid-template-rows: 130px 130px; }
+  .lead-media.n4 { grid-auto-rows: 140px; }
+}
+
+/* Postings in Arbeit: Platzhalter statt "Wortlaut wird abgerufen …" + "wartend" doppelt */
+.q-skeleton { display: flex; flex-direction: column; gap: 9px; padding: 4px 0 2px; }
+.q-skeleton > span { height: 11px; border-radius: 6px; background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 40%, var(--surface-2) 80%);
+  background-size: 300% 100%; animation: shimmer 1.6s ease-in-out infinite; }
+.q-skeleton > span:nth-child(2) { width: 88%; }
+.q-skeleton > span:nth-child(3) { width: 56%; }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.q-flag.is-busy { color: var(--info); background: color-mix(in srgb, var(--info) 10%, transparent); }
+.q-flag.is-busy::before { opacity: 1; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .q-skeleton > span, .q-flag.is-busy::before { animation: none; } }
+:root[data-motion="reduced"] .q-skeleton > span, :root[data-motion="reduced"] .q-flag.is-busy::before { animation: none; }
+.settings-nav { gap: 14px; }
+.settings-nav a { padding: 7px 10px; font-size: var(--fs-base); font-weight: 560; color: var(--text-2); }
+.settings-nav a:hover { color: var(--text); }
+.settings-nav a[aria-current="page"] { font-weight: 650; }
+.settings-nav .ico { width: 28px; height: 28px; border-radius: 9px; background: var(--surface); box-shadow: 0 0 0 1px var(--line); }
+/* Personenkacheln: Zahlen und Handles untereinander statt gequetscht nebeneinander */
+.pt-meta { flex-direction: column; justify-content: flex-start; gap: 1px; }
+.pt-handles { display: flex; flex-direction: column; min-width: 0; }
+.pt-handles span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-name { overflow-wrap: anywhere; }
+/* Galerie am Handy: Pfeil im Sortierfeld nur einmal (vorher gekachelt = Zickzack) */
+@media (max-width: 560px) {
+  .gal-sort .atb-sort select { background-repeat: no-repeat; background-position: right 12px center; }
+}

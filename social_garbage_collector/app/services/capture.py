@@ -222,6 +222,10 @@ class CaptureWorker:
                         problems.append("Langer Beitrag: X (Twitter) liefert nur den Anfang, der Wortlaut ist gekürzt – bitte ergänzen.")
                     # Wer hat das gesagt? Account + Profilbild sichern.
                     await accounts.apply_metadata(db, self.settings, client, post, metas[0])
+                # ⚠️ 0.16: Zwischenspeichern, bevor es lange dauert (Medien, Browser).
+                # Eine offene Schreib-Transaktion sperrt SQLite fuer alle anderen -
+                # Web-Anfragen liefen nach 30 s Warten in Fehler 500.
+                db.commit()
                 # Bilder, GIFs, Videos aller Teile sichern (0.10.0)
                 refs = [r for m in metas if m for r in m.media]
                 if any(m is not None for m in metas):
@@ -231,6 +235,7 @@ class CaptureWorker:
             alt = [a for m in metas if m for a in m.alt_texts]
             if len(parts) > 1 and alt:
                 post.alt_texts = "\n".join(alt)
+            db.commit()  # vor den Screenshots (Chromium braucht 5-25 s je Teil)
 
             # 3) Screenshots je Teil (roh als PNG), dann bereinigen/zusammenkleben -> WebP
             captures: list[CaptureResult | None] = []
@@ -329,6 +334,7 @@ class CaptureWorker:
         async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, follow_redirects=True) as client:
             if not post.url and post.screenshot_path:
                 await self.read_screenshot(db, post, client, problems)
+                db.commit()
             service = get_service(post.platform)
             if post.url:
                 parsed = ParsedPost(platform=post.platform, post_id=post.post_id, author_handle=post.author_handle,
@@ -342,6 +348,7 @@ class CaptureWorker:
                 if meta:
                     self._apply_metadata(db, post, parsed, meta)
                     await accounts.apply_metadata(db, self.settings, client, post, meta)
+                    db.commit()  # vor den Medien-Downloads keine Sperre offen lassen
                     problems += await media.save_media(db, self.settings, client, post, meta.media)
                     if meta.text and post.text_source != TEXT_MANUAL:
                         post.text, post.text_source = meta.text, TEXT_API
@@ -394,6 +401,7 @@ class CaptureWorker:
 
         if client is not None and self.settings.network_enabled and post.platform == PLATFORM_BLUESKY \
                 and post.author_handle and not post.url:
+            db.commit()  # Netzabfragen ohne offene Schreib-Transaktion
             await self._find_bluesky_original(db, post, client, info, problems)
 
         acc = accounts.resolve(db, post.platform, post.author_did if post.platform == PLATFORM_BLUESKY else None,
@@ -630,11 +638,13 @@ class CaptureWorker:
                     if not batch:
                         return done
                     for acc in batch:
-                        acc.checked_at = utcnow()
                         post = db.scalar(select(Post).where(Post.account_id == acc.id, Post.url != "")
                                          .order_by(Post.id.desc()).limit(1))
+                        acc.checked_at = utcnow()
                         if post is None:
+                            db.commit()
                             continue
+                        db.commit()
                         service = get_service(post.platform)
                         parsed = ParsedPost(platform=post.platform, post_id=post.post_id,
                                             author_handle=post.author_handle, canonical_url=post.url,

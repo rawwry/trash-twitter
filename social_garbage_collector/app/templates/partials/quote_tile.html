@@ -13,7 +13,8 @@
     {% elif post.media and post.media[0].thumb_path %}<img class="qtile-shot" src="{{ url('/medien/' ~ post.media[0].thumb_path) }}"
          alt="" loading="lazy" decoding="async">
     {% elif post.screenshot_path %}<img class="qtile-shot" src="{{ shot(post) }}" alt="" loading="lazy" decoding="async">
-    {% else %}<span class="qtile-text q-missing">{{ 'Wortlaut wird abgerufen …' if post.status in ('pending', 'running') else 'Kein Wortlaut' }}</span>{% endif %}
+    {% elif post.status in ('pending', 'running') %}<span class="q-skeleton" role="status" aria-label="Wortlaut wird abgerufen …"><span></span><span></span><span></span></span>
+    {% else %}<span class="qtile-text q-missing">Kein Wortlaut</span>{% endif %}
     {% set first = (post.media|selectattr('thumb_path')|first) if post.media else None %}
     {% if first and post.text %}<span class="qtile-media"><img src="{{ url('/medien/' ~ first.thumb_path) }}" alt="" loading="lazy" decoding="async">{% if post.media|length > 1 %}<span class="q-more">+{{ post.media|length - 1 }}</span>{% endif %}</span>{% endif %}
     <time class="qtile-date" datetime="{{ post.said_at.isoformat() }}Z">{{ post.posted_at|localtime('%d.%m.%Y') if post.posted_at else '' }}</time>

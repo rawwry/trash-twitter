@@ -7,6 +7,19 @@ Ab 0.14 (Timo): Jede x.x-Version (Feature-Release, nicht x.x.x) bekommt
 
 CHANGES = [
     {
+        "version": "0.15.1",
+        "date": "17.10.2026",
+        "title": "Keine Fehler 500 mehr, Feinschliff",
+        "items": [
+            "Behoben: Nach mehreren Fehlerseiten (z. B. gelöschtes Posting) gingen der App die Datenbank-Verbindungen aus – danach endete jede Seite in Fehler 500",
+            "Behoben: Während des Archivierens (Videos, Screenshots) und beim Massenimport war die Datenbank gesperrt – Speichern konnte in Fehler 500 laufen",
+            "Verständliche Fehlerseite mit „Noch einmal versuchen“ statt „Internal Server Error“",
+            "Postings in Arbeit zeigen einen Platzhalter und „wird archiviert“",
+            "Medien auf der Detailseite als Raster (2, 3 oder 4 Bilder)",
+            "Personenkacheln, Einstellungen und Galerie am Handy aufgeräumt; „Idiotarium“ auch in Links und Zurück-Knöpfen",
+        ],
+    },
+    {
         "version": "0.15.0",
         "date": "16.10.2026",
         "title": "Recherche-Arbeitsplatz, Tags im Griff, neues Design",
