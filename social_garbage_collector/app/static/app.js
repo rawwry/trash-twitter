@@ -1029,12 +1029,36 @@
     });
   });
 
-  // --- Tags verwalten: Liste filtern ----------------------------------------------------------
-  document.addEventListener("input", (ev) => {
-    if (!ev.target.matches || !ev.target.matches("[data-tag-search]")) return;
-    const q = ev.target.value.trim().toLowerCase().replace(/^#/, "");
-    $$("[data-tag-name]").forEach((row) => { row.hidden = q && !row.dataset.tagName.includes(q); });
-    $$("[data-tg-card]").forEach((card) => { card.hidden = q && !$$("[data-tag-name]", card).some((r) => !r.hidden); });
+  // --- Tags organisieren: suchen und sortieren ------------------------------------------------
+  function tgApply() {
+    const table = $(".tg-table");
+    if (!table) return;
+    const q = ($("[data-tag-search]")?.value || "").trim().toLowerCase().replace(/^#/, "");
+    const sort = $("[data-tg-sort]")?.value || "count";
+    let shown = 0;
+    $$("[data-tg-rows]", table).forEach((box) => {
+      const rows = $$("[data-tg-row]", box);
+      rows.sort((a, b) => sort === "name" ? a.dataset.name.localeCompare(b.dataset.name, "de")
+        : Number(b.dataset.count) - Number(a.dataset.count) || a.dataset.name.localeCompare(b.dataset.name, "de"));
+      rows.forEach((r) => { box.appendChild(r); r.hidden = !!q && !r.dataset.name.includes(q); if (!r.hidden) shown++; });
+      const section = box.closest("[data-tg-section]");
+      if (section) section.hidden = !!q && !rows.some((r) => !r.hidden);
+    });
+    const none = $("[data-tg-none]");
+    if (none) none.hidden = shown > 0 || !q;
+  }
+  document.addEventListener("input", (ev) => { if (ev.target.matches?.("[data-tag-search]")) tgApply(); });
+  document.addEventListener("change", (ev) => {
+    if (!ev.target.matches?.("[data-tg-sort]")) return;
+    remember("tt.tags.sort", ev.target.value);
+    tgApply();
+  });
+  document.addEventListener("DOMContentLoaded", () => {
+    const sel = $("[data-tg-sort]");
+    if (!sel) return;
+    const saved = recall("tt.tags.sort");
+    if (saved === "name" || saved === "count") sel.value = saved;
+    tgApply();
   });
 
   // --- Galerie: Darstellung und Groesse (0.12, pro Browser gemerkt) ---------------------------

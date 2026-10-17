@@ -1,103 +1,131 @@
 {% extends "settings/base.html" %}
 {% from "partials/icons.html" import icon %}
 {% block title %}Tags organisieren{% endblock %}
-{% macro tag_row(node, groups, child=False) %}
-<div class="tag-row" data-tag-name="{{ node.tag.name }}">
-  <div class="tag-view" data-edit-view="tag-{{ node.tag.id }}">
-    <label class="tg-check" aria-label="#{{ node.tag.name }} auswählen"><input type="checkbox" name="ids" value="{{ node.tag.id }}" form="tag-bulk" data-tag-select></label>
-    <a class="chip" href="{{ url('/') }}?tags={{ node.tag.name|urlencode }}" title="Postings mit #{{ node.tag.name }} zeigen">#{{ node.tag.name }}</a>
-    <span class="count">{{ node.count }}</span>
-    <span class="tag-actions">
-      <form method="post" action="{{ url('/settings/tags/' ~ node.tag.id ~ '/move') }}" class="tg-move">
+
+{% macro row(node, peak, child=False) %}
+{% set t = node.tag %}
+<div class="tg-row" id="tag-{{ t.id }}" data-tg-row data-name="{{ t.name }}" data-count="{{ node.count }}" data-loose="{{ '0' if child else '1' }}">
+  <div class="tg-cells" data-edit-view="tag-{{ t.id }}">
+    <label class="tg-check" aria-label="#{{ t.name }} auswählen"><input type="checkbox" name="ids" value="{{ t.id }}" form="tag-bulk" data-tag-select></label>
+    <a class="tg-name" href="{{ url('/') }}?tags={{ t.name|urlencode }}" title="Postings mit #{{ t.name }} zeigen">#{{ t.name }}</a>
+    <span class="tg-count" title="{{ node.count }} {{ 'Posting' if node.count == 1 else 'Postings' }}">
+      <span class="tg-bar"><i style="width: {{ (node.count * 100 / peak)|round(0, 'ceil')|int if node.count else 0 }}%"></i></span>
+      <b class="{{ 'is-zero' if not node.count }}">{{ node.count }}</b>
+    </span>
+    <form method="post" action="{{ url('/settings/tags/' ~ t.id ~ '/move') }}" class="tg-parent">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <select name="parent" aria-label="Oberbegriff für #{{ t.name }}" data-autosubmit {% if not groups %}disabled title="Lege zuerst einen Oberbegriff an"{% endif %}>
+        <option value="">ohne Oberbegriff</option>
+        {% for g in groups %}<option value="{{ g.tag.id }}" {% if t.parent_id == g.tag.id %}selected{% endif %}>unter #{{ g.tag.name }}</option>{% endfor %}
+      </select>
+      <noscript><button class="btn-ghost sm" type="submit">OK</button></noscript>
+    </form>
+    <span class="tg-actions">
+      <button class="icon-btn" type="button" data-edit="tag-{{ t.id }}" title="Umbenennen oder zusammenführen" aria-label="#{{ t.name }} umbenennen">{{ icon('edit', 16) }}</button>
+      <form method="post" action="{{ url('/settings/tags/' ~ t.id ~ '/delete') }}" data-confirm="#{{ t.name }} von allen {{ node.count }} Postings entfernen?">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <select name="parent" aria-label="Oberbegriff für #{{ node.tag.name }}" data-autosubmit>
-          <option value="">{{ '— ohne Oberbegriff —' if child else 'Einordnen unter …' }}</option>
-          {% for g in groups %}<option value="{{ g.tag.id }}" {% if node.tag.parent_id == g.tag.id %}selected{% endif %}>#{{ g.tag.name }}</option>{% endfor %}
-        </select>
-        <noscript><button class="btn-ghost sm" type="submit">OK</button></noscript>
-      </form>
-      <button class="icon-btn" type="button" data-edit="tag-{{ node.tag.id }}" title="Umbenennen" aria-label="#{{ node.tag.name }} umbenennen">{{ icon('edit', 17) }}</button>
-      <form method="post" action="{{ url('/settings/tags/' ~ node.tag.id ~ '/delete') }}" data-confirm="#{{ node.tag.name }} von allen Postings entfernen?">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <button class="icon-btn danger" type="submit" title="Löschen" aria-label="#{{ node.tag.name }} löschen">{{ icon('trash', 17) }}</button>
+        <button class="icon-btn danger" type="submit" title="Löschen" aria-label="#{{ t.name }} löschen">{{ icon('trash', 16) }}</button>
       </form>
     </span>
   </div>
-  <form method="post" action="{{ url('/settings/tags/' ~ node.tag.id ~ '/rename') }}" class="tag-rename" data-edit-form="tag-{{ node.tag.id }}" hidden>
+  <form method="post" action="{{ url('/settings/tags/' ~ t.id ~ '/rename') }}" class="tag-rename" data-edit-form="tag-{{ t.id }}" hidden>
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <span class="tag-hash" aria-hidden="true">#</span>
-    <input name="name" value="{{ node.tag.name }}" maxlength="64" aria-label="Neuer Name für #{{ node.tag.name }}" autocapitalize="off" spellcheck="false">
+    <input name="name" value="{{ t.name }}" maxlength="64" aria-label="Neuer Name für #{{ t.name }}" autocapitalize="off" spellcheck="false">
     <button class="btn sm" type="submit">Speichern</button>
-    <button class="btn-ghost sm" type="button" data-edit-cancel="tag-{{ node.tag.id }}">Abbrechen</button>
+    <button class="btn-ghost sm" type="button" data-edit-cancel="tag-{{ t.id }}">Abbrechen</button>
+    <span class="faint xs">Heißt er wie ein vorhandener Tag, werden beide zusammengeführt.</span>
   </form>
 </div>
 {% endmacro %}
+
 {% block settings %}
 {% set groups, loose = tag_tree() %}
-{% set n_tags = loose|length + groups|length + (groups|map(attribute='children')|map('length')|sum) %}
-<h1>Tags organisieren</h1>
-<p class="sub">Ordne ähnliche Tags unter <strong>Oberbegriffen</strong> – wer im Idiotarium nach einem Oberbegriff filtert, findet alle Postings seiner Unter-Tags mit.
-  Doppelte zusammenführen, Tippfehler umbenennen, Überflüssiges löschen. Gilt für alle.</p>
+{% set all_nodes = loose + (groups|map(attribute='children')|sum(start=[])) %}
+{% set peak = ([1] + all_nodes|map(attribute='count')|list)|max %}
+<header class="tg-header">
+  <div>
+    <h1>Tags organisieren</h1>
+    <p class="sub">Gilt für alle Mitglieder. Umbenennen, zusammenführen, unter Oberbegriffen ordnen.</p>
+  </div>
+  <details class="tg-newgroup">
+    <summary class="btn-soft sm">{{ icon('plus', 15) }} Oberbegriff</summary>
+    <form method="post" action="{{ url('/settings/tags/group') }}" class="tg-newgroup-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label>Neuer Oberbegriff<input name="name" placeholder="z. B. tiere" maxlength="64" required autocapitalize="off" autocomplete="off"></label>
+      <p class="faint xs">Fasst ähnliche Tags zusammen. Wer nach dem Oberbegriff filtert, findet alle Unter-Tags mit.</p>
+      <button class="btn sm" type="submit">Anlegen</button>
+    </form>
+  </details>
+</header>
 
+{% if groups or loose %}
 <div class="tg-toolbar">
   <label class="tag-search search-input">
     {{ icon('search', 18) }}
     <input type="search" placeholder="Tag suchen" aria-label="Tags durchsuchen" data-tag-search autocomplete="off">
   </label>
-  <form method="post" action="{{ url('/settings/tags/group') }}" class="tg-new">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <input name="name" placeholder="Neuer Oberbegriff, z. B. umwelt" maxlength="64" required aria-label="Name des neuen Oberbegriffs" autocapitalize="off">
-    <button class="btn-soft sm" type="submit">{{ icon('plus', 15) }} Oberbegriff hinzufügen</button>
-  </form>
+  <label class="tg-sort"><span class="sr-only">Sortieren</span>
+    <select data-tg-sort aria-label="Sortieren">
+      <option value="count">Häufigste zuerst</option>
+      <option value="name">A–Z</option>
+    </select>
+  </label>
 </div>
-<p class="faint xs tg-stats">{{ n_tags }} Tags · {{ groups|length }} {{ 'Oberbegriff' if groups|length == 1 else 'Oberbegriffe' }} · {{ loose|length }} ohne Oberbegriff</p>
 
-{% if groups or loose %}
-{% for g in groups %}
-<section class="tg-card" data-tg-card>
-  <header class="tg-head" data-tag-name="{{ g.tag.name }}">
-    <div class="tag-view" data-edit-view="tag-{{ g.tag.id }}">
-      <a class="chip tg-group-chip" href="{{ url('/') }}?tags={{ g.tag.name|urlencode }}" title="Alle Postings in #{{ g.tag.name }}">{{ icon('tag', 13) }} #{{ g.tag.name }}</a>
-      <span class="count">{{ g.total }} {{ 'Posting' if g.total == 1 else 'Postings' }}{% if g.count %} <span class="faint">({{ g.count }} direkt)</span>{% endif %}</span>
-      <span class="tag-actions">
-        <button class="icon-btn" type="button" data-edit="tag-{{ g.tag.id }}" title="Umbenennen" aria-label="Oberbegriff #{{ g.tag.name }} umbenennen">{{ icon('edit', 17) }}</button>
-        <form method="post" action="{{ url('/settings/tags/' ~ g.tag.id ~ '/ungroup') }}"
-              data-confirm="Oberbegriff #{{ g.tag.name }} auflösen? Die Unter-Tags bleiben erhalten, nur ohne Oberbegriff.">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-          <button class="icon-btn danger" type="submit" title="Oberbegriff auflösen" aria-label="Oberbegriff #{{ g.tag.name }} auflösen">{{ icon('close', 17) }}</button>
-        </form>
-      </span>
+<div class="tg-table">
+  <div class="tg-colhead" aria-hidden="true">
+    <span></span><span>Tag</span><span>Postings</span><span>Oberbegriff</span><span></span>
+  </div>
+
+  {% for g in groups %}
+  <section class="tg-group" data-tg-section>
+    <header class="tg-group-head" id="tag-{{ g.tag.id }}">
+      <div class="tg-group-view" data-edit-view="tag-{{ g.tag.id }}">
+        <span class="tg-group-icon">{{ icon('tag', 16) }}</span>
+        <a class="tg-group-name" href="{{ url('/') }}?tags={{ g.tag.name|urlencode }}" title="Alle Postings in #{{ g.tag.name }}">#{{ g.tag.name }}</a>
+        <span class="faint xs">Oberbegriff · {{ g.children|length }} {{ 'Unter-Tag' if g.children|length == 1 else 'Unter-Tags' }} · {{ g.total }} {{ 'Posting' if g.total == 1 else 'Postings' }}</span>
+        <span class="tg-actions">
+          <button class="icon-btn" type="button" data-edit="tag-{{ g.tag.id }}" title="Umbenennen" aria-label="Oberbegriff #{{ g.tag.name }} umbenennen">{{ icon('edit', 16) }}</button>
+          <form method="post" action="{{ url('/settings/tags/' ~ g.tag.id ~ '/ungroup') }}"
+                data-confirm="Oberbegriff #{{ g.tag.name }} auflösen? Die Unter-Tags bleiben erhalten, nur ohne Oberbegriff.">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="icon-btn danger" type="submit" title="Oberbegriff auflösen" aria-label="Oberbegriff #{{ g.tag.name }} auflösen">{{ icon('close', 16) }}</button>
+          </form>
+        </span>
+      </div>
+      <form method="post" action="{{ url('/settings/tags/' ~ g.tag.id ~ '/rename') }}" class="tag-rename" data-edit-form="tag-{{ g.tag.id }}" hidden>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <span class="tag-hash" aria-hidden="true">#</span>
+        <input name="name" value="{{ g.tag.name }}" maxlength="64" aria-label="Neuer Name für #{{ g.tag.name }}" autocapitalize="off" spellcheck="false">
+        <button class="btn sm" type="submit">Speichern</button>
+        <button class="btn-ghost sm" type="button" data-edit-cancel="tag-{{ g.tag.id }}">Abbrechen</button>
+      </form>
+    </header>
+    <div class="tg-rows" data-tg-rows>
+      {% for c in g.children %}{{ row(c, peak, True) }}{% else %}
+      <p class="faint small tg-empty">Noch leer. Wähle unten Tags aus und ordne sie unter #{{ g.tag.name }} ein.</p>{% endfor %}
     </div>
-    <form method="post" action="{{ url('/settings/tags/' ~ g.tag.id ~ '/rename') }}" class="tag-rename" data-edit-form="tag-{{ g.tag.id }}" hidden>
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      <span class="tag-hash" aria-hidden="true">#</span>
-      <input name="name" value="{{ g.tag.name }}" maxlength="64" aria-label="Neuer Name für #{{ g.tag.name }}" autocapitalize="off" spellcheck="false">
-      <button class="btn sm" type="submit">Speichern</button>
-      <button class="btn-ghost sm" type="button" data-edit-cancel="tag-{{ g.tag.id }}">Abbrechen</button>
-    </form>
-  </header>
-  <div class="tg-children">
-    {% for c in g.children %}{{ tag_row(c, groups, True) }}{% else %}
-    <p class="faint small tg-empty">Noch keine Unter-Tags. Tags unten auswählen und „Einordnen unter #{{ g.tag.name }}“.</p>{% endfor %}
-  </div>
-</section>
-{% endfor %}
+  </section>
+  {% endfor %}
 
-{% if loose %}
-<section class="tg-card" data-tg-card>
-  <header class="tg-head"><strong>{{ 'Ohne Oberbegriff' if groups else 'Alle Tags' }}</strong> <span class="count">{{ loose|length }}</span></header>
-  <div class="tg-children">
-    {% for n in loose %}{{ tag_row(n, groups) }}{% endfor %}
-  </div>
-</section>
-{% endif %}
+  {% if loose %}
+  <section class="tg-group is-loose" data-tg-section>
+    {% if groups %}<header class="tg-group-head"><div class="tg-group-view"><strong>Ohne Oberbegriff</strong><span class="faint xs">{{ loose|length }} Tags</span></div></header>{% endif %}
+    <div class="tg-rows" data-tg-rows>
+      {% for n in loose %}{{ row(n, peak) }}{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  <p class="tg-none faint" data-tg-none hidden>Kein Tag passt zu Suche oder Filter.</p>
+</div>
 
-{# Mehrfachauswahl: einordnen, zusammenfuehren, loeschen #}
+{# --- Mehrfachauswahl ---------------------------------------------------------------------- #}
 <form id="tag-bulk" class="tg-bulk" method="post" action="{{ url('/settings/tags/bulk') }}" hidden data-tag-bulk>
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
   <span class="bulk-count"><strong data-tag-count>0</strong> ausgewählt</span>
   {% if groups %}
-  <span class="tg-bulk-move">
+  <span class="tg-bulk-group">
     <select name="parent" aria-label="Oberbegriff">
       {% for g in groups %}<option value="{{ g.tag.id }}">unter #{{ g.tag.name }}</option>{% endfor %}
       <option value="">ohne Oberbegriff</option>
@@ -105,13 +133,20 @@
     <button class="btn sm" type="submit" name="action" value="move">Einordnen</button>
   </span>
   {% endif %}
-  <span class="tg-bulk-merge">
+  <span class="tg-bulk-group">
     <input name="name" placeholder="zusammenführen zu …" maxlength="64" aria-label="Name nach dem Zusammenführen" autocapitalize="off">
     <button class="btn-soft sm" type="submit" name="action" value="merge">Zusammenführen</button>
   </span>
-  <button class="btn-danger sm" type="submit" name="action" value="delete" data-confirm="Alle ausgewählten Tags von allen Postings entfernen?">{{ icon('trash', 15) }}</button>
+  <button class="btn-danger sm" type="submit" name="action" value="delete" data-confirm="Alle ausgewählten Tags von allen Postings entfernen?" aria-label="Ausgewählte löschen">{{ icon('trash', 15) }}</button>
 </form>
-<p class="faint xs" style="margin-top:12px">Tipp: Heißt ein umbenannter Tag wie ein vorhandener, werden beide zusammengeführt. Oberbegriffe bleiben auch ohne eigene Postings bestehen.</p>
+
+<details class="tg-help card">
+  <summary>{{ icon('help', 16) }} Was ist was?</summary>
+  <dl>
+    <dt>Oberbegriff</dt><dd>Fasst ähnliche Tags zusammen (z. B. #tiere über #hunde und #katzen). Wer nach dem Oberbegriff filtert, findet alle Unter-Tags mit.</dd>
+    <dt>Zusammenführen</dt><dd>Mehrere Tags werden einer, alle Postings behalten ihn. Geht auch, indem du einen Tag so umbenennst wie einen vorhandenen.</dd>
+  </dl>
+</details>
 {% else %}
 <div class="setting-group"><div class="setting-block muted">Noch keine Tags vergeben.</div></div>
 {% endif %}

@@ -2515,3 +2515,83 @@ body:has(.graph-page) .fab { display: none; }
 @media (max-width: 760px) { .graph-search { min-width: 0; } }
 .graph-zoom-hint { max-width: calc(100% - 32px); white-space: normal; text-align: center; }
 .empty-state .btn { max-width: 100%; white-space: normal; }
+
+/* --- 0.20 Tags organisieren: klare Tabelle mit festen Spalten -------------------------------- */
+:root { --tg-teal: light-dark(#1f9e92, #56d6c8); }
+.tg-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.tg-header .sub { margin: 4px 0 0; }
+.tg-newgroup { position: relative; }
+.tg-newgroup > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.tg-newgroup > summary::-webkit-details-marker { display: none; }
+.tg-newgroup-form { position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; width: min(320px, 86vw); display: grid; gap: 8px; padding: 14px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-3); }
+.tg-newgroup-form p { margin: 0; }
+.tg-newgroup-form .btn { justify-self: start; }
+
+.tg-toolbar { display: flex; gap: 10px; align-items: center; margin: 0 0 10px; position: sticky; top: calc(var(--header-h) + 6px); z-index: 8;
+  padding: 6px; border-radius: 16px; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.tg-toolbar .tag-search { flex: 1 1 auto; margin: 0; }
+.tg-sort select { min-height: 40px; width: auto; }
+
+/* Tabelle: feste Spalten, alles buendig */
+.tg-table { --tg-cols: 30px minmax(0, 1fr) 170px 210px 72px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-1); overflow: hidden; }
+.tg-colhead, .tg-cells { display: grid; grid-template-columns: var(--tg-cols); align-items: center; gap: 12px; }
+.tg-colhead { padding: 10px 16px; font: 700 .7rem var(--font); letter-spacing: .07em; text-transform: uppercase; color: var(--text-3); border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.tg-group + .tg-group { border-top: 1px solid var(--line); }
+.tg-group[hidden], .tg-row[hidden] { display: none; }
+.tg-group-head { padding: 10px 16px; background: color-mix(in srgb, var(--accent) 5%, var(--surface)); border-bottom: 1px solid var(--line); }
+.tg-group.is-loose .tg-group-head { background: var(--surface); }
+.tg-group-view { display: flex; align-items: center; gap: 10px; min-height: 34px; flex-wrap: wrap; }
+.tg-group-icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); }
+.tg-group-name { font-weight: 700; color: var(--text); }
+.tg-group-view .tg-actions { margin-left: auto; }
+.tg-row { padding: 6px 16px; }
+.tg-row + .tg-row { border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.tg-row:hover { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
+.tg-row:target { background: color-mix(in srgb, var(--accent) 9%, var(--surface)); }
+.tg-group:not(.is-loose) .tg-row .tg-name { padding-left: 14px; position: relative; }
+.tg-group:not(.is-loose) .tg-row .tg-name::before { content: ""; position: absolute; left: 0; top: 50%; width: 8px; border-top: 1px solid var(--text-3); opacity: .6; }
+.tg-check { display: inline-flex; margin: 0; }
+.tg-check input { width: 18px; height: 18px; margin: 0; }
+.tg-name { font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.tg-count { display: grid; grid-template-columns: 1fr 2.2rem; align-items: center; gap: 8px; }
+.tg-bar { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.tg-bar i { display: block; height: 100%; border-radius: inherit; background: var(--tg-teal); }
+.tg-count b { text-align: right; font-variant-numeric: tabular-nums; font-size: var(--fs-sm); }
+.tg-count b.is-zero { color: var(--text-3); font-weight: 500; }
+.tg-parent { margin: 0; }
+.tg-parent select { min-height: 32px; padding: 2px 28px 2px 10px; font-size: var(--fs-xs); width: 100%; background-position: right 9px center; }
+.tg-parent select:disabled { opacity: .45; }
+.tg-cells .tg-actions { justify-content: flex-end; display: flex; gap: 2px; }
+.tg-actions form { margin: 0; }
+.tg-row .tag-rename, .tg-group-head .tag-rename { flex-wrap: wrap; padding: 4px 0 4px 42px; }
+.tg-empty { margin: 0; padding: 12px 16px 12px 58px; }
+.tg-none { padding: 18px 16px; margin: 0; text-align: center; }
+.tg-bulk { flex-wrap: wrap; }
+.tg-bulk-group { display: flex; gap: 6px; align-items: center; }
+.tg-bulk select, .tg-bulk input { min-height: 34px; padding: 4px 10px; width: auto; max-width: 190px; font-size: var(--fs-sm); }
+.tg-help { margin-top: 16px; padding: 14px 16px; }
+.tg-help summary { cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 650; }
+.tg-help dl { margin: 12px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; font-size: var(--fs-sm); }
+.tg-help dt { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.tg-help dd { margin: 0; color: var(--text-2); }
+@media (max-width: 1100px) { .tg-table { --tg-cols: 30px minmax(0, 1fr) 130px 170px 72px; } }
+@media (max-width: 860px) {
+  .tg-colhead { display: none; }
+  /* Zeile wird zweizeilig: oben Auswahl, Name, Zahl - unten Art, Oberbegriff, Aktionen */
+  .tg-cells { grid-template-columns: 30px auto minmax(0, 1fr) auto; grid-template-areas: "c n n k" ". p p x"; row-gap: 6px; column-gap: 10px; }
+  .tg-cells > .tg-check { grid-area: c; }
+  .tg-cells > .tg-name { grid-area: n; }
+  .tg-cells > .tg-count { grid-area: k; width: 110px; }
+  .tg-cells > .tg-parent { grid-area: p; }
+  .tg-cells > .tg-actions { grid-area: x; }
+  .tg-row { padding: 10px 14px; }
+  .tg-row .tag-rename { padding-left: 0; }
+  .tg-help dl { grid-template-columns: 1fr; }
+  .tg-help dd { margin-bottom: 6px; }
+}
+@media (max-width: 760px) { .tg-toolbar { top: 6px; } }
+.settings-main .tg-header h1 { margin-bottom: 0; }
+.tg-toolbar { flex-wrap: nowrap; }
+.tg-sort select { max-width: 46vw; }
+@media (max-width: 760px) { .tg-newgroup-form { left: 0; right: auto; } }

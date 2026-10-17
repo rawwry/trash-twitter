@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.1 – Zurück zu 0.18, schönere Tag-Verwaltung (17.10.2026)
+
+- 0.19.0 vollständig zurückgenommen (Muster, Tag-Art „Figur“, Filter „ohne Tag“, Aufräum-Vorschläge). Die in 0.19.0 angelegte Spalte `tags.kind` bleibt in bestehenden Datenbanken unbenutzt liegen.
+- **Tags organisieren**, nur Oberfläche: Tabelle mit festen Spalten (Auswahl · Tag · Postings mit Balken · Oberbegriff · Aktionen), am Handy zweizeilig; Suche und Sortierung (häufigste/A–Z, gemerkt); „+ Oberbegriff“ als Knopf oben; Einordnen springt zur Zeile zurück.
+
 ## 0.18.0 – Netzwerk (17.10.2026)
 
 - **Netzwerk** (`/netzwerk`, `routers/graph.py`, `static/graph.js`): Kraft-Graph auf Canvas mit force-graph 1.51.4 (MIT, lokal unter `static/vendor/`). Der Server liefert Knoten und Kanten auf Posting-Ebene (`/netzwerk/daten`: Posting–Person, Posting–Tag, Posting–Liste, Recherche–Person/Posting, Tag–Oberbegriff); der Browser fasst zusammen zu Person – Tag (Gewicht = Postings) und Liste – Person. Personen sind nie direkt verbunden.

@@ -70,7 +70,7 @@ def test_groups_filter_and_cleanup(user_client, harness):
     with harness.db() as db:
         assert db.get(Tag, umwelt).parent_id is None
     page = user_client.get("/settings/tags").text
-    assert "Oberbegriff hinzufügen" in page and "#umwelt" in page
+    assert "Neuer Oberbegriff" in page and "#umwelt" in page
     # Aufloesen: Unter-Tags bleiben, ohne Oberbegriff
     user_client.post(f"/settings/tags/{umwelt}/ungroup", data={"csrf_token": csrf})
     with harness.db() as db:
@@ -178,12 +178,22 @@ def test_help_is_prominent_and_explains_basics(user_client):
     assert 'id="grundlagen"' in help_page and "Tags &amp; Oberbegriffe" in help_page and "Recherche" in help_page
 
 
-def test_release_notice_once_per_minor(user_client, harness):
+def _feature_version(monkeypatch, version="0.18.0"):
+    """Nicht jede x.x hat highlights (0.19 wurde zurueckgenommen) - fest auf eine mit."""
+    import app.routers.help as help_router
+    import app.templating as templating
+
+    monkeypatch.setattr(templating, "VERSION", version)
+    monkeypatch.setattr(help_router, "VERSION", version)
+    return version
+
+
+def test_release_notice_once_per_minor(user_client, harness, monkeypatch):
+    VERSION = _feature_version(monkeypatch)
     assert "data-release-dialog" in user_client.get("/").text
     r = user_client.post("/neuigkeiten/gesehen", data={"csrf_token": user_client.csrf}, headers={"X-Requested-With": "fetch"})
     assert r.status_code == 204
     assert "data-release-dialog" not in user_client.get("/").text
-    from app import VERSION
     assert harness.get_user("anna").release_seen == ".".join(VERSION.split(".")[:2])
     # Patch-Versionen zeigen nichts Neues, alte Versionen ohne highlights auch nicht
     assert release_notice("0.14.3", "0.14") is None
@@ -191,7 +201,8 @@ def test_release_notice_once_per_minor(user_client, harness):
     assert release_notice("0.14.0", "0.13")[0] == "0.14"
 
 
-def test_release_notice_waits_for_password_change(harness):
+def test_release_notice_waits_for_password_change(harness, monkeypatch):
+    _feature_version(monkeypatch)
     harness.add_user("neu", "neu-passwort-123", must_change=True)
     with harness.client() as c:
         login(c, "chef", ADMIN_PW)

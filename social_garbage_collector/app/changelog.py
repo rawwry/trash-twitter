@@ -7,6 +7,15 @@ Ab 0.14 (Timo): Jede x.x-Version (Feature-Release, nicht x.x.x) bekommt
 
 CHANGES = [
     {
+        "version": "0.19.1",
+        "date": "17.10.2026",
+        "title": "Zurück zu 0.18, schönere Tag-Verwaltung",
+        "items": [
+            "„Muster“, Figuren und Aufräum-Vorschläge aus 0.19.0 wieder entfernt – das Netzwerk ist zurück",
+            "Tags organisieren: übersichtliche Tabelle mit festen Spalten (Tag, Postings mit Balken, Oberbegriff), Suche und Sortierung, neuer Oberbegriff über den Knopf oben",
+        ],
+    },
+    {
         "version": "0.18.0",
         "date": "17.10.2026",
         "title": "Netzwerk",

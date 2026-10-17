@@ -183,7 +183,7 @@ def move_tag(request: Request, tag_id: int, parent: str = Form(""), user: User =
         return redirect(request, "/settings/tags", toast=str(exc), kind="error")
     db.commit()
     msg = f"#{tag.name} steht jetzt unter #{target.name}" if target else f"#{tag.name} hat keinen Oberbegriff mehr"
-    return redirect(request, "/settings/tags", toast=msg)
+    return redirect(request, f"/settings/tags#tag-{tag.id}", toast=msg)
 
 
 @router.post("/tags/{tag_id}/ungroup")
