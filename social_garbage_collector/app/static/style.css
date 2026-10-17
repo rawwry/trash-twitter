@@ -2721,3 +2721,37 @@ label.ar-choice { flex-direction: row; font-weight: 400; }
 .ar-col > * { min-width: 0; max-width: 100%; box-sizing: border-box; }
 .ar-field textarea, .ar-field input, .ar-field select { box-sizing: border-box; width: 100%; }
 .ar-buttons { flex-wrap: wrap; }
+
+/* --- 0.20.1 Feinschliff ------------------------------------------------------------------------ */
+/* Raster: Tags dezent neben dem Datum */
+.qtile-foot { display: flex; align-items: baseline; gap: 4px 10px; flex-wrap: wrap; padding-right: 52px; min-width: 0; }
+.qtile-foot .qtile-date { padding-right: 0; }
+.qtile-tags { display: flex; flex-wrap: wrap; gap: 2px 8px; min-width: 0; font-size: var(--fs-xs); font-weight: 600; color: color-mix(in srgb, var(--accent) 70%, var(--text-3)); }
+.qtile-tags span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 14ch; }
+body.selecting .qtile-foot { padding-right: 0; }
+/* Personen: Sortierung neben der Suche */
+.person-sort select { min-height: 40px; width: auto; max-width: 42vw; font-size: var(--fs-sm); }
+.person-search { display: flex; align-items: center; gap: 8px; }
+.person-search .atb-search { flex: 1 1 auto; min-width: 0; }
+/* Tags organisieren: Abzeichen fuer Tags mit Regel */
+.tg-name-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.tg-auto { flex: none; padding: 1px 7px; border-radius: 99px; font: 700 .64rem var(--font); letter-spacing: .05em; text-transform: uppercase;
+  color: var(--accent); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+.tg-auto:hover { text-decoration: none; background: color-mix(in srgb, var(--accent) 18%, transparent); }
+@media (max-width: 860px) { .tg-cells > .tg-name-cell { grid-area: n; } }
+/* Automatisch taggen: Uebersicht */
+.ar-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; padding: 14px 16px;
+  border-radius: var(--r-lg); background: color-mix(in srgb, var(--accent) 6%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line)); }
+.ar-sum-nums { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: var(--fs-sm); color: var(--text-2); }
+.ar-sum-nums b { color: var(--text); font-variant-numeric: tabular-nums; }
+.ar-sum-nums .is-open b { color: var(--accent); }
+.ar-summary form { margin: 0; }
+.ar-list { gap: 8px; }
+.ar-card { padding: 12px 14px; }
+.ar-foot { margin-top: 10px; padding-top: 8px; }
+@media (max-width: 600px) {
+  .person-search { flex-wrap: wrap; }
+  .person-search .atb-search { flex: 1 1 100%; }
+  .person-sort { flex: 1 1 auto; }
+  .person-sort select { width: 100%; max-width: none; }
+}

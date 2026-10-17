@@ -14,6 +14,21 @@
 
 {# --- Regeln ------------------------------------------------------------------------------ #}
 {% if rules %}
+{% set n_active = rules|selectattr('active')|list|length %}
+<div class="ar-summary">
+  <div class="ar-sum-nums">
+    <span><b>{{ n_active }}</b> {{ 'aktive Regel' if n_active == 1 else 'aktive Regeln' }}{% if rules|length > n_active %} · {{ rules|length - n_active }} pausiert{% endif %}</span>
+    <span><b>{{ untagged }}</b> Postings ohne Tag</span>
+    <span class="{{ 'is-open' if reach }}"><b>{{ reach }}</b> davon würden die Regeln taggen</span>
+  </div>
+  {% if reach %}
+  <form method="post" action="{{ url('/settings/tags/regeln/alle-anwenden') }}"
+        data-confirm="Alle aktiven Regeln auf die {{ reach }} Postings ohne Tag anwenden? Lässt sich je Regel rückgängig machen." data-confirm-ok="Anwenden">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button class="btn sm" type="submit">{{ icon('tag', 15) }} Alle auf ungetaggte anwenden</button>
+  </form>
+  {% endif %}
+</div>
 <div class="ar-list">
   {% for r in rules %}
   {% set st = stats[r.id] %}
@@ -38,7 +53,7 @@
         {% if assigned.get(r.id) %}<span title="Von dieser Regel vergeben">{{ assigned[r.id] }} automatisch vergeben</span>{% endif %}
       </span>
       <span class="ar-actions">
-        {% if st.new %}<a class="btn sm" href="{{ url('/settings/tags/regeln/' ~ r.id ~ '/anwenden') }}">Auf {{ st.new }} vorhandene anwenden …</a>{% endif %}
+        {% if st.new %}<a class="btn-soft sm" href="{{ url('/settings/tags/regeln/' ~ r.id ~ '/anwenden') }}">Auf {{ st.new }} vorhandene anwenden …</a>{% endif %}
         <a class="btn-soft sm" href="{{ url('/settings/tags/regeln/' ~ r.id) }}#regel-form">{{ icon('edit', 14) }} Bearbeiten</a>
         <form method="post" action="{{ url('/settings/tags/regeln/' ~ r.id ~ '/aktiv') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -49,7 +64,7 @@
           <div class="ar-more-panel">
             {% if assigned.get(r.id) %}
             <form method="post" action="{{ url('/settings/tags/regeln/' ~ r.id ~ '/rueckgaengig') }}"
-                  data-confirm="#{{ r.tag.name }} wieder von den {{ assigned[r.id] }} Postings entfernen, die diese Regel getaggt hat? Von Hand vergebene Tags bleiben.">
+                  data-confirm="#{{ r.tag.name }} wieder von den {{ assigned[r.id] }} Postings entfernen, die diese Regel getaggt hat? Von Hand vergebene Tags bleiben." data-confirm-ok="Entfernen">
               <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
               <button type="submit">{{ icon('refresh', 16) }} Automatisch vergebene entfernen ({{ assigned[r.id] }})</button>
             </form>

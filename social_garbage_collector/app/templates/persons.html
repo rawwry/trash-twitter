@@ -11,12 +11,18 @@
 </header>
 <form class="atb person-search" method="get" action="{{ url('/personen') }}" role="search"
       hx-get="{{ url('/personen') }}" hx-target="#person-rows" hx-swap="outerHTML" hx-push-url="true"
-      hx-trigger="input changed delay:300ms from:input[type=search]">
+      hx-trigger="input changed delay:300ms from:input[type=search], change from:select">
   <label class="atb-search">
     {{ icon('search', 18) }}
     <input type="search" name="q" value="{{ q }}" placeholder="Name oder @handle" aria-label="Personen durchsuchen">
   </label>
   <noscript><button class="btn" type="submit">Suchen</button></noscript>
+  <label class="person-sort"><span class="sr-only">Sortieren</span>
+    <select name="sort" aria-label="Personen sortieren">
+      {% for key, label in [('posts', 'Meiste Postings'), ('recent', 'Zuletzt aktiv'), ('name', 'Name A–Z')] %}
+      <option value="{{ key }}" {% if psort == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </label>
   <nav class="view-icons" aria-label="Darstellung">
     {% for key, ico, label in [('tiles', 'grid', 'Kacheln'), ('list', 'rows', 'Liste')] %}
     <a href="{{ url('/personen') }}?view={{ key }}{% if q %}&q={{ q|urlencode }}{% endif %}" title="{{ label }}" aria-label="{{ label }}"

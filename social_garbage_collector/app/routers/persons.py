@@ -6,6 +6,8 @@ gemeinsam gepflegt). Jede Aenderung landet im Protokoll.
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -44,13 +46,21 @@ def overview(request: Request, q: str = "", user: User = Depends(require_user), 
     view = request.query_params.get("view")
     if view and update_prefs(user, {"persons_view": view}):
         db.commit()
+    sort = request.query_params.get("sort")
+    if sort and update_prefs(user, {"persons_sort": sort}):
+        db.commit()
+    prefs = get_prefs(user)
     persons = account_service.list_persons(db, q[:100])
     stats = account_service.person_stats(db, [p.id for p in persons])
     # Personen ohne archiviertes Posting erscheinen nicht (z. B. nach dem Loeschen).
     persons = [p for p in persons if stats.get(p.id, {}).get("count", 0)]
     persons.sort(key=lambda p: p.name.lstrip("@").lower())
+    if prefs["persons_sort"] == "posts":
+        persons.sort(key=lambda p: -stats[p.id]["count"])
+    elif prefs["persons_sort"] == "recent":
+        persons.sort(key=lambda p: stats[p.id]["last"] or datetime.min, reverse=True)
     tpl = "partials/person_rows.html" if request.headers.get("hx-request") else "persons.html"
-    return render(request, tpl, persons=persons, stats=stats, q=q, pview=get_prefs(user)["persons_view"])
+    return render(request, tpl, persons=persons, stats=stats, q=q, pview=prefs["persons_view"], psort=prefs["persons_sort"])
 
 
 @router.get("/personen/{person_id}")

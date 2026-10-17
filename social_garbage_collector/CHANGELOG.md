@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.20.1 – Feinschliff (17.10.2026)
+
+- Automatisch taggen: Übersichtsleiste mit Zahlen und `POST /settings/tags/regeln/alle-anwenden` – alle aktiven Regeln auf die Postings, die *vor* dem Lauf ohne Tag waren (mehrere Regeln können dasselbe Posting taggen); Karten kompakter, Anwenden-Knopf zurückhaltend.
+- Tags organisieren: „auto“-Abzeichen an Tags mit aktiver Regel.
+- Raster: bis zu drei Tags neben dem Datum.
+- Personen: Sortierung `persons_sort` (Meiste Postings · Zuletzt aktiv · Name), gemerkt; am Handy Suche volle Breite.
+
 ## 0.20.0 – Automatisch taggen (17.10.2026)
 
 - **Regeln** (`/settings/tags/regeln`, `routers/tagrules.py`, `services/autotag.py`, Tabellen `tag_rules` und `auto_tags`): Tag + Begriffe (ganze Wörter, Groß-/Kleinschreibung egal, `*` am Anfang/Ende als Platzhalter, Wortgruppen), „mindestens einer“ oder „alle“, Ausnahmen, optional nur für eine Person, aktiv/pausiert.

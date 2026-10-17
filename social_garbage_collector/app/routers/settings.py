@@ -132,7 +132,8 @@ async def save_prefs(request: Request, user: User = Depends(require_user), db: S
 def tags(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
     from ..models import TagRule
 
-    return render(request, "settings/tags.html", section="tags", tab="tags",
+    rule_tags = set(db.scalars(select(TagRule.tag_id).where(TagRule.active.is_(True))))
+    return render(request, "settings/tags.html", section="tags", tab="tags", rule_tags=rule_tags,
                   n_rules=db.scalar(select(func.count()).select_from(TagRule)) or 0)
 
 

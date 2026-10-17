@@ -7,7 +7,8 @@
 <div class="tg-row" id="tag-{{ t.id }}" data-tg-row data-name="{{ t.name }}" data-count="{{ node.count }}" data-loose="{{ '0' if child else '1' }}">
   <div class="tg-cells" data-edit-view="tag-{{ t.id }}">
     <label class="tg-check" aria-label="#{{ t.name }} auswählen"><input type="checkbox" name="ids" value="{{ t.id }}" form="tag-bulk" data-tag-select></label>
-    <a class="tg-name" href="{{ url('/') }}?tags={{ t.name|urlencode }}" title="Postings mit #{{ t.name }} zeigen">#{{ t.name }}</a>
+    <span class="tg-name-cell"><a class="tg-name" href="{{ url('/') }}?tags={{ t.name|urlencode }}" title="Postings mit #{{ t.name }} zeigen">#{{ t.name }}</a>
+      {% if t.id in rule_tags %}<a class="tg-auto" href="{{ url('/settings/tags/regeln') }}" title="Wird automatisch vergeben – Regel ansehen">auto</a>{% endif %}</span>
     <span class="tg-count" title="{{ node.count }} {{ 'Posting' if node.count == 1 else 'Postings' }}">
       <span class="tg-bar"><i style="width: {{ (node.count * 100 / peak)|round(0, 'ceil')|int if node.count else 0 }}%"></i></span>
       <b class="{{ 'is-zero' if not node.count }}">{{ node.count }}</b>

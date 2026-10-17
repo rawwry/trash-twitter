@@ -1,4 +1,4 @@
-{# Raster: ultraclean - gleich grosse Kacheln, nur Verfasser, Wortlaut, Datum. #}
+{# Raster: ultraclean - gleich grosse Kacheln, nur Verfasser, Wortlaut, Datum und (0.20.1) dezent die Tags. #}
 {% set av = post_avatar(post) %}
 <article class="qtile" id="post-{{ post.id }}" data-post="{{ post.id }}">
   {% if not plist %}{% include "partials/quick_delete.html" %}
@@ -17,7 +17,10 @@
     {% else %}<span class="qtile-text q-missing">Kein Wortlaut</span>{% endif %}
     {% set first = (post.media|selectattr('thumb_path')|first) if post.media else None %}
     {% if first and post.text %}<span class="qtile-media"><img src="{{ url('/medien/' ~ first.thumb_path) }}" alt="" loading="lazy" decoding="async">{% if post.media|length > 1 %}<span class="q-more">+{{ post.media|length - 1 }}</span>{% endif %}</span>{% endif %}
-    <time class="qtile-date" datetime="{{ post.said_at.isoformat() }}Z">{{ post.posted_at|localtime('%d.%m.%Y') if post.posted_at else '' }}</time>
+    <span class="qtile-foot">
+      <time class="qtile-date" datetime="{{ post.said_at.isoformat() }}Z">{{ post.posted_at|localtime('%d.%m.%Y') if post.posted_at else '' }}</time>
+      {% if post.tags %}<span class="qtile-tags">{% for t in post.tags|sort(attribute='name') %}{% if loop.index <= 3 %}<span>#{{ t.name }}</span>{% endif %}{% endfor %}{% if post.tags|length > 3 %}<span>+{{ post.tags|length - 3 }}</span>{% endif %}</span>{% endif %}
+    </span>
   </a>
   <div class="qtile-heart {{ 'has-hearts' if post.hearts or post.comment_count }}">{% include "partials/comment_badge.html" %}{% include "partials/heart.html" %}</div>
 </article>

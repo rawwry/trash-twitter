@@ -179,3 +179,29 @@ def test_word_hints_ignore_untagged():
         autotag._candidates = orig
     h = next(h for h in hints if h.word == "verstorben")
     assert (h.in_tag, h.tagged, h.untagged, h.precision) == (5, 6, 20, 83)
+
+
+def test_apply_all_untagged_lets_several_rules_hit_one_post(user_client, harness):
+    """0.20.1: "Alle auf ungetaggte anwenden" - auch die zweite Regel greift bei einem
+    Posting, das erst durch die erste Regel ein Tag bekommen hat."""
+    _seed(harness, user_client)
+    for tag, terms in (("tiere", "kater"), ("schlaf", "bett"), ("todesfall", "verstorb*")):
+        user_client.post("/settings/tags/regeln", data={"tag": tag, "terms": terms, "csrf_token": user_client.csrf})
+    page = user_client.get("/settings/tags/regeln").text
+    assert "Alle auf ungetaggte anwenden" in page and "<b>3</b> aktive Regeln" in page
+    r = user_client.post("/settings/tags/regeln/alle-anwenden", data={"csrf_token": user_client.csrf})
+    assert r.status_code == 303
+    with harness.db() as db:
+        names = lambda i: sorted(t.name for t in db.get(Post, i).tags)
+        assert names(2) == ["schlaf", "tiere"]          # beide Regeln am selben Posting
+        assert names(1) == ["bekannte"]                 # hatte schon ein Tag -> unberuehrt
+        assert names(6) == ["todesfall"] and names(7) == ["todesfall"]
+    assert 'class="tg-auto"' in user_client.get("/settings/tags").text
+
+
+def test_persons_sorting(user_client, harness):
+    _seed(harness, user_client)  # jack: 6 Postings, elon: 1
+    page = user_client.get("/personen").text
+    assert page.index("jack") < page.index("elon") and 'value="posts" selected' in page
+    page = user_client.get("/personen?sort=name").text
+    assert page.index("elon") < page.index("jack") and 'value="name" selected' in page

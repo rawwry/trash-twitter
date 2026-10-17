@@ -67,7 +67,9 @@ def test_raster_view_is_clean(user_client, harness):
     page = user_client.get("/?view=raster").text
     assert 'class="qtile"' in page
     tile = page[page.index('class="qtile"'):page.index("</article>", page.index('class="qtile"'))]
-    assert "Original" not in tile and "#energie" not in tile and "Nr." not in tile.split("aria-label")[0]
+    assert "Original" not in tile and "Nr." not in tile.split("aria-label")[0]
+    # 0.20.1: Tags stehen dezent neben dem Datum
+    assert '<span class="qtile-tags"><span>#energie</span></span>' in tile
 
 
 # --- Schnell-Loeschen ---------------------------------------------------------------------

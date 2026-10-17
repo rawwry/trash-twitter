@@ -47,6 +47,8 @@ PREFS: tuple[Pref, ...] = (
           ("posted", "Neueste Postings"), ("posted_old", "Älteste Postings")), "archiv"),
     Pref("persons_view", "Personen", "Wie die Personenübersicht aussieht.", "tiles",
          (("tiles", "Kacheln"), ("list", "Liste")), "archiv"),
+    Pref("persons_sort", "Personen sortieren", "Reihenfolge in der Personenübersicht.", "posts",
+         (("posts", "Meiste Postings"), ("recent", "Zuletzt aktiv"), ("name", "Name")), "archiv"),
     Pref("per_page", "Postings pro Seite", "Weitere lädt der Knopf „Mehr laden“.", "24",
          (("24", "24"), ("48", "48"), ("96", "96")), "archiv"),
     Pref("after_add", "Nach dem Hinzufügen", "Wohin es nach dem Archivieren geht.", "detail",

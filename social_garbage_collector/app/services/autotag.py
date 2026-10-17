@@ -159,6 +159,42 @@ def apply_to_existing(db: Session, rule: TagRule, only_untagged: bool) -> int:
     return n
 
 
+def untagged_reach(db: Session) -> tuple[int, int]:
+    """(Postings ohne Tag, davon von mindestens einer aktiven Regel erreichbar)."""
+    rules = [(r, matcher_for(r)) for r in db.scalars(select(TagRule).where(TagRule.active.is_(True)))]
+    total = reach = 0
+    for post in _candidates(db, None):
+        if post.tags:
+            continue
+        total += 1
+        person = _person_of(post) if any(r.person_id for r, _ in rules) else None
+        if any((not r.person_id or r.person_id == person) and m(post.text) for r, m in rules):
+            reach += 1
+    return total, reach
+
+
+def apply_all_untagged(db: Session) -> tuple[int, int]:
+    """Alle aktiven Regeln auf die Postings, die VOR dem Lauf ohne Tag waren -
+    so koennen mehrere Regeln dasselbe Posting taggen. Rueckgabe: (Postings, Tags)."""
+    rules = list(db.scalars(select(TagRule).where(TagRule.active.is_(True)).options(selectinload(TagRule.tag))))
+    if not rules:
+        return 0, 0
+    posts = [p for p in _candidates(db, None) if not p.tags]
+    touched, n_tags = set(), 0
+    for rule in rules:
+        match = matcher_for(rule)
+        for post in posts:
+            if rule.person_id and rule.person_id != _person_of(post):
+                continue
+            if any(t.id == rule.tag_id for t in post.tags) or not match(post.text):
+                continue
+            post.tags.append(rule.tag)
+            db.add(AutoTag(post_id=post.id, tag_id=rule.tag_id, rule_id=rule.id))
+            touched.add(post.id)
+            n_tags += 1
+    return len(touched), n_tags
+
+
 def assigned_count(db: Session) -> dict[int, int]:
     from sqlalchemy import func
 

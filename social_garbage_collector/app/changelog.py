@@ -7,6 +7,17 @@ Ab 0.14 (Timo): Jede x.x-Version (Feature-Release, nicht x.x.x) bekommt
 
 CHANGES = [
     {
+        "version": "0.20.1",
+        "date": "17.10.2026",
+        "title": "Feinschliff",
+        "items": [
+            "Automatisch taggen: Übersicht oben (aktive Regeln, Postings ohne Tag, wie viele davon die Regeln erreichen) mit „Alle auf ungetaggte anwenden“; ruhigere Karten",
+            "Tags organisieren: Tags mit Regel tragen ein „auto“-Abzeichen",
+            "Idiotarium-Raster: Tags stehen dezent neben dem Datum",
+            "Personen: sortierbar nach meisten Postings (neu Standard), zuletzt aktiv oder Name",
+        ],
+    },
+    {
         "version": "0.20.0",
         "date": "17.10.2026",
         "title": "Automatisch taggen",

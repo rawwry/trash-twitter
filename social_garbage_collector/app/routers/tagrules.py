@@ -40,7 +40,9 @@ def _page(request: Request, db: Session, editing: TagRule | None = None, error: 
     if form is None and editing is not None:
         form = dict(tag=editing.tag.name, terms="\n".join(editing.term_list), match=editing.match,
                     exclude="\n".join(editing.exclude_list), person=editing.person_id or "")
+    untagged, reach = autotag.untagged_reach(db) if rules else (0, 0)
     return render(request, "settings/tag_rules.html", section="tags", rules=rules, stats=stats,
+                  untagged=untagged, reach=reach,
                   assigned=autotag.assigned_count(db), editing=editing, error=error, form=form or {},
                   persons=_persons(db), all_tags=list(db.scalars(select(Tag.name).order_by(Tag.name))),
                   match_labels=RULE_MATCH, status_code=status_code)
@@ -103,6 +105,15 @@ def create(request: Request, tag: str = Form(""), terms: str = Form(""), match: 
     db.commit()
     return redirect(request, f"/settings/tags/regeln#regel-{rule.id}",
                     toast=f"Regel für #{rule.tag.name} gespeichert – gilt ab jetzt für neue Postings")
+
+
+@router.post("/alle-anwenden")
+def apply_all(request: Request, db: Session = Depends(get_db)):
+    """Alle aktiven Regeln auf Postings ohne Tag (rueckgaengig je Regel moeglich)."""
+    posts, tags = autotag.apply_all_untagged(db)
+    db.commit()
+    msg = f"{posts} {'Posting' if posts == 1 else 'Postings'} ohne Tag getaggt ({tags} Tags)" if posts else "Keine ungetaggten Postings passend"
+    return redirect(request, "/settings/tags/regeln", toast=msg)
 
 
 @router.get("/{rule_id}")
