@@ -66,6 +66,7 @@
         {% if post.thread_count %}<span class="sep-dot" aria-hidden="true">·</span><span>Thread, {{ post.thread_count }} Teile</span>{% endif %}
         {% if post.text_source == 'ocr' %}<span class="sep-dot" aria-hidden="true">·</span><span class="lead-ocr" title="{{ TEXT_SOURCE_HELP[post.text_source] }}">per Texterkennung gelesen</span>{% endif %}
         <span class="lead-links">
+          <a class="link-btn" href="#kommentare">{{ 'Kommentieren' if not comments else comments|length ~ (' Kommentar' if comments|length == 1 else ' Kommentare') }}</a>
           <button class="link-btn" type="button" data-edit="text">Wortlaut korrigieren</button>
           {% if post.url %}<a class="link-btn" href="#thread">{{ 'Thread ändern' if post.thread_count else 'Thread ergänzen' }}</a>{% endif %}
         </span>
@@ -96,6 +97,8 @@
         <a class="act" href="{{ url('/recherche/neu') }}?post={{ post.id }}" title="Recherche zu diesem Posting hinzufügen">{{ icon('research', 18) }}<span>Recherche</span></a>
       </div>
     </article>
+
+    {% include "partials/comments.html" %}
 
     {% if notes %}
     <section class="card rs-card" aria-labelledby="post-research-title">

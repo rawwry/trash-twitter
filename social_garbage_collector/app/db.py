@@ -118,6 +118,7 @@ _ADDED_COLUMNS = {
         ("media_checked", "BOOLEAN NOT NULL DEFAULT 0"),
         ("platform_auto", "BOOLEAN NOT NULL DEFAULT 0"),
         ("hearts", "INTEGER NOT NULL DEFAULT 0"),
+        ("comment_count", "INTEGER NOT NULL DEFAULT 0"),
         ("shot_parsed", "BOOLEAN NOT NULL DEFAULT 0"),
     ],
     "post_media": [
@@ -176,6 +177,9 @@ def _migrate(conn) -> None:
     conn.execute(text("UPDATE posts SET hearts = (SELECT count(*) FROM post_hearts WHERE post_hearts.post_id = posts.id) "
                       "WHERE hearts != (SELECT count(*) FROM post_hearts WHERE post_hearts.post_id = posts.id)"))
     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_posts_hearts ON posts(hearts)"))
+    conn.execute(text("UPDATE posts SET comment_count = (SELECT count(*) FROM comments WHERE comments.post_id = posts.id) "
+                      "WHERE comment_count != (SELECT count(*) FROM comments WHERE comments.post_id = posts.id)"))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_notifications_unread ON notifications(user_id, read_at)"))
     # 0.16: Thread-Belege einmal neu aufnehmen - ab Teil 2 ohne Kopf, "Antwort an",
     # "Folgen" und Datum. Nur automatisch aufgenommene, von Hand ersetzte bleiben.
     if (conn.execute(text("PRAGMA user_version")).scalar() or 0) < 8:

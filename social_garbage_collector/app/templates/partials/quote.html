@@ -43,6 +43,7 @@
       <span class="q-no" title="Archiv-Nummer">Nr.&nbsp;{{ archive_no(post) }}</span>
     </span>
     <span class="q-foot-end">
+      {% include "partials/comment_badge.html" %}
       {% include "partials/heart.html" %}
       {% if post.url %}<a class="q-src" href="{{ post.url }}" target="_blank" rel="noopener noreferrer">Original&nbsp;↗</a>
       {% else %}<span class="q-src is-missing" title="Archiviert aus einem eigenen Screenshot">ohne Link</span>{% endif %}

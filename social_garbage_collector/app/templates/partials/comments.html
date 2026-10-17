@@ -1,0 +1,57 @@
+{# Kommentare unter einem Posting (0.17). Wird nach jedem Schreiben/Loeschen per htmx ersetzt. #}
+{% from "partials/icons.html" import icon %}
+{% from "partials/avatar.html" import avatar with context %}
+<section class="card comments" id="kommentare" aria-labelledby="comments-title">
+  <div class="section-title">
+    <h2 id="comments-title">{{ icon('comment', 18) }} Kommentare {% if comments %}<span class="faint small">({{ comments|length }})</span>{% endif %}</h2>
+  </div>
+  {% if comments %}
+  <ol class="cm-list">
+    {% for c in comments %}
+    <li class="cm {{ 'is-mine' if c.user_id == me.id }}" id="kommentar-{{ c.id }}">
+      {{ avatar(c.user, 34) }}
+      <div class="cm-main">
+        <div class="cm-head">
+          <strong>{{ c.user.name if c.user else 'Ehemaliges Mitglied' }}</strong>
+          <time datetime="{{ c.created_at.isoformat() }}Z" title="{{ c.created_at|localtime }}">{{ c.created_at|ago }}</time>
+          {% if c.edited_at %}<span class="faint">· bearbeitet</span>{% endif %}
+          {% if c.user_id == me.id or me.is_admin %}
+          <span class="cm-actions">
+            {% if c.user_id == me.id %}<button class="link-btn" type="button" data-edit="cm-{{ c.id }}">Bearbeiten</button>{% endif %}
+            <form method="post" action="{{ url('/kommentare/' ~ c.id ~ '/loeschen') }}" data-confirm="Diesen Kommentar löschen?"
+                  hx-post="{{ url('/kommentare/' ~ c.id ~ '/loeschen') }}" hx-target="#kommentare" hx-swap="outerHTML" hx-confirm="Diesen Kommentar löschen?">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button class="link-btn" type="submit">Löschen</button>
+            </form>
+          </span>
+          {% endif %}
+        </div>
+        <div class="cm-body" data-edit-view="cm-{{ c.id }}">{{ c.body|richtext }}</div>
+        {% if c.user_id == me.id %}
+        <form class="cm-edit" method="post" action="{{ url('/kommentare/' ~ c.id) }}" data-edit-form="cm-{{ c.id }}" hidden
+              hx-post="{{ url('/kommentare/' ~ c.id) }}" hx-target="#kommentare" hx-swap="outerHTML">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <textarea name="body" rows="2" maxlength="4000" aria-label="Kommentar bearbeiten" data-cm-input>{{ c.body }}</textarea>
+          <div class="row"><button class="btn sm" type="submit">Speichern</button>
+            <button class="btn-ghost sm" type="button" data-edit-cancel="cm-{{ c.id }}">Abbrechen</button></div>
+        </form>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="cm-empty muted small">Noch keine Kommentare – schreib den ersten 🙂</p>
+  {% endif %}
+  <form class="cm-form" method="post" action="{{ url('/posts/' ~ post.id ~ '/kommentare') }}"
+        hx-post="{{ url('/posts/' ~ post.id ~ '/kommentare') }}" hx-target="#kommentare" hx-swap="outerHTML">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {{ avatar(me, 34) }}
+    <div class="cm-input">
+      <textarea name="body" rows="1" maxlength="4000" placeholder="Kommentar schreiben …" aria-label="Kommentar schreiben" required data-cm-input
+                {% if focus_new %}data-autofocus{% endif %}></textarea>
+      <button class="cm-send" type="submit" title="Senden (⌘/Strg + Enter)" aria-label="Kommentar senden">{{ icon('send', 18) }}</button>
+    </div>
+  </form>
+  <p class="cm-hint faint xs">Sichtbar für alle Mitglieder.{% if post.added_by and post.added_by.id != me.id %} {{ post.added_by.name }} hat das Posting archiviert und wird benachrichtigt.{% endif %}</p>
+</section>

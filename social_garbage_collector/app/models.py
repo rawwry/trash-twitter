@@ -154,6 +154,8 @@ class Post(Base):
     media_checked: Mapped[bool] = mapped_column(Boolean, default=False)
     # 0.16: Anzahl Herzen (aus post_hearts mitgezaehlt - fuers Sortieren ohne Join)
     hearts: Mapped[int] = mapped_column(Integer, default=0)
+    # 0.17: Anzahl Kommentare (fuer die Markierung in der Uebersicht)
+    comment_count: Mapped[int] = mapped_column(Integer, default=0)
     # 0.12: Screenshot ohne Link - Plattform selbst erkennen; Kopf/Fuss schon ausgewertet
     platform_auto: Mapped[bool] = mapped_column(Boolean, default=False)
     shot_parsed: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -611,3 +613,40 @@ class PostHeart(Base):
     post_id: Mapped[int] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"), primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+
+# --------------------------------------------------------------------------
+# Kommentare (0.17): flach, mit Namen, nur fuer Mitglieder. Wer das Posting
+# archiviert hat (und wer schon mitkommentiert), bekommt eine Benachrichtigung.
+# --------------------------------------------------------------------------
+
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    post_id: Mapped[int] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    edited_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    user: Mapped[User | None] = relationship()
+    post: Mapped[Post] = relationship()
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)   # Empfaenger
+    kind: Mapped[str] = mapped_column(String(16), default="comment")
+    post_id: Mapped[int | None] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"), nullable=True)
+    comment_id: Mapped[int | None] = mapped_column(ForeignKey("comments.id", ondelete="CASCADE"), nullable=True)
+    actor_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    post: Mapped[Post | None] = relationship()
+    comment: Mapped[Comment | None] = relationship()
+    actor: Mapped[User | None] = relationship(foreign_keys=[actor_id])

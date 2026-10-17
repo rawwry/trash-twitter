@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.0 – Kommentare & Benachrichtigungen (17.10.2026)
+
+- **Kommentare** (`routers/comments.py`, Tabelle `comments`, Zähler `posts.comment_count`): flach unter jedem Posting, mit Namen und relativer Zeit, Links klickbar (`richtext`). Schreiben/Bearbeiten/Löschen per htmx ohne Seitenwechsel; Bearbeiten nur eigene, Löschen eigene oder als Admin. Feld wächst mit, ⌘/Strg+Enter sendet. Am Handy direkt unter dem Posting.
+- **Benachrichtigungen** (Tabelle `notifications`): Empfänger sind, wer das Posting archiviert hat, und alle, die dort schon kommentiert haben (nie man selbst). Glocke in der Kopfzeile mit Zähler, Seite `/benachrichtigungen`, Antippen springt zum Kommentar; Öffnen des Postings markiert dessen Benachrichtigungen als gelesen, „Alle als gelesen markieren“.
+- **Markierung** in Raster, Liste und Zeitachse: Sprechblase mit Anzahl, Link direkt zu `#kommentare`.
+
 ## 0.16.0 – Herzstücke, aufgeräumte Threads, neue Handy-Leiste (17.10.2026)
 
 - **Herzen:** Tabelle `post_hearts` (ein Herz je Mitglied und Posting), Zähler `posts.hearts` (beim Start mit der Tabelle abgeglichen). Herz-Knopf in Raster (unten rechts, bei Herzen immer sichtbar), Liste, Zeitachse und Detailseite (`POST /posts/{id}/herz`, htmx). Automatische Liste **Herzstücke** (`/lists/herzstuecke`, meiste Herzen zuerst) als erste Kachel unter Listen; Sortierung „Meiste Herzen“ im Idiotarium.

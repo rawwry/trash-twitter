@@ -53,6 +53,9 @@
       {% else %}
       <button class="btn sm btn-add" type="button" data-open="add-dialog" title="Posting zum Archiv hinzufügen (n)" aria-label="Posting hinzufügen">{{ icon('plus', 18) }}<span class="btn-add-label"> Posting hinzufügen</span></button>
       {% endif %}
+      {% set _unread = unread_count() %}
+      <a class="hdr-bell {{ 'has-unread' if _unread }} {{ 'is-current' if nav == 'notifications' }}" href="{{ url('/benachrichtigungen') }}"
+         title="Benachrichtigungen" aria-label="Benachrichtigungen{{ ' (' ~ _unread ~ ' neu)' if _unread }}">{{ icon('bell', 20) }}{% if _unread %}<span class="bell-badge">{{ _unread if _unread < 100 else '99+' }}</span>{% endif %}</a>
       <a class="hdr-help {{ 'is-current' if nav == 'help' }}" href="{{ url('/hilfe') }}" title="Hilfe & Anleitung" aria-label="Hilfe & Anleitung">{{ icon('help', 20) }}<span>Hilfe</span></a>
       <details class="menu">
         <summary aria-label="Kontomenü">{{ avatar(user, 36, "ring") }}</summary>

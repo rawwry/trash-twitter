@@ -1,0 +1,4 @@
+{# Kleine Markierung: Posting hat Kommentare (0.17) #}
+{% from "partials/icons.html" import icon %}
+{% if post.comment_count %}<a class="cm-badge" href="{{ url('/posts/' ~ post.id) }}#kommentare" title="{{ post.comment_count }} {{ 'Kommentar' if post.comment_count == 1 else 'Kommentare' }}"
+   aria-label="{{ post.comment_count }} {{ 'Kommentar' if post.comment_count == 1 else 'Kommentare' }}">{{ icon('comment', 15) }}<span>{{ post.comment_count }}</span></a>{% endif %}

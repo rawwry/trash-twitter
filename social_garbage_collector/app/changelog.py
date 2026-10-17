@@ -7,6 +7,21 @@ Ab 0.14 (Timo): Jede x.x-Version (Feature-Release, nicht x.x.x) bekommt
 
 CHANGES = [
     {
+        "version": "0.17.0",
+        "date": "17.10.2026",
+        "title": "Kommentare & Benachrichtigungen",
+        "highlights": [
+            ("comment", "Kommentare unter jedem Posting", "Schreib, was dir dazu einfällt – mit Namen, für alle Mitglieder. Senden mit dem Pfeil oder ⌘/Strg + Enter."),
+            ("bell", "Glocke für Neues", "Kommentiert jemand ein Posting, das du archiviert oder selbst kommentiert hast, zeigt die Glocke oben die Zahl der neuen."),
+            ("archive", "Markierung im Idiotarium", "Postings mit Kommentaren tragen eine kleine Sprechblase mit der Anzahl – ein Tipp springt direkt zu den Kommentaren."),
+        ],
+        "items": [
+            "Kommentare unter jedem Posting (flach, mit Namen und Zeit, Links klickbar); eigene bearbeiten, eigene oder als Admin löschen",
+            "Benachrichtigungen für die Person, die archiviert hat, und alle, die schon mitkommentiert haben; Glocke mit Zähler, Seite „Benachrichtigungen“",
+            "Sprechblase mit Anzahl an Kacheln, Zeilen und Zeitachse",
+        ],
+    },
+    {
         "version": "0.16.0",
         "date": "17.10.2026",
         "title": "Herzstücke, aufgeräumte Threads, neue Handy-Leiste",

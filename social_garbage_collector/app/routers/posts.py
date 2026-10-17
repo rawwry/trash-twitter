@@ -242,10 +242,12 @@ def post_detail(request: Request, post_id: int, user: User = Depends(require_use
     in_lists = {link.list_id for link in post.list_links}
     other_lists = [pl for pl in db.scalars(select(PostList).order_by(PostList.title)) if pl.id not in in_lists]
     newer, older = post_service.neighbors(db, post)
+    from .comments import comments_for, mark_post_read
     from .research import notes_for_post
 
+    mark_post_read(db, user, post.id)
     return render(request, "post.html", post=post, other_lists=other_lists, newer=newer, older=older,
-                  notes=notes_for_post(db, post.id))
+                  notes=notes_for_post(db, post.id), comments=comments_for(db, post.id), me=user)
 
 
 @router.get("/posts/{post_id}/status")

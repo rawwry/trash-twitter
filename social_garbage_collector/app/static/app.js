@@ -979,6 +979,26 @@
     }
   });
 
+  // --- Kommentare (0.17): Feld waechst mit, Strg/Cmd+Enter sendet ------------------------------
+  const growCm = (t) => { t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, 320) + "px"; };
+  document.addEventListener("input", (ev) => {
+    if (ev.target.matches && ev.target.matches("[data-cm-input]")) growCm(ev.target);
+  });
+  document.addEventListener("keydown", (ev) => {
+    const t = ev.target.closest && ev.target.closest("[data-cm-input]");
+    if (t && ev.key === "Enter" && (ev.metaKey || ev.ctrlKey)) { ev.preventDefault(); t.form?.requestSubmit(); }
+  });
+  document.addEventListener("htmx:afterSettle", (ev) => {
+    if (!ev.target || ev.target.id !== "kommentare") return;
+    const t = $("[data-autofocus]", ev.target);
+    if (t) {
+      const last = $$(".cm", ev.target).pop();
+      last?.scrollIntoView({ block: "center", behavior: "smooth" });
+      last?.classList.add("is-new");
+      t.focus({ preventScroll: true });
+    }
+  });
+
   // --- Auswahlfeld schickt sein Formular sofort ab (z. B. Tag einordnen) -------------------------
   document.addEventListener("change", (ev) => {
     if (ev.target.matches && ev.target.matches("select[data-autosubmit]")) ev.target.form?.requestSubmit();

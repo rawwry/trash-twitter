@@ -79,6 +79,21 @@ def _tag_choices(ctx, limit: int = 200) -> list[tuple[str, int]]:
 
 
 @pass_context
+def _unread_count(ctx) -> int:
+    """Ungelesene Benachrichtigungen (Glocke oben)."""
+    request = ctx["request"]
+    db, user = getattr(request.state, "db", None), getattr(request.state, "user", None)
+    if db is None or user is None:
+        return 0
+    from sqlalchemy import func, select
+
+    from .models import Notification
+
+    return db.scalar(select(func.count()).select_from(Notification)
+                     .where(Notification.user_id == user.id, Notification.read_at.is_(None))) or 0
+
+
+@pass_context
 def _my_hearts(ctx) -> set[int]:
     """IDs der Postings, die das angemeldete Mitglied mit Herz markiert hat (einmal je Anfrage)."""
     request = ctx["request"]
@@ -225,6 +240,7 @@ env.globals.update(
     tag_choices=_tag_choices,
     tag_tree=_tag_tree,
     my_hearts=_my_hearts,
+    unread_count=_unread_count,
     post_avatar=_post_avatar,
     citation=citation,
     archive_no=archive_no,
