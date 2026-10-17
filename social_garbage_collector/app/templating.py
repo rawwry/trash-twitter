@@ -280,6 +280,31 @@ def _qs_without(query_string: str, key: str, value: str | None = None) -> str:
 
 env.filters["qs_without"] = _qs_without
 
+
+def _highlight_terms(text: str, hits: list[str], width: int = 220):
+    """Ausschnitt um den ersten Treffer, Treffer als <mark> (Vorschau automatischer Tags, 0.20)."""
+    from markupsafe import Markup, escape
+
+    text = " ".join((text or "").split())
+    words = sorted({h for h in hits if h}, key=len, reverse=True)
+    if not words:
+        return text[:width] + (" …" if len(text) > width else "")
+    rx = re.compile("|".join(re.escape(w) for w in words), re.IGNORECASE)
+    first = rx.search(text)
+    start = max(0, (first.start() if first else 0) - width // 3)
+    end = min(len(text), start + width)
+    part = text[start:end]
+    out, pos = [], 0
+    for m in rx.finditer(part):
+        out.append(escape(part[pos:m.start()]))
+        out.append(Markup("<mark>") + escape(m.group(0)) + Markup("</mark>"))
+        pos = m.end()
+    out.append(escape(part[pos:]))
+    return Markup(("… " if start else "") + "".join(str(x) for x in out) + (" …" if end < len(text) else ""))
+
+
+env.filters["highlight_terms"] = _highlight_terms
+
 _URL_RE = re.compile(r"https?://[^\s<>\"']+")
 
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.20.0 – Automatisch taggen (17.10.2026)
+
+- **Regeln** (`/settings/tags/regeln`, `routers/tagrules.py`, `services/autotag.py`, Tabellen `tag_rules` und `auto_tags`): Tag + Begriffe (ganze Wörter, Groß-/Kleinschreibung egal, `*` am Anfang/Ende als Platzhalter, Wortgruppen), „mindestens einer“ oder „alle“, Ausnahmen, optional nur für eine Person, aktiv/pausiert.
+- **Neue Postings:** `CaptureWorker` wendet aktive Regeln an, sobald ein Posting fertig ist (Link und Upload), ebenso `POST /posts/{id}/text`. Regeln fügen nur hinzu.
+- **Vorhandene Postings:** Live-Vorschau beim Anlegen (htmx, Treffer markiert, Hinweis auf getaggte Postings, die nicht passen), Anwenden-Seite mit „nur ohne Tag“ oder „alle passenden“.
+- **Rückgängig:** `auto_tags` merkt (Posting, Tag, Regel); „Automatisch vergebene entfernen“ nimmt nur diese ab. Wer ein Tag von Hand entfernt, löscht auch den Merker.
+- **Wortvorschläge:** Wörter, die in Postings mit dem Tag häufig und in anders getaggten selten sind – ungetaggte zählen nicht dagegen, sondern als erreichbar („+n“).
+- Tags mit Regel werden beim Aufräumen verwaister Tags nicht gelöscht; `merge_into` hängt Regeln um. Reiter „Alle Tags / Automatisch taggen“ unter „Tags organisieren“.
+
 ## 0.19.1 – Zurück zu 0.18, schönere Tag-Verwaltung (17.10.2026)
 
 - 0.19.0 vollständig zurückgenommen (Muster, Tag-Art „Figur“, Filter „ohne Tag“, Aufräum-Vorschläge). Die in 0.19.0 angelegte Spalte `tags.kind` bleibt in bestehenden Datenbanken unbenutzt liegen.

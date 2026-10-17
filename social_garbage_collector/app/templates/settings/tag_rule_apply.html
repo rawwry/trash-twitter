@@ -1,0 +1,42 @@
+{% extends "settings/base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Regel anwenden{% endblock %}
+{% block settings %}
+<a class="back-link" href="{{ url('/settings/tags/regeln') }}#regel-{{ rule.id }}">{{ icon('chev-left', 18) }} Automatisch taggen</a>
+<h1>#{{ rule.tag.name }} an vorhandene Postings</h1>
+<p class="sub">Regel: {{ 'alle' if rule.match == 'all' else 'mindestens einer' }} von
+  {% for t in rule.term_list %}<span class="ar-term">{{ t }}</span>{% endfor %}{% if rule.person %} · nur {{ rule.person.name }}{% endif %}</p>
+
+<div class="ar-pv-stats ar-apply-stats">
+  <span><b>{{ pv.matching }}</b> passend</span>
+  <span><b>{{ pv.already }}</b> haben #{{ rule.tag.name }} schon</span>
+  <span class="is-open"><b>{{ pv.untagged }}</b> ganz ohne Tag</span>
+  <span class="is-open"><b>{{ pv.other_tags }}</b> mit anderen Tags</span>
+</div>
+
+{% if pv.new %}
+<form method="post" action="{{ url('/settings/tags/regeln/' ~ rule.id ~ '/anwenden') }}" class="ar-apply card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <fieldset>
+    <legend class="ar-label">Welche Postings sollen #{{ rule.tag.name }} bekommen?</legend>
+    <label class="ar-choice"><input type="radio" name="scope" value="untagged" {% if pv.untagged %}checked{% endif %} {% if not pv.untagged %}disabled{% endif %}>
+      <span><b>Nur die {{ pv.untagged }} noch ganz ohne Tag</b><small>Nachtaggen, was bisher liegen geblieben ist.</small></span></label>
+    <label class="ar-choice"><input type="radio" name="scope" value="all" {% if not pv.untagged %}checked{% endif %}>
+      <span><b>Alle {{ pv.new }} passenden</b><small>Auch Postings, die schon andere Tags haben, bekommen #{{ rule.tag.name }} dazu.</small></span></label>
+  </fieldset>
+  <button class="btn" type="submit">{{ icon('tag', 16) }} Jetzt anwenden</button>
+  <p class="faint xs">Lässt sich mit „Automatisch vergebene entfernen“ jederzeit zurücknehmen.</p>
+</form>
+<h2 class="ar-sub">Diese Postings würden #{{ rule.tag.name }} bekommen</h2>
+<ul class="ar-pv-list card">
+  {% for post, hits in pv.examples %}
+  <li><a href="{{ url('/posts/' ~ post.id) }}" target="_blank" rel="noopener">
+    <span class="ar-pv-meta">{{ (post.posted_at or post.created_at)|localtime('%d.%m.%Y') }} · {{ post.author_display_name or ('@' ~ post.author_handle) }}{% if not post.tags %} · <i>ohne Tag</i>{% else %} · {% for t in post.tags %}#{{ t.name }} {% endfor %}{% endif %}</span>
+    <span class="ar-pv-text">{{ post.text|highlight_terms(hits) }}</span></a></li>
+  {% endfor %}
+</ul>
+{% if pv.new > pv.examples|length %}<p class="faint xs">… und {{ pv.new - pv.examples|length }} weitere.</p>{% endif %}
+{% else %}
+<p class="card ar-pv-none">Alle passenden Postings haben #{{ rule.tag.name }} schon.</p>
+{% endif %}
+{% endblock %}

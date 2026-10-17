@@ -124,6 +124,10 @@ def merge_into(db: Session, source: Tag, target: Tag) -> None:
             post.tags.append(target)
     for child in list(source.children):
         child.parent_id = None if child.id == target.id else (target.parent_id or target.id)
+    from ..models import TagRule  # Regeln wandern mit (0.20)
+
+    for rule in db.scalars(select(TagRule).where(TagRule.tag_id == source.id)):
+        rule.tag_id = target.id
     if source.is_group:
         target.is_group = target.parent_id is None
     db.flush()

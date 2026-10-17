@@ -650,3 +650,48 @@ class Notification(Base):
     post: Mapped[Post | None] = relationship()
     comment: Mapped[Comment | None] = relationship()
     actor: Mapped[User | None] = relationship(foreign_keys=[actor_id])
+
+
+# --- Automatische Tags (0.20) ----------------------------------------------------------
+
+RULE_MATCH = {"any": "mindestens eines", "all": "alle"}
+
+
+class TagRule(Base):
+    """Regel: Postings, deren Wortlaut bestimmte Begriffe enthaelt, bekommen ein Tag.
+    Greift automatisch bei neu archivierten Postings; auf vorhandene nur auf Knopfdruck.
+    Begriffe: einer pro Zeile, ganze Woerter; "*" am Ende/Anfang = beliebige Fortsetzung."""
+    __tablename__ = "tag_rules"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tag_id: Mapped[int] = mapped_column(ForeignKey("tags.id", ondelete="CASCADE"), index=True)
+    terms: Mapped[str] = mapped_column(Text, default="")        # ein Begriff pro Zeile
+    match: Mapped[str] = mapped_column(String(8), default="any")
+    exclude: Mapped[str] = mapped_column(Text, default="")      # Postings mit diesen Begriffen auslassen
+    person_id: Mapped[int | None] = mapped_column(ForeignKey("persons.id", ondelete="CASCADE"), nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    tag: Mapped[Tag] = relationship()
+    person: Mapped["Person | None"] = relationship()
+    created_by: Mapped[User | None] = relationship()
+
+    @property
+    def term_list(self) -> list[str]:
+        return [t for t in (self.terms or "").split("\n") if t]
+
+    @property
+    def exclude_list(self) -> list[str]:
+        return [t for t in (self.exclude or "").split("\n") if t]
+
+
+class AutoTag(Base):
+    """Merkt, welches Tag eine Regel an welches Posting gehaengt hat - damit sich
+    das rueckgaengig machen laesst, ohne von Hand vergebene Tags anzufassen."""
+    __tablename__ = "auto_tags"
+
+    post_id: Mapped[int] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"), primary_key=True)
+    tag_id: Mapped[int] = mapped_column(ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
+    rule_id: Mapped[int | None] = mapped_column(ForeignKey("tag_rules.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

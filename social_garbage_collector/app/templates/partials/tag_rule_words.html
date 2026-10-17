@@ -1,0 +1,14 @@
+{# Wortvorschlaege fuer eine Regel (htmx) #}
+{% if hints %}
+<p class="ar-words-title">Typisch für #{{ tag_name }} – antippen übernimmt das Wort:</p>
+<div class="ar-word-chips">
+  {% for h in hints %}
+  <button type="button" class="ar-word" data-add-term="{{ h.word }}"
+          title="Steht in {{ h.in_tag }} von {{ h.tagged }} getaggten Postings bei #{{ tag_name }} – und in {{ h.untagged }} Postings ohne Tag">
+    {{ h.word }} <small>{{ h.precision }} %{% if h.untagged %} · +{{ h.untagged }}{% endif %}</small></button>
+  {% endfor %}
+</div>
+<p class="faint xs">Prozent: so oft hängt #{{ tag_name }} dran, wenn das Wort in einem getaggten Posting steht. „+n“: so viele Postings ohne Tag enthalten es.</p>
+{% elif tag_name and tag_exists %}
+<p class="faint xs">Noch zu wenige Postings mit #{{ tag_name }} für Wortvorschläge.</p>
+{% endif %}

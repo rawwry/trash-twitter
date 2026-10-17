@@ -36,7 +36,7 @@ from ..models import (
     Post,
     utcnow,
 )
-from . import accounts, dates, media, ocr, screenshot, shots
+from . import accounts, autotag, dates, media, ocr, screenshot, shots
 from .platforms import bluesky, get_service
 from .platforms.base import (
     MAX_THREAD_PARTS,
@@ -317,6 +317,7 @@ class CaptureWorker:
             if saved:
                 post.status = STATUS_DONE
                 post.status_message = "; ".join(dict.fromkeys(problems))
+                autotag.apply_to_post(db, post)  # 0.20: automatische Tags
             else:
                 post.status = STATUS_ERROR
                 post.status_message = not_found or "; ".join(dict.fromkeys(problems)) or "Unbekannter Fehler."
@@ -362,6 +363,7 @@ class CaptureWorker:
             await self._fill_date(post)
         post.status = STATUS_DONE
         post.status_message = "; ".join(dict.fromkeys(problems))
+        autotag.apply_to_post(db, post)  # 0.20: automatische Tags
         db.commit()
         log.info("Beitrag %s (Upload): fertig %s", post.id, post.status_message)
 

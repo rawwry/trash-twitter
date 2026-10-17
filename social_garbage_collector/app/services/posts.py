@@ -78,13 +78,18 @@ def get_or_create_tags(db: Session, names: list[str]) -> list[Tag]:
 def set_post_tags(db: Session, post: Post, raw: str) -> None:
     post.tags = get_or_create_tags(db, parse_tag_input(raw))
     db.flush()
+    if post.id:
+        from .autotag import forget_manual_removal
+
+        forget_manual_removal(db, post.id, {t.id for t in post.tags})
     remove_orphan_tags(db)
 
 
 def remove_orphan_tags(db: Session) -> None:
-    """Tags ohne Postings verschwinden - ausser Oberbegriffe (0.14)."""
+    """Tags ohne Postings verschwinden - ausser Oberbegriffe (0.14) und Tags mit Regel (0.20)."""
     db.execute(text("DELETE FROM tags WHERE id NOT IN (SELECT DISTINCT tag_id FROM post_tags) AND is_group = 0 "
-                    "AND id NOT IN (SELECT parent_id FROM tags WHERE parent_id IS NOT NULL)"))
+                    "AND id NOT IN (SELECT parent_id FROM tags WHERE parent_id IS NOT NULL) "
+                    "AND id NOT IN (SELECT tag_id FROM tag_rules)"))  # 0.20: Tags mit Regel bleiben
 
 
 def suggest_tags(db: Session, prefix: str, limit: int = 8) -> list[str]:

@@ -43,6 +43,7 @@
 {% set groups, loose = tag_tree() %}
 {% set all_nodes = loose + (groups|map(attribute='children')|sum(start=[])) %}
 {% set peak = ([1] + all_nodes|map(attribute='count')|list)|max %}
+{% include "partials/tags_tabs.html" %}
 <header class="tg-header">
   <div>
     <h1>Tags organisieren</h1>

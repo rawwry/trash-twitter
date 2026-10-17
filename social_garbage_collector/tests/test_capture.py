@@ -128,3 +128,21 @@ def test_restart_requeues_running_posts(env):
     assert asyncio.run(go()) == 1
     with h.db() as db:
         assert db.get(Post, pid).status == "pending"
+
+
+def test_new_post_gets_automatic_tags(env, monkeypatch):
+    """0.20: Regeln greifen, sobald ein Posting fertig archiviert ist."""
+    from app.models import AutoTag, Tag, TagRule
+
+    h, worker, pid = env
+    with h.db() as db:
+        tag = Tag(name="todesfall")
+        db.add(tag)
+        db.add(TagRule(tag=tag, terms="verstorb*", match="any"))
+        db.commit()
+    meta = PostMetadata(text="Meine Bekannte ist verstorben.", display_name="A", handle="a.bsky.social")
+    _run(worker, pid, FakeService(meta=meta), monkeypatch)
+    with h.db() as db:
+        p = db.get(Post, pid)
+        assert p.status == STATUS_DONE and [t.name for t in p.tags] == ["todesfall"]
+        assert db.query(AutoTag).filter_by(post_id=pid).count() == 1

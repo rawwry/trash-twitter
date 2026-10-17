@@ -1,0 +1,135 @@
+{% extends "settings/base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Automatisch taggen{% endblock %}
+{% block settings %}
+{% set tab = 'rules' %}{% set n_rules = rules|length %}
+{% include "partials/tags_tabs.html" %}
+<header class="tg-header">
+  <div>
+    <h1>Automatisch taggen</h1>
+    <p class="sub">Regeln wie „enthält <em>verstorben</em> → #todesfall“. Neue Postings bekommen das Tag beim Archivieren von selbst,
+      vorhandene auf Knopfdruck – mit Vorschau und jederzeit rückgängig.</p>
+  </div>
+</header>
+
+{# --- Regeln ------------------------------------------------------------------------------ #}
+{% if rules %}
+<div class="ar-list">
+  {% for r in rules %}
+  {% set st = stats[r.id] %}
+  <article class="ar-card {{ 'is-paused' if not r.active }} {{ 'is-editing' if editing and editing.id == r.id }}" id="regel-{{ r.id }}">
+    <div class="ar-main">
+      <div class="ar-rule">
+        <span class="ar-if">Wenn {{ 'alle' if r.match == 'all' else 'eines' }} vorkommt</span>
+        <span class="ar-terms">{% for t in r.term_list %}<span class="ar-term">{{ t }}</span>{% endfor %}</span>
+        {% if r.exclude_list %}<span class="ar-if">außer bei</span>
+        <span class="ar-terms">{% for t in r.exclude_list %}<span class="ar-term is-not">{{ t }}</span>{% endfor %}</span>{% endif %}
+        {% if r.person %}<span class="ar-if">nur bei</span> <span class="ar-person">{{ r.person.name }}</span>{% endif %}
+      </div>
+      <span class="ar-arrow" aria-hidden="true">→</span>
+      <a class="ar-tag" href="{{ url('/') }}?tags={{ r.tag.name|urlencode }}">#{{ r.tag.name }}</a>
+    </div>
+    <div class="ar-foot">
+      <span class="ar-stats">
+        {% if not r.active %}<b class="ar-badge">pausiert</b>{% endif %}
+        <span title="Postings, deren Wortlaut passt">{{ st.matching }} passend</span>
+        <span title="Davon haben das Tag schon">{{ st.already }} getaggt</span>
+        {% if st.new %}<span class="is-open" title="Passen, haben das Tag aber noch nicht">{{ st.new }} offen{% if st.untagged %} ({{ st.untagged }} ganz ohne Tag){% endif %}</span>{% endif %}
+        {% if assigned.get(r.id) %}<span title="Von dieser Regel vergeben">{{ assigned[r.id] }} automatisch vergeben</span>{% endif %}
+      </span>
+      <span class="ar-actions">
+        {% if st.new %}<a class="btn sm" href="{{ url('/settings/tags/regeln/' ~ r.id ~ '/anwenden') }}">Auf {{ st.new }} vorhandene anwenden …</a>{% endif %}
+        <a class="btn-soft sm" href="{{ url('/settings/tags/regeln/' ~ r.id) }}#regel-form">{{ icon('edit', 14) }} Bearbeiten</a>
+        <form method="post" action="{{ url('/settings/tags/regeln/' ~ r.id ~ '/aktiv') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button class="btn-ghost sm" type="submit">{{ 'Pausieren' if r.active else 'Aktivieren' }}</button>
+        </form>
+        <details class="ar-more">
+          <summary class="icon-btn" aria-label="Weitere Aktionen" title="Weitere Aktionen">{{ icon('more', 18) }}</summary>
+          <div class="ar-more-panel">
+            {% if assigned.get(r.id) %}
+            <form method="post" action="{{ url('/settings/tags/regeln/' ~ r.id ~ '/rueckgaengig') }}"
+                  data-confirm="#{{ r.tag.name }} wieder von den {{ assigned[r.id] }} Postings entfernen, die diese Regel getaggt hat? Von Hand vergebene Tags bleiben.">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button type="submit">{{ icon('refresh', 16) }} Automatisch vergebene entfernen ({{ assigned[r.id] }})</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{{ url('/settings/tags/regeln/' ~ r.id ~ '/loeschen') }}" data-confirm="Regel löschen? Bereits vergebene Tags bleiben an den Postings.">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button type="submit" class="danger">{{ icon('trash', 16) }} Regel löschen</button>
+            </form>
+          </div>
+        </details>
+      </span>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# --- Neue Regel / bearbeiten -------------------------------------------------------------- #}
+<section class="ar-form card" id="regel-form" aria-labelledby="ar-form-title">
+  <h2 id="ar-form-title">{{ 'Regel bearbeiten' if editing else ('Neue Regel' if rules else 'Erste Regel anlegen') }}</h2>
+  {% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
+  <form method="post" action="{{ url('/settings/tags/regeln' ~ ('/' ~ editing.id if editing else '')) }}" class="ar-grid" data-ar-form>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="ar-col">
+      <label class="ar-field">
+        <span class="ar-step">1</span><span class="ar-label">Dieses Tag vergeben</span>
+        <span class="ar-tag-input"><span aria-hidden="true">#</span>
+          <input name="tag" value="{{ form.get('tag', '') }}" list="ar-tags" required maxlength="64" autocomplete="off" autocapitalize="off" spellcheck="false"
+                 placeholder="z. B. todesfall" hx-get="{{ url('/settings/tags/regeln/woerter') }}" hx-trigger="change, load" hx-target="#ar-words"
+                 hx-include="[data-ar-form] [name=tag], [data-ar-form] [name=person]"></span>
+        <datalist id="ar-tags">{% for t in all_tags %}<option value="{{ t }}">{% endfor %}</datalist>
+      </label>
+      <div class="ar-field">
+        <span class="ar-step">2</span><label class="ar-label" for="ar-terms">wenn der Wortlaut enthält</label>
+        <textarea id="ar-terms" name="terms" rows="4" required placeholder="verstorb*&#10;gestorben&#10;ist tot" data-ar-terms>{{ form.get('terms', '') }}</textarea>
+        <span class="faint xs">Ein Begriff pro Zeile, ganze Wörter. <b>*</b> = beliebige Fortsetzung: <code>verstorb*</code> findet verstorben, verstorbene, verstorbener.</span>
+        <span class="ar-match">
+          <label class="check"><input type="radio" name="match" value="any" {% if form.get('match', 'any') != 'all' %}checked{% endif %}> mindestens einen Begriff</label>
+          <label class="check"><input type="radio" name="match" value="all" {% if form.get('match') == 'all' %}checked{% endif %}> alle Begriffe</label>
+        </span>
+      </div>
+      <div id="ar-words" class="ar-words" aria-live="polite"></div>
+      <details class="ar-optional" {% if form.get('exclude') or form.get('person') %}open{% endif %}>
+        <summary>Eingrenzen (optional)</summary>
+        <label class="ar-field">
+          <span class="ar-label">außer der Wortlaut enthält</span>
+          <textarea name="exclude" rows="2" placeholder="z. B. film&#10;serie">{{ form.get('exclude', '') }}</textarea>
+        </label>
+        <label class="ar-field">
+          <span class="ar-label">nur bei Postings von</span>
+          <select name="person" hx-get="{{ url('/settings/tags/regeln/woerter') }}" hx-trigger="change" hx-target="#ar-words"
+                  hx-include="[data-ar-form] [name=tag], [data-ar-form] [name=person]">
+            <option value="">allen Personen</option>
+            {% for p in persons %}<option value="{{ p.id }}" {% if form.get('person')|string == p.id|string %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+          </select>
+        </label>
+      </details>
+      <div class="ar-buttons">
+        <button class="btn" type="submit">{{ icon('check', 16) }} Regel speichern</button>
+        {% if editing %}<a class="btn-ghost" href="{{ url('/settings/tags/regeln') }}">Abbrechen</a>{% endif %}
+      </div>
+      <p class="faint xs ar-note">Speichern vergibt noch nichts an vorhandene Postings – das machst du danach mit „Auf … anwenden“.</p>
+    </div>
+    <aside class="ar-col ar-preview-col">
+      <span class="ar-label">Vorschau</span>
+      <div id="ar-preview" class="ar-preview" hx-get="{{ url('/settings/tags/regeln/vorschau') }}"
+           hx-trigger="load, input changed delay:450ms from:closest form, change from:closest form" hx-include="[data-ar-form]">
+        <p class="faint small">Begriffe eingeben – hier erscheinen passende Postings.</p>
+      </div>
+    </aside>
+  </form>
+</section>
+
+<details class="tg-help card">
+  <summary>{{ icon('help', 16) }} So funktionieren Regeln</summary>
+  <dl>
+    <dt>Wann?</dt><dd>Jedes neu archivierte Posting wird geprüft, sobald sein Wortlaut da ist – auch wenn jemand den Text von Hand korrigiert. Vorhandene Postings nur über „Auf … anwenden“.</dd>
+    <dt>Was genau?</dt><dd>Ganze Wörter, Groß-/Kleinschreibung egal. <code>verstorb*</code> findet alles, was so anfängt, <code>*katze</code> alles, was so endet. Mehrere Wörter in einer Zeile müssen genau so hintereinander stehen.</dd>
+    <dt>Nur hinzufügen</dt><dd>Regeln vergeben Tags, sie nehmen nie welche weg. Von Hand vergebene Tags bleiben immer.</dd>
+    <dt>Rückgängig</dt><dd>Die App merkt sich, was eine Regel vergeben hat. „Automatisch vergebene entfernen“ nimmt genau diese Tags wieder ab.</dd>
+  </dl>
+</details>
+{% endblock %}

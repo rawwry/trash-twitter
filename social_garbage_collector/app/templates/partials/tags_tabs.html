@@ -1,0 +1,5 @@
+{# Reiter oben auf "Tags organisieren" (0.20) #}
+<nav class="tg-tabs" aria-label="Tags">
+  <a href="{{ url('/settings/tags') }}" {% if tab == 'tags' %}aria-current="page"{% endif %}>Alle Tags</a>
+  <a href="{{ url('/settings/tags/regeln') }}" {% if tab == 'rules' %}aria-current="page"{% endif %}>Automatisch taggen{% if n_rules %} <small>{{ n_rules }}</small>{% endif %}</a>
+</nav>

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..config import Settings
@@ -130,7 +130,10 @@ async def save_prefs(request: Request, user: User = Depends(require_user), db: S
 
 @router.get("/tags")
 def tags(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    return render(request, "settings/tags.html", section="tags", tags=post_service.tag_counts(db))
+    from ..models import TagRule
+
+    return render(request, "settings/tags.html", section="tags", tab="tags",
+                  n_rules=db.scalar(select(func.count()).select_from(TagRule)) or 0)
 
 
 def _get_tag(db: Session, tag_id: int) -> Tag:

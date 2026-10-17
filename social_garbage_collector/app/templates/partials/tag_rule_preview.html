@@ -1,0 +1,28 @@
+{# Live-Vorschau einer Regel (htmx) #}
+{% if pv is none %}
+<p class="faint small">Begriffe eingeben – hier erscheinen passende Postings.</p>
+{% elif not pv.matching %}
+<p class="ar-pv-none">Kein archiviertes Posting passt. Für künftige Postings kann die Regel trotzdem greifen.</p>
+{% else %}
+<div class="ar-pv-stats">
+  <span><b>{{ pv.matching }}</b> passend</span>
+  {% if tag_exists %}<span><b>{{ pv.already }}</b> haben #{{ tag_name }} schon</span>{% endif %}
+  <span class="is-open"><b>{{ pv.new }}</b> würden es bekommen{% if pv.untagged %} – {{ pv.untagged }} davon ganz ohne Tag{% endif %}</span>
+</div>
+{% if tag_exists and pv.missed %}
+<p class="ar-pv-hint">{{ pv.missed }} {{ 'Posting hat' if pv.missed == 1 else 'Postings haben' }} #{{ tag_name }}, passen aber nicht – vielleicht fehlt ein Begriff (siehe Wortvorschläge).</p>
+{% endif %}
+{% if pv.examples %}
+<ul class="ar-pv-list">
+  {% for post, hits in pv.examples %}
+  <li>
+    <a href="{{ url('/posts/' ~ post.id) }}" target="_blank" rel="noopener">
+      <span class="ar-pv-meta">{{ (post.posted_at or post.created_at)|localtime('%d.%m.%Y') }} · {{ post.author_display_name or ('@' ~ post.author_handle) }}{% if not post.tags %} · <i>ohne Tag</i>{% endif %}</span>
+      <span class="ar-pv-text">{{ post.text|highlight_terms(hits) }}</span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% if pv.new > pv.examples|length %}<p class="faint xs">… und {{ pv.new - pv.examples|length }} weitere.</p>{% endif %}
+{% endif %}
+{% endif %}

@@ -1029,6 +1029,20 @@
     });
   });
 
+  // --- Automatisch taggen (0.20): Wortvorschlag in die Begriffe uebernehmen --------------------
+  document.addEventListener("click", (ev) => {
+    const chip = ev.target.closest?.("[data-add-term]");
+    if (!chip) return;
+    const area = $("[data-ar-terms]");
+    if (!area) return;
+    const lines = area.value.split("\n").map((l) => l.trim()).filter(Boolean);
+    const term = chip.dataset.addTerm;
+    if (!lines.includes(term)) lines.push(term);
+    area.value = lines.join("\n");
+    chip.classList.add("is-added");
+    area.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+
   // --- Tags organisieren: suchen und sortieren ------------------------------------------------
   function tgApply() {
     const table = $(".tg-table");

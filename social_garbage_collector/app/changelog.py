@@ -7,6 +7,24 @@ Ab 0.14 (Timo): Jede x.x-Version (Feature-Release, nicht x.x.x) bekommt
 
 CHANGES = [
     {
+        "version": "0.20.0",
+        "date": "17.10.2026",
+        "title": "Automatisch taggen",
+        "highlights": [
+            ("tag", "Tags vergeben sich selbst", "Unter „Tags organisieren → Automatisch taggen“ legst du Regeln an: enthält der Wortlaut bestimmte Wörter, bekommt das Posting das Tag – bei jedem neu archivierten Posting von selbst."),
+            ("sparkles", "Vorschau und Wortvorschläge", "Schon beim Tippen siehst du, welche Postings passen, mit markierten Treffern. Die App schlägt Wörter vor, die bei einem Tag typisch sind."),
+            ("refresh", "Nachtaggen und rückgängig", "Bestehende Postings auf Knopfdruck nachtaggen – nur die ohne Tag oder alle. Was eine Regel vergeben hat, lässt sich mit einem Klick wieder abnehmen."),
+        ],
+        "items": [
+            "Regeln: Tag, Begriffe (ganze Wörter, * als Platzhalter), mindestens einer oder alle, Ausnahmen, optional nur für eine Person; pausieren, bearbeiten, löschen",
+            "Neue Postings werden beim Archivieren geprüft, auch nach einer Text-Korrektur von Hand; Regeln fügen nur hinzu, nie weg",
+            "Live-Vorschau beim Anlegen, Zahlen je Regel (passend, getaggt, offen, automatisch vergeben), Anwenden auf vorhandene mit Auswahl „nur ohne Tag“ oder „alle“",
+            "Wortvorschläge je Tag aus den eigenen Postings (Treffsicherheit und wie viele ungetaggte es erreichen würde)",
+            "„Automatisch vergebene entfernen“ nimmt genau die Tags zurück, die eine Regel vergeben hat – von Hand vergebene bleiben",
+            "Tags mit Regel bleiben auch ohne Postings erhalten; beim Zusammenführen wandern Regeln mit",
+        ],
+    },
+    {
         "version": "0.19.1",
         "date": "17.10.2026",
         "title": "Zurück zu 0.18, schönere Tag-Verwaltung",

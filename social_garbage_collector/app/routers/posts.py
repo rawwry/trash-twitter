@@ -303,8 +303,12 @@ def update_text(request: Request, post_id: int, text: str = Form(""), db: Sessio
     post = _get_post(db, post_id)
     post.text = text.strip()[:20000]
     post.text_source = TEXT_MANUAL
+    from ..services import autotag
+
+    added = autotag.apply_to_post(db, post) if post.status == STATUS_DONE else []
     db.commit()
-    return redirect(request, f"/posts/{post.id}", toast="Text gespeichert")
+    toast = "Text gespeichert" + (f" · automatisch getaggt: {', '.join('#' + t for t in added)}" if added else "")
+    return redirect(request, f"/posts/{post.id}", toast=toast)
 
 
 @router.post("/posts/{post_id}/date")
