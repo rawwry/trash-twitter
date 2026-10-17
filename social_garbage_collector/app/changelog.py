@@ -7,6 +7,12 @@ Ab 0.14 (Timo): Jede x.x-Version (Feature-Release, nicht x.x.x) bekommt
 
 CHANGES = [
     {
+        "version": "0.17.1",
+        "date": "17.10.2026",
+        "title": "Senden-Knopf",
+        "items": ["Der Senden-Pfeil im Kommentarfeld sitzt wieder mittig und ragt nicht mehr über den Rand"],
+    },
+    {
         "version": "0.17.0",
         "date": "17.10.2026",
         "title": "Kommentare & Benachrichtigungen",

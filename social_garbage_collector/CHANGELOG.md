@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.17.1 – Senden-Knopf (17.10.2026)
+
+- Kommentarfeld: Die Textarea war inline gesetzt, ihre Unterlänge machte die Box ein paar Pixel höher – der absolut positionierte Senden-Pfeil rutschte dadurch über den unteren Rand. Jetzt `display: block`, Pfeil 6 px vom Rand, ohne Browser-Innenabstand.
+
 ## 0.17.0 – Kommentare & Benachrichtigungen (17.10.2026)
 
 - **Kommentare** (`routers/comments.py`, Tabelle `comments`, Zähler `posts.comment_count`): flach unter jedem Posting, mit Namen und relativer Zeit, Links klickbar (`richtext`). Schreiben/Bearbeiten/Löschen per htmx ohne Seitenwechsel; Bearbeiten nur eigene, Löschen eigene oder als Admin. Feld wächst mit, ⌘/Strg+Enter sendet. Am Handy direkt unter dem Posting.
