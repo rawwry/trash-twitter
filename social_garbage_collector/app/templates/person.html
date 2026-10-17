@@ -2,10 +2,6 @@
 {% from "partials/icons.html" import icon %}
 {% set nav = 'persons' %}
 {% block title %}{{ person.name }}{% endblock %}
-{% block head %}{% if stats.count %}
-  <script src="{{ static('vendor/force-graph-1.51.4.min.js') }}" defer></script>
-  <script src="{{ static('graph.js') }}" defer></script>
-{% endif %}{% endblock %}
 {% block content %}
 <a class="back-link" href="{{ url('/personen') }}">{{ icon('chev-left', 18) }} Personen</a>
 
@@ -81,15 +77,17 @@
   </div>
 
   <aside class="stack">
-    {% if stats.count %}
-    <section class="graph-stage is-local" data-graph data-local="1" data-src="{{ url('/netzwerk/daten') }}?person={{ person.id }}" aria-label="Themen-Netz von {{ person.name }}">
-      <div class="graph-canvas" data-graph-canvas></div>
-      <div class="graph-loading" aria-hidden="true"><span></span><span></span><span></span></div>
-      <div class="graph-zoom-hint" aria-hidden="true"><kbd>⌘</kbd>/<kbd>Strg</kbd> + Scrollen zum Zoomen</div>
-      <span class="graph-local-title">{{ icon('graph', 17) }} Themen-Netz</span>
-      <div class="graph-legend-mini" aria-hidden="true"><span><i class="gp-dot t-tag"></i>Tags</span><span><i class="gp-dot"></i>Personen</span></div>
-      <a class="graph-local-open" href="{{ url('/netzwerk') }}?fokus=p{{ person.id }}">{{ icon('expand', 15) }} Im Netzwerk</a>
-    </section>
+    {% if pattern_top %}
+    <a class="card pt-person-card" href="{{ url('/personen/' ~ person.id ~ '/muster') }}">
+      <span class="pt-pc-head">{{ icon('pattern', 18) }} <strong>Muster</strong> <span class="faint xs">Bilanz, Chronik, Figuren</span>{{ icon('chev-right', 18) }}</span>
+      {% set peak = pattern_top[0][1] %}
+      <span class="pt-mini">
+        {% for name, n in pattern_top %}
+        <span class="pt-mini-row"><span class="pt-mini-name">#{{ name }}</span>
+          <span class="pt-mini-bar"><i style="width: {{ (n * 100 / peak)|round|int }}%"></i></span><b>{{ n }}</b></span>
+        {% endfor %}
+      </span>
+    </a>
     {% endif %}
     <section class="card" aria-labelledby="accounts-title">
       <div class="section-title"><h2 id="accounts-title">Accounts</h2></div>

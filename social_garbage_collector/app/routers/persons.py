@@ -65,8 +65,12 @@ def detail(request: Request, person_id: int, db: Session = Depends(get_db)):
     others = list(db.scalars(select(Person).where(Person.id != person.id).order_by(func.lower(Person.name))))
     from .research import notes_for_person
 
+    from ..services import patterns
+
+    summary = next((x for x in patterns.overview(db) if x.person.id == person.id), None)
     return render(request, "person.html", person=person, posts=posts, total=total, stats=stats,
-                  account_counts=counts, others=others, view="cards", notes=notes_for_person(db, person.id))
+                  account_counts=counts, others=others, view="cards", notes=notes_for_person(db, person.id),
+                  pattern_top=summary.top if summary else [])
 
 
 @router.post("/personen/{person_id}/bearbeiten")

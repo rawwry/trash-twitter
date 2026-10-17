@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.19.0 – Muster & aufgeräumte Tags (17.10.2026)
+
+- **Muster** (`/muster`, `/personen/{id}/muster`, `services/patterns.py`, `static/muster.js`) ersetzt das Netzwerk aus 0.18 – mit Live-Daten war das ein Stern um eine Hauptperson (72 % der Postings, nur 2 von 53 Tags bei mehr als einer Person). `/netzwerk` leitet weiter.
+  - Bilanz: Top-Tags mit Zeitraum, Balken je Jahr, die 3 häufigsten Begleit-Tags (Link auf `?person=&tags=a,b`); Karte „ohne Tag“.
+  - Chronik (SVG): Quartals-Histogramm plus eine Spur je Tag, Spuren wählbar (localStorage je Person), Tooltip, Klick öffnet das Posting. Zeichnet nur bei neuer Breite neu.
+  - Figuren: neue Spalte `tags.kind` (`thema`/`figur`), Umschalten über `POST /tags/{id}/art`; Lebenslauf chronologisch mit Begleit-Tags, „Als Recherche festhalten“ (`/recherche/neu?posts=…&titel=…`).
+  - Themen-Netz: Tag-Kookkurrenz mit force-graph (ab 140 Paaren nur ≥ 2×), Linie öffnet die Postings mit beiden Tags; Liste der häufigsten Kombinationen.
+- **Idiotarium:** Filter `ohne_tag=1` mit Chip.
+- **Tags organisieren** neu: Kopf mit „+ Oberbegriff“, Überblick-Kacheln (Tags, Figuren, ohne Oberbegriff, höchstens 1 Posting) als Filter, Suche und Sortierung (gemerkt), Tabelle mit festen Spalten (Tag · Postings mit Balken · Art · Oberbegriff · Aktionen), am Handy zweizeilig. Mehrfachauswahl kann Figur/Thema setzen. Einordnen springt zur Zeile zurück.
+- **Aufräum-Vorschläge** (`services/tags.cleanup`): gleicher Wortstamm oder Tippfehler (≥ 0,9) → zusammenführen; „Vermutlich ein Unterfall“ (≥ 85 % gemeinsam mit einem häufigeren Tag) → unterordnen; ungenutzte Tags → alle löschen.
+- Personenseite: Muster-Karte statt Themen-Netz. Karten in Rastern ohne versetzten Abstand.
+
 ## 0.18.0 – Netzwerk (17.10.2026)
 
 - **Netzwerk** (`/netzwerk`, `routers/graph.py`, `static/graph.js`): Kraft-Graph auf Canvas mit force-graph 1.51.4 (MIT, lokal unter `static/vendor/`). Der Server liefert Knoten und Kanten auf Posting-Ebene (`/netzwerk/daten`: Posting–Person, Posting–Tag, Posting–Liste, Recherche–Person/Posting, Tag–Oberbegriff); der Browser fasst zusammen zu Person – Tag (Gewicht = Postings) und Liste – Person. Personen sind nie direkt verbunden.

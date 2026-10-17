@@ -130,6 +130,7 @@ _ADDED_COLUMNS = {
     "tags": [
         ("parent_id", "INTEGER REFERENCES tags(id) ON DELETE SET NULL"),
         ("is_group", "BOOLEAN NOT NULL DEFAULT 0"),
+        ("kind", "VARCHAR(12) NOT NULL DEFAULT 'thema'"),
     ],
     "gallery_images": [
         ("taken_at", "DATETIME"),

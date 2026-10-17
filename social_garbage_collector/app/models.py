@@ -239,6 +239,9 @@ class Post(Base):
         return not self.date_has_time
 
 
+TAG_KINDS = {"thema": "Thema", "figur": "Figur"}
+
+
 class Tag(Base):
     __tablename__ = "tags"
 
@@ -249,10 +252,17 @@ class Tag(Base):
     # Oberbegriffe (is_group) bleiben auch ohne eigene Postings bestehen.
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("tags.id", ondelete="SET NULL"), nullable=True, index=True)
     is_group: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 0.19: Art. "figur" = Mensch oder Tier, das in den Geschichten vorkommt
+    # (bekommt unter "Muster" einen eigenen Lebenslauf), sonst ein Thema.
+    kind: Mapped[str] = mapped_column(String(12), default="thema")
 
     posts: Mapped[list[Post]] = relationship(secondary=post_tags, back_populates="tags")
     parent: Mapped["Tag | None"] = relationship(remote_side="Tag.id", back_populates="children")
     children: Mapped[list["Tag"]] = relationship(back_populates="parent", order_by="Tag.name")
+
+    @property
+    def is_figure(self) -> bool:
+        return self.kind == "figur"
 
 
 class PostList(Base):

@@ -255,12 +255,13 @@ class ArchiveFilter:
     status: str = ""
     person_id: int | None = None
     account_id: int | None = None
+    untagged: bool = False      # 0.19: nur Postings ohne Tag (zum Nachtaggen)
     sort: str = "new"
 
     @property
     def active(self) -> bool:
         return any([self.q, self.platform, self.tags, self.author, self.list_id, self.user_id,
-                    self.date_from, self.date_to, self.status, self.person_id, self.account_id])
+                    self.date_from, self.date_to, self.status, self.person_id, self.account_id, self.untagged])
 
     @property
     def advanced_count(self) -> int:
@@ -316,6 +317,7 @@ def filter_from_params(params, default_sort: str = "new") -> ArchiveFilter:
         status=params.get("status", "") if params.get("status") in {"pending", "running", "done", "error"} else "",
         person_id=_parse_int(params.get("person")),
         account_id=_parse_int(params.get("account")),
+        untagged=params.get("ohne_tag") == "1",
         sort=sort if sort in SORTS else "new",
     )
 
@@ -361,6 +363,8 @@ def archive_query(f: ArchiveFilter) -> Select:
         conds.append(said < datetime.combine(f.date_to + timedelta(days=1), time.min))
     if f.status:
         conds.append(Post.status == f.status)
+    if f.untagged:
+        conds.append(~exists().where(post_tags.c.post_id == Post.id))
     if conds:
         stmt = stmt.where(and_(*conds))
 

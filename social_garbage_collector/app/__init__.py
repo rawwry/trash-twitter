@@ -7,4 +7,4 @@ behalten den alten Namen, damit bestehende Installationen ihre Daten behalten.)
 # Name der App - steht nur hier und in config.yaml ("name").
 APP_NAME = "TrashTwitter"
 # Muss mit "version" in config.yaml uebereinstimmen.
-VERSION = "0.18.0"
+VERSION = "0.19.0"

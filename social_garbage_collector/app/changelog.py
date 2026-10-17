@@ -7,6 +7,28 @@ Ab 0.14 (Timo): Jede x.x-Version (Feature-Release, nicht x.x.x) bekommt
 
 CHANGES = [
     {
+        "version": "0.19.0",
+        "date": "17.10.2026",
+        "title": "Muster & aufgeräumte Tags",
+        "highlights": [
+            ("pattern", "Muster statt Netzwerk", "Neu im Menü: Welche Geschichten erzählt eine Person immer wieder? Bilanz mit großen Zahlen, „davon … mit #…“ – jede Zahl führt zu genau diesen Postings."),
+            ("timeline", "Chronik", "Jedes Posting als Punkt auf der Zeitachse, eine Spur je Tag. So siehst du sofort, wann eine Geschichte gehäuft auftaucht."),
+            ("figure", "Figuren mit Lebenslauf", "Markiere Tags als Figur – Menschen oder Tiere aus den Geschichten. Ihr Lebenslauf zeigt, was ihnen wann passiert ist. Widersprüche fallen auf und lassen sich als Recherche festhalten."),
+            ("tag", "Tags organisieren, neu", "Übersichtliche Tabelle mit Filtern, Art (Thema/Figur) und Aufräum-Vorschlägen: ähnlich geschriebene, Unterfälle und ungenutzte Tags mit einem Klick erledigt."),
+        ],
+        "items": [
+            "Neue Seite „Muster“ (ersetzt „Netzwerk“): Übersicht aller Personen mit ihren häufigsten Tags, je Person Bilanz, Chronik, Figuren und Themen-Netz",
+            "Bilanz: häufigste Tags mit Zeitraum, Verlauf je Jahr und den häufigsten Begleit-Tags; Postings ohne Tag als eigene Karte zum Nachtaggen",
+            "Chronik: Zeitachse mit einer Spur je Tag, Spuren an- und abwählbar (gemerkt), Punkt antippen öffnet das Posting",
+            "Figuren: neue Tag-Art „Figur“; Lebenslauf mit allen Postings und Begleit-Tags, „Als Recherche festhalten“ legt einen Eintrag mit allen Postings an",
+            "Themen-Netz: welche Tags gemeinsam an Postings hängen, Linie antippen öffnet genau diese Postings; daneben die häufigsten Kombinationen",
+            "Idiotarium: neuer Filter „Ohne Tag“ (`?ohne_tag=1`)",
+            "Tags organisieren: feste Spalten (Tag, Postings mit Balken, Art, Oberbegriff), Überblick-Kacheln als Filter, Suche, Sortierung, Mehrfachauswahl auch für Figur/Thema",
+            "Aufräum-Vorschläge: gleicher Wortstamm (wohnen/wohnung), Unterfälle (kommt fast nur mit einem anderen Tag vor → unterordnen), ungenutzte Tags",
+            "Personenseite: Muster-Karte mit den häufigsten Tags statt des kleinen Netzes",
+        ],
+    },
+    {
         "version": "0.18.0",
         "date": "17.10.2026",
         "title": "Netzwerk",
