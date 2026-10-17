@@ -24,7 +24,7 @@ from . import APP_NAME, VERSION
 from .config import Settings, prepare_storage
 from .db import backup_database, init_db, make_engine, make_sessionmaker
 from .models import ROLE_ADMIN, User
-from .routers import account, admin, api, auth, comments, gallery, generator, help, ideas, imports, lists, persons, posts, research
+from .routers import account, admin, api, auth, comments, gallery, generator, graph, help, ideas, imports, lists, persons, posts, research
 from .routers import settings as settings_router
 from .security import (
     CSRF_COOKIE,
@@ -337,7 +337,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
     for router in (auth.router, account.router, settings_router.router, posts.router, persons.router,
                    imports.router, lists.router, gallery.router, generator.router, admin.router,
-                   api.router, help.router, ideas.router, research.router, comments.router):
+                   api.router, help.router, ideas.router, research.router, comments.router, graph.router):
         app.include_router(router)
 
     # Ingress ganz aussen, damit root_path schon bei allem anderen gesetzt ist.

@@ -24,6 +24,7 @@
   <link rel="stylesheet" href="{{ static('style.css') }}">
   <script src="{{ static('htmx.min.js') }}" defer></script>
   <script src="{{ static('app.js') }}" defer></script>
+  {% block head %}{% endblock %}
 </head>
 {# htmx schickt das CSRF-Token bei jeder Anfrage als Header mit. #}
 <body hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'
@@ -44,7 +45,8 @@
       <a href="{{ url('/recherche') }}" {% if nav == 'research' %}aria-current="page"{% endif %}>Recherche</a>
       <a href="{{ url('/lists') }}" {% if nav == 'lists' %}aria-current="page"{% endif %}>Listen</a>
       <a href="{{ url('/galerie') }}" {% if nav == 'gallery' %}aria-current="page"{% endif %}>Galerie</a>
-      <a href="{{ url('/generator') }}" {% if nav == 'generator' %}aria-current="page"{% endif %}>Suchgenerator</a>
+      <a href="{{ url('/netzwerk') }}" {% if nav == 'graph' %}aria-current="page"{% endif %}>Netzwerk</a>
+      <a class="nav-generator" href="{{ url('/generator') }}" {% if nav == 'generator' %}aria-current="page"{% endif %}>Suchgenerator</a>
     </nav>
     <div class="header-actions">
       {# Ein Hinzufuegen-Knopf fuer die ganze App - er richtet sich nach dem Bereich. #}
@@ -64,7 +66,8 @@
           <a href="{{ url('/settings') }}" role="menuitem">{{ icon('settings', 18) }} Einstellungen</a>
           <a href="{{ url('/settings/konto') }}#passwort" role="menuitem">{{ icon('shield', 18) }} Passwort ändern</a>
           <a href="{{ url('/settings/tags') }}" role="menuitem">{{ icon('tag', 18) }} Tags organisieren</a>
-          <a href="{{ url('/generator') }}" role="menuitem" class="menu-mobile">{{ icon('search', 18) }} Suchgenerator</a>
+          <a href="{{ url('/netzwerk') }}" role="menuitem" class="menu-mobile">{{ icon('graph', 18) }} Netzwerk</a>
+          <a href="{{ url('/generator') }}" role="menuitem" class="menu-mobile menu-tablet">{{ icon('search', 18) }} Suchgenerator</a>
           <a href="{{ url('/hilfe') }}" role="menuitem">{{ icon('help', 18) }} Hilfe &amp; Anleitung</a>
           <a href="{{ url('/ideen') }}" role="menuitem">{{ icon('sparkles', 18) }} Ideen &amp; Wünsche</a>
           {# Admin-Links existieren fuer Nicht-Admins gar nicht im HTML. #}

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.18.0 – Netzwerk (17.10.2026)
+
+- **Netzwerk** (`/netzwerk`, `routers/graph.py`, `static/graph.js`): Kraft-Graph auf Canvas mit force-graph 1.51.4 (MIT, lokal unter `static/vendor/`). Der Server liefert Knoten und Kanten auf Posting-Ebene (`/netzwerk/daten`: Posting–Person, Posting–Tag, Posting–Liste, Recherche–Person/Posting, Tag–Oberbegriff); der Browser fasst zusammen zu Person – Tag (Gewicht = Postings) und Liste – Person. Personen sind nie direkt verbunden.
+- Darstellung: dunkle Bühne, Personen als Profilbild (Größe nach Postings), Tags türkis, Oberbegriffe als Ring, Listen als Quadrat, Recherche als Raute nach Art, Postings als Punkte (rosa mit Herz). Hover hebt Nachbarn hervor (Partikel auf den Linien), Klick öffnet ein Detailfeld mit Nachbarn; „Nur Umgebung“ (2 Schritte), Suche, Filter je Art mit Zählern, Zeitraum, Postings einblenden, Vollbild, Zoom-Knöpfe, `?fokus=p1` als Direktlink.
+- Layout: Schwerkraft nach Seitenverhältnis der Bühne, Abstandskraft gegen Überlappen, vorberechnet. Scrollen bewegt die Seite, Zoomen nur mit Pinch, ⌘/Strg + Rad oder im Vollbild. Am Handy liegen die Leisten neben statt über dem Netz.
+- **Themen-Netz** auf jeder Personenseite (`?person=`): eigene Postings, deren Tags, Listen und Recherche plus die 12 Personen mit den meisten gemeinsamen Tags – nur über gemeinsame Themen.
+- **Entdeckungen** unter dem Netz: Brückenthemen, themenbreit, ohne Recherche, noch einzuordnen.
+
 ## 0.17.1 – Senden-Knopf (17.10.2026)
 
 - Kommentarfeld: Die Textarea war inline gesetzt, ihre Unterlänge machte die Box ein paar Pixel höher – der absolut positionierte Senden-Pfeil rutschte dadurch über den unteren Rand. Jetzt `display: block`, Pfeil 6 px vom Rand, ohne Browser-Innenabstand.

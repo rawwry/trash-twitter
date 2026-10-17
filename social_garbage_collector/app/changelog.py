@@ -7,6 +7,26 @@ Ab 0.14 (Timo): Jede x.x-Version (Feature-Release, nicht x.x.x) bekommt
 
 CHANGES = [
     {
+        "version": "0.18.0",
+        "date": "17.10.2026",
+        "title": "Netzwerk",
+        "highlights": [
+            ("graph", "Das Archiv als Netzwerk", "Neu oben im Menü: Personen, Tags, Listen und Recherche als leuchtende Landkarte. Wer nah beieinander liegt, redet über dieselben Themen."),
+            ("search", "Antippen, suchen, eingrenzen", "Ein Tipp zeigt alle Verbindungen und Details, „Nur Umgebung“ blendet den Rest aus. Dazu Suche, Zeitraum und auf Wunsch jedes einzelne Posting."),
+            ("people", "Themen-Netz jeder Person", "Auf jeder Personenseite: ihre Themen und wer sonst noch darüber postet – ein Tipp öffnet die Person oder den Tag."),
+            ("sparkles", "Entdeckungen", "Unter dem Netz: Brückenthemen, themenbreite Personen, Personen ohne Recherche und Postings, die noch einen Tag brauchen."),
+        ],
+        "items": [
+            "Neue Seite „Netzwerk“: Kraft-Graph mit Personen (Profilbild, Größe nach Postings), Tags und Oberbegriffen, Listen und Recherche (Farbe nach Art)",
+            "Person – Tag als Linie, so dick wie die Zahl der Postings; Liste – Person, Recherche – Person, Tag – Oberbegriff; Personen nie direkt verbunden",
+            "Hervorheben beim Darüberfahren, Detailfeld mit Nachbarn, „Nur Umgebung“, Suche, Filter nach Art, Zeitraum, Postings einblenden, Vollbild, Zoom-Knöpfe",
+            "Scrollen bewegt die Seite; Zoomen mit zwei Fingern oder ⌘/Strg + Scrollen",
+            "Themen-Netz auf jeder Personenseite mit Sprung ins große Netz",
+            "Entdeckungen unter dem Netz: Brückenthemen, themenbreit, ohne Recherche, noch einzuordnen",
+            "Grafik-Bibliothek force-graph 1.51.4 (MIT) liegt lokal in der App – keine externen Server",
+        ],
+    },
+    {
         "version": "0.17.1",
         "date": "17.10.2026",
         "title": "Senden-Knopf",
