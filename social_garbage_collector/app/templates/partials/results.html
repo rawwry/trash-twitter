@@ -14,7 +14,6 @@
       {% if f.list_id %}{{ off('Liste', 'list') }}{% endif %}
       {% if f.user_id %}{{ off('Archiviert von …', 'user') }}{% endif %}
       {% if f.status %}{{ off(STATUS_LABELS[f.status], 'status') }}{% endif %}
-      {% if f.untagged %}{{ off('Ohne Tag', 'ohne_tag') }}{% endif %}
       {% endif %}
     </div>
     <div class="results-tools">

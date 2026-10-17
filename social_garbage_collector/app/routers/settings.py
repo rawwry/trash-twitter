@@ -130,11 +130,7 @@ async def save_prefs(request: Request, user: User = Depends(require_user), db: S
 
 @router.get("/tags")
 def tags(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    from ..services import tags as tag_service
-
-    groups, loose = tag_service.tree(db)
-    return render(request, "settings/tags.html", section="tags", groups=groups, loose=loose,
-                  cleanup=tag_service.cleanup(db))
+    return render(request, "settings/tags.html", section="tags", tags=post_service.tag_counts(db))
 
 
 def _get_tag(db: Session, tag_id: int) -> Tag:
@@ -187,7 +183,7 @@ def move_tag(request: Request, tag_id: int, parent: str = Form(""), user: User =
         return redirect(request, "/settings/tags", toast=str(exc), kind="error")
     db.commit()
     msg = f"#{tag.name} steht jetzt unter #{target.name}" if target else f"#{tag.name} hat keinen Oberbegriff mehr"
-    return redirect(request, f"/settings/tags#tag-{tag.id}", toast=msg)
+    return redirect(request, "/settings/tags", toast=msg)
 
 
 @router.post("/tags/{tag_id}/ungroup")
@@ -226,10 +222,6 @@ def bulk_tags(request: Request, ids: list[int] = Form(default=[]), action: str =
                 if tag.id != target.id:
                     tag_service.merge_into(db, tag, target)
             msg = f"{len(tags)} Tags zu #{new} zusammengeführt"
-        elif action in ("figur", "thema"):
-            for tag in tags:
-                tag.kind = action
-            msg = f"{len(tags)} Tags sind jetzt {'Figuren' if action == 'figur' else 'Themen'}"
         elif action == "delete":
             for tag in tags:
                 for child in list(tag.children):

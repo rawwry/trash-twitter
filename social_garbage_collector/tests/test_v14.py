@@ -70,7 +70,7 @@ def test_groups_filter_and_cleanup(user_client, harness):
     with harness.db() as db:
         assert db.get(Tag, umwelt).parent_id is None
     page = user_client.get("/settings/tags").text
-    assert "Neuer Oberbegriff" in page and "#umwelt" in page
+    assert "Oberbegriff hinzufügen" in page and "#umwelt" in page
     # Aufloesen: Unter-Tags bleiben, ohne Oberbegriff
     user_client.post(f"/settings/tags/{umwelt}/ungroup", data={"csrf_token": csrf})
     with harness.db() as db:
@@ -175,7 +175,7 @@ def test_help_is_prominent_and_explains_basics(user_client):
     page = user_client.get("/").text
     assert 'class="hdr-help' in page and 'class="fab"' in page and 'href="/galerie"' in page
     help_page = user_client.get("/hilfe").text
-    assert 'id="grundlagen"' in help_page and "Oberbegriffe &amp; Figuren" in help_page and "Recherche" in help_page
+    assert 'id="grundlagen"' in help_page and "Tags &amp; Oberbegriffe" in help_page and "Recherche" in help_page
 
 
 def test_release_notice_once_per_minor(user_client, harness):

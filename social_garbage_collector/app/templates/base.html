@@ -45,7 +45,7 @@
       <a href="{{ url('/recherche') }}" {% if nav == 'research' %}aria-current="page"{% endif %}>Recherche</a>
       <a href="{{ url('/lists') }}" {% if nav == 'lists' %}aria-current="page"{% endif %}>Listen</a>
       <a href="{{ url('/galerie') }}" {% if nav == 'gallery' %}aria-current="page"{% endif %}>Galerie</a>
-      <a href="{{ url('/muster') }}" {% if nav == 'patterns' %}aria-current="page"{% endif %}>Muster</a>
+      <a href="{{ url('/netzwerk') }}" {% if nav == 'graph' %}aria-current="page"{% endif %}>Netzwerk</a>
       <a class="nav-generator" href="{{ url('/generator') }}" {% if nav == 'generator' %}aria-current="page"{% endif %}>Suchgenerator</a>
     </nav>
     <div class="header-actions">
@@ -66,7 +66,7 @@
           <a href="{{ url('/settings') }}" role="menuitem">{{ icon('settings', 18) }} Einstellungen</a>
           <a href="{{ url('/settings/konto') }}#passwort" role="menuitem">{{ icon('shield', 18) }} Passwort ändern</a>
           <a href="{{ url('/settings/tags') }}" role="menuitem">{{ icon('tag', 18) }} Tags organisieren</a>
-          <a href="{{ url('/muster') }}" role="menuitem" class="menu-mobile">{{ icon('pattern', 18) }} Muster</a>
+          <a href="{{ url('/netzwerk') }}" role="menuitem" class="menu-mobile">{{ icon('graph', 18) }} Netzwerk</a>
           <a href="{{ url('/generator') }}" role="menuitem" class="menu-mobile menu-tablet">{{ icon('search', 18) }} Suchgenerator</a>
           <a href="{{ url('/hilfe') }}" role="menuitem">{{ icon('help', 18) }} Hilfe &amp; Anleitung</a>
           <a href="{{ url('/ideen') }}" role="menuitem">{{ icon('sparkles', 18) }} Ideen &amp; Wünsche</a>

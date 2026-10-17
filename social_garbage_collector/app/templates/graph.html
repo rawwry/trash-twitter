@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% set nav = 'graph' %}
+{% block title %}Netzwerk{% endblock %}
+{% block container_class %}wide graph-page{% endblock %}
+{% block head %}
+  <script src="{{ static('vendor/force-graph-1.51.4.min.js') }}" defer></script>
+  <script src="{{ static('graph.js') }}" defer></script>
+{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div class="ph-text">
+    <h1>Netzwerk</h1>
+    <p class="sub">Wer redet worüber? Personen, Themen, Listen und Recherche als Landkarte. Tipp einen Punkt an, um seine Verbindungen und Details zu sehen.</p>
+  </div>
+</header>
+
+<div class="graph-stage" data-graph data-src="{{ url('/netzwerk/daten') }}" data-focus="{{ fokus }}">
+  <div class="graph-canvas" data-graph-canvas></div>
+  <div class="graph-loading" aria-hidden="true"><span></span><span></span><span></span></div>
+  <p class="graph-error">Das Netzwerk ließ sich nicht laden. Bitte die Seite neu laden.</p>
+
+  <div class="graph-top">
+    <div class="graph-search">
+      {{ icon('search', 17) }}
+      <input type="search" placeholder="Person, #Tag, Liste suchen …" aria-label="Im Netzwerk suchen" data-graph-search autocomplete="off">
+      <div class="graph-results" data-graph-results hidden></div>
+    </div>
+    <div class="graph-tools">
+      <button type="button" class="graph-btn" data-graph-zoom="out" title="Verkleinern" aria-label="Verkleinern">{{ icon('zoom-out', 18) }}</button>
+      <button type="button" class="graph-btn" data-graph-zoom="in" title="Vergrößern" aria-label="Vergrößern">{{ icon('zoom-in', 18) }}</button>
+      <button type="button" class="graph-btn" data-graph-fit title="Alles zeigen" aria-label="Alles zeigen">{{ icon('fit', 18) }}</button>
+      <button type="button" class="graph-btn" data-graph-full title="Vollbild" aria-label="Vollbild">{{ icon('expand', 18) }}</button>
+    </div>
+  </div>
+
+  <div class="graph-bottom">
+    <div class="graph-filters" role="group" aria-label="Was wird gezeigt">
+      <button type="button" class="gf t-person" data-graph-type="person" aria-pressed="true"><i></i>Personen <small data-count="person">0</small></button>
+      <button type="button" class="gf t-tag" data-graph-type="tag" aria-pressed="true"><i></i>Tags <small data-count="tag">0</small></button>
+      <button type="button" class="gf t-list" data-graph-type="list" aria-pressed="true"><i></i>Listen <small data-count="list">0</small></button>
+      <button type="button" class="gf t-research" data-graph-type="research" aria-pressed="true"><i></i>Recherche <small data-count="research">0</small></button>
+      <button type="button" class="gf t-post" data-graph-type="post" aria-pressed="false"><i></i>Postings <small data-count="post">0</small></button>
+    </div>
+    <div class="graph-years">
+      {{ icon('calendar', 16) }}
+      <select data-graph-from aria-label="Von Jahr"><option value="">von</option></select>
+      <span>–</span>
+      <select data-graph-to aria-label="Bis Jahr"><option value="">bis</option></select>
+    </div>
+    <span class="graph-stats" data-graph-stats></span>
+  </div>
+
+  <div class="graph-zoom-hint" aria-hidden="true">Zum Zoomen <kbd>⌘</kbd>/<kbd>Strg</kbd> + Scrollen – oder mit zwei Fingern</div>
+  <aside class="graph-panel" data-graph-panel hidden aria-live="polite"></aside>
+  <div class="graph-empty" data-graph-empty hidden>
+    <strong>Hier ist noch nichts zu verbinden.</strong>
+    <span>Sobald Postings Personen und Tags haben, entsteht das Netz von selbst.</span>
+  </div>
+</div>
+
+<section class="graph-insights" data-graph-insights aria-label="Entdeckungen"></section>
+
+<details class="graph-help card">
+  <summary>{{ icon('help', 17) }} So liest du das Netzwerk</summary>
+  <ul>
+    <li><b class="lg-person">Personen</b> sind Kreise mit Profilbild – je größer, desto mehr Postings.</li>
+    <li><b class="lg-tag">Tags</b> verbinden Personen: Je dicker die Linie, desto öfter hat die Person zu diesem Thema gepostet. <b class="lg-group">Oberbegriffe</b> sind Ringe, ihre Tags hängen daran.</li>
+    <li><b class="lg-list">Listen</b> sind Quadrate, <b class="lg-research">Recherche</b> sind Rauten – orange für Widersprüche, grün für Fakten, blau für Hintergrund.</li>
+    <li>Personen sind nie direkt verbunden. Wer nah beieinander liegt, redet über dieselben Themen.</li>
+    <li>„Postings“ blendet jedes einzelne Posting als kleinen Punkt ein (rosa = mit Herz). Mit dem Zeitraum unten siehst du, wie sich das Netz über die Jahre verändert.</li>
+    <li>Ziehen verschiebt Punkte, Mausrad oder zwei Finger zoomen, Rechtsklick öffnet direkt.</li>
+  </ul>
+</details>
+{% endblock %}
