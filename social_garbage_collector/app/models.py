@@ -159,6 +159,12 @@ class Post(Base):
     # 0.12: Screenshot ohne Link - Plattform selbst erkennen; Kopf/Fuss schon ausgewertet
     platform_auto: Mapped[bool] = mapped_column(Boolean, default=False)
     shot_parsed: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 0.21 Geloescht-Waechter: ist das Original noch online? "" = noch nie geprueft,
+    # "online", "gone". Erst nach zwei Fehlschlaegen in Folge gilt es als weg.
+    origin_state: Mapped[str] = mapped_column(String(8), default="")
+    origin_checked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    origin_gone_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    origin_misses: Mapped[int] = mapped_column(Integer, default=0)
     # Massenimport (0.8.0): Kennung des Imports, aus dem das Posting stammt.
     import_batch: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
     text: Mapped[str] = mapped_column(Text, default="")

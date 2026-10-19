@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.21.0 – Wiederholungen, Gelöscht-Wächter, Tags für viele (19.10.2026)
+
+- **Wiederholt erzählt** (`services/repeats.py`): je Person Wörter klein, ohne Füllwörter, grob gestemmt; TF-IDF-Kosinus ≥ 0,20 und mindestens zwei geteilte, für die Person seltene Wörter (≤ 12 % ihrer Postings, mind. 5); Kandidaten nur über seltene Wörter, Gruppen per Union-Find. Ergebnis im Speicher, bis sich die Postings der Person ändern. Abschnitt auf der Personenseite, „Auch so erzählt“ auf der Detailseite, „Festhalten“ → `/recherche/neu?posts=…&titel=…`.
+- **Gelöscht-Wächter** (`services/origin.py`, neue Spalten `origin_state`, `origin_checked_at`, `origin_gone_at`, `origin_misses`): Worker prüft 20 Postings je Runde, 4 s Pause, alle 15 min; online alle 3 Tage, nach Fehlschlag nach 1 h, weg alle 7 Tage. `PostNotFound` zählt als Fehlschlag, zwei in Folge = weg (+ Benachrichtigung `gone` an die archivierende Person); Netzfehler/Bot-Schutz ändern nichts. `POST /posts/{id}/original` prüft sofort. Filter `original=weg|online`, Marke „Original weg“ in Raster, Liste, Zeitachse.
+- **Tags per Mehrfachauswahl:** `POST /posts/bulk/tags` (mode add/remove), Dialog mit Tag-Auswahl, Rücksprung in die aktuelle Ansicht.
+- **Suche:** `search_stem` kürzt deutsche Endungen (Stamm ≥ 4 Zeichen) und sucht als Präfix; Phrasen in Anführungszeichen bleiben exakt.
+
 ## 0.20.1 – Feinschliff (17.10.2026)
 
 - Automatisch taggen: Übersichtsleiste mit Zahlen und `POST /settings/tags/regeln/alle-anwenden` – alle aktiven Regeln auf die Postings, die *vor* dem Lauf ohne Tag waren (mehrere Regeln können dasselbe Posting taggen); Karten kompakter, Anwenden-Knopf zurückhaltend.

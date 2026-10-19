@@ -138,17 +138,21 @@ def _editor(request: Request, db: Session, note: ResearchNote | None, error: str
 
 
 @router.get("/recherche/neu")
-def new_form(request: Request, person: int = 0, post: int = 0, db: Session = Depends(get_db)):
+def new_form(request: Request, person: int = 0, post: int = 0, posts: str = "", titel: str = "",
+             db: Session = Depends(get_db)):
+    """Vorbelegt aus einem Posting (?post=), mehreren (?posts=1,2,3 - z. B. "Wiederholt
+    erzaehlt") und mit Titel (?titel=)."""
     person_ids = [person] if person else []
+    wanted = ([post] if post else []) + [int(x) for x in posts.split(",")[:100] if x.strip().isdigit()]
     post_ids = []
-    if post:
-        p = db.get(Post, post)
-        if p is not None:
-            post_ids = [p.id]
-            if p.account and p.account.person_id and p.account.person_id not in person_ids:
-                person_ids.append(p.account.person_id)
+    for p in (db.get(Post, i) for i in dict.fromkeys(wanted)):
+        if p is None:
+            continue
+        post_ids.append(p.id)
+        if p.account and p.account.person_id and p.account.person_id not in person_ids:
+            person_ids.append(p.account.person_id)
     return _editor(request, db, None, form_person_ids=person_ids, form_post_ids=post_ids,
-                   form_kind="widerspruch" if post else "hintergrund")
+                   form_kind="widerspruch" if post_ids else "hintergrund", form_title=" ".join(titel.split())[:200])
 
 
 def _apply(db: Session, note: ResearchNote, user: User, title: str, kind: str, body: str, sources: str,

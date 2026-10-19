@@ -8,7 +8,7 @@
 <header class="page-header">
   <div class="ph-text">
     <h1>Benachrichtigungen</h1>
-    <p class="sub">Neue Kommentare zu Postings, die du archiviert oder kommentiert hast.</p>
+    <p class="sub">Neue Kommentare zu Postings, die du archiviert oder kommentiert hast – und Originale, die gelöscht wurden.</p>
   </div>
   {% if items|selectattr('read_at', 'none')|list %}
   <form class="ph-actions" method="post" action="{{ url('/benachrichtigungen/gelesen') }}">
@@ -21,11 +21,18 @@
 <ul class="nt-list">
   {% for n in items %}
   <li><a class="nt {{ 'is-unread' if not n.read_at }}" href="{{ url('/benachrichtigungen/' ~ n.id) }}">
+    {% if n.kind == 'gone' %}
+    <span class="nt-gone-icon" aria-hidden="true">{{ icon('close', 18) }}</span>
+    <span class="nt-main">
+      <span class="nt-head"><strong>Original nicht mehr online</strong>{% if n.post %} <span class="faint">· {{ n.post.author_name }}</span>{% endif %}</span>
+      {% if n.post and n.post.text %}<span class="nt-text">„{{ n.post.text|truncate(160, True, ' …') }}“ – dein Beleg ist jetzt die Quelle.</span>{% endif %}
+    {% else %}
     {{ avatar(n.actor, 36) }}
     <span class="nt-main">
       <span class="nt-head"><strong>{{ n.actor.name if n.actor else 'Jemand' }}</strong> hat {{ 'dein archiviertes Posting' if n.post and n.post.added_by_id == user.id else 'ein Posting' }} kommentiert
         {% if n.post %}<span class="faint">· {{ n.post.author_name }}</span>{% endif %}</span>
       {% if n.comment %}<span class="nt-text">„{{ n.comment.body|truncate(160, True, ' …') }}“</span>{% endif %}
+    {% endif %}
       <span class="nt-time">{{ n.created_at|ago }}</span>
     </span>
     {% if not n.read_at %}<span class="nt-dot" aria-label="neu"></span>{% endif %}

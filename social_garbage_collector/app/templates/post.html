@@ -98,6 +98,16 @@
       </div>
     </article>
 
+    {% if repeat %}
+    <section class="card rp-card" aria-labelledby="post-repeat-title" id="wiederholt">
+      <div class="section-title">
+        <h2 id="post-repeat-title">{{ icon('repeat', 18) }} Auch so erzählt <span class="faint small">({{ repeat.items|length - 1 }} {{ 'weiteres Mal' if repeat.items|length == 2 else 'weitere Male' }})</span></h2>
+        <a class="btn-ghost sm" href="{{ url('/recherche/neu') }}?posts={{ repeat.items|map(attribute='id')|join(',') }}&titel={{ ('Wiederholt erzählt: ' ~ (repeat.items[0].text|truncate(60, True, ' …')))|urlencode }}">{{ icon('research', 15) }} Festhalten</a>
+      </div>
+      {% with c=repeat, current=post.id %}{% include "partials/repeat_cluster.html" %}{% endwith %}
+    </section>
+    {% endif %}
+
     {% include "partials/comments.html" %}
 
     {% if notes %}
@@ -138,6 +148,7 @@
         oder du lädst einen eigenen Screenshot hoch.</p>
       {% endif %}
       {% include "partials/status.html" %}
+      {% include "partials/origin.html" %}
     </section>
 
     {# --- Angaben & Quellenangabe: eingeklappt ---------------------------------- #}

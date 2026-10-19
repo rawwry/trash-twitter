@@ -39,7 +39,7 @@
   {# Fusszeile immer einzeilig: links Datum + Nummer (kuerzt notfalls), rechts die Quelle #}
   <footer class="q-foot">
     <span class="q-meta">
-      <time datetime="{{ post.said_at.isoformat() }}Z" title="{{ said(post) if post.posted_at else 'Datum unbekannt – archiviert am ' ~ (post.created_at|localtime('%d.%m.%Y')) }}">{{ post.posted_at|localtime('%d.%m.%Y') if post.posted_at else 'Datum unbekannt' }}</time>
+      <time datetime="{{ post.said_at.isoformat() }}Z" title="{{ said(post) if post.posted_at else 'Datum unbekannt – archiviert am ' ~ (post.created_at|localtime('%d.%m.%Y')) }}">{{ post.posted_at|localtime('%d.%m.%Y') if post.posted_at else 'Datum unbekannt' }}</time>{% if post.origin_state == 'gone' %} <span class="q-gone" title="Original nicht mehr online">Original weg</span>{% endif %}
       <span class="q-no" title="Archiv-Nummer">Nr.&nbsp;{{ archive_no(post) }}</span>
     </span>
     <span class="q-foot-end">

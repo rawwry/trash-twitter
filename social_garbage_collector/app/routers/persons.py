@@ -75,8 +75,11 @@ def detail(request: Request, person_id: int, db: Session = Depends(get_db)):
     others = list(db.scalars(select(Person).where(Person.id != person.id).order_by(func.lower(Person.name))))
     from .research import notes_for_person
 
+    from ..services import repeats
+
     return render(request, "person.html", person=person, posts=posts, total=total, stats=stats,
-                  account_counts=counts, others=others, view="cards", notes=notes_for_person(db, person.id))
+                  account_counts=counts, others=others, view="cards", notes=notes_for_person(db, person.id),
+                  repeats=repeats.for_person(db, person.id))
 
 
 @router.post("/personen/{person_id}/bearbeiten")

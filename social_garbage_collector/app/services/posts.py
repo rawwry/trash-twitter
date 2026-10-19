@@ -223,12 +223,29 @@ async def add_post(db: Session, user: User, url: str, note: str, tags_raw: str,
 # Archivsuche
 # --------------------------------------------------------------------------
 
+# 0.21: Wortformen. Die Suche nimmt vom Suchwort grob die deutsche Endung weg und
+# sucht den Stamm als Praefix: "verstorbene" findet verstorben, verstorbener;
+# "Pakete" findet Paket, Paketen; "Wohnungen" findet Wohnung, wohnen.
+# Kurze Staemme (< 4 Zeichen) bleiben unangetastet, sonst findet "Kater" auch "Katalog".
+_SUFFIXES = ("ungen", "heiten", "keiten", "ung", "heit", "keit", "ern", "em", "en", "er", "es", "e", "n", "s")
+
+
+def search_stem(word: str) -> str:
+    w = word.lower()
+    if len(w) < 5 or not w.isalpha():
+        return word
+    for suf in _SUFFIXES:
+        if w.endswith(suf) and len(w) - len(suf) >= 4:
+            return w[: -len(suf)]
+    return word
+
+
 def fts_query(raw: str) -> str | None:
     """Macht aus Nutzereingaben eine sichere FTS5-Abfrage.
 
     Jedes Wort wird in Anfuehrungszeichen gesetzt (FTS5-Operatoren wie
-    AND/NEAR/-/: verlieren so ihre Wirkung) und als Praefix gesucht.
-    "In Anfuehrungszeichen" eingegebene Phrasen bleiben Phrasen.
+    AND/NEAR/-/: verlieren so ihre Wirkung) und als Praefix seines Wortstamms
+    gesucht (0.21). "In Anfuehrungszeichen" eingegebene Phrasen bleiben exakt.
     """
     raw = (raw or "").strip()
     if not raw:
@@ -243,7 +260,7 @@ def fts_query(raw: str) -> str | None:
             cleaned = word.replace('"', "")
             cleaned = re.sub(r"[^\w@#.\-']", "", cleaned, flags=re.UNICODE).strip(".-'")
             if cleaned:
-                parts.append(f'"{cleaned}"*')
+                parts.append(f'"{search_stem(cleaned)}"*')
     return " ".join(parts) or None
 
 
@@ -260,19 +277,20 @@ class ArchiveFilter:
     status: str = ""
     person_id: int | None = None
     account_id: int | None = None
+    origin: str = ""            # 0.21: "weg" = Original nicht mehr online, "online"
     sort: str = "new"
 
     @property
     def active(self) -> bool:
         return any([self.q, self.platform, self.tags, self.author, self.list_id, self.user_id,
-                    self.date_from, self.date_to, self.status, self.person_id, self.account_id])
+                    self.date_from, self.date_to, self.status, self.person_id, self.account_id, self.origin])
 
     @property
     def advanced_count(self) -> int:
         """Anzahl aktiver Filter im aufklappbaren Filterbereich (fuer das Zaehler-Badge)."""
         return sum(bool(x) for x in (self.platform, self.author, self.list_id, self.user_id,
                                      self.date_from or self.date_to, self.status, self.person_id,
-                                     self.account_id))
+                                     self.account_id, self.origin))
 
 
 # posted: nach Datum des Postings (Standard), new/old: nach Archivierung.
@@ -321,6 +339,7 @@ def filter_from_params(params, default_sort: str = "new") -> ArchiveFilter:
         status=params.get("status", "") if params.get("status") in {"pending", "running", "done", "error"} else "",
         person_id=_parse_int(params.get("person")),
         account_id=_parse_int(params.get("account")),
+        origin=params.get("original", "") if params.get("original") in ("weg", "online") else "",
         sort=sort if sort in SORTS else "new",
     )
 
@@ -366,6 +385,10 @@ def archive_query(f: ArchiveFilter) -> Select:
         conds.append(said < datetime.combine(f.date_to + timedelta(days=1), time.min))
     if f.status:
         conds.append(Post.status == f.status)
+    if f.origin == "weg":
+        conds.append(Post.origin_state == "gone")
+    elif f.origin == "online":
+        conds.append(Post.origin_state == "online")
     if conds:
         stmt = stmt.where(and_(*conds))
 

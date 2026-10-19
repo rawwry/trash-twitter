@@ -1,0 +1,19 @@
+{# Geloescht-Waechter (0.21): ist das Original noch online? #}
+{% from "partials/icons.html" import icon %}
+{% if post.url and post.status == 'done' %}
+{% set st = post.origin_state %}
+<div class="origin {{ 'is-gone' if st == 'gone' else ('is-online' if st == 'online' and not post.origin_misses else 'is-unknown') }}" id="original">
+  <span class="origin-icon" aria-hidden="true">{{ icon('close' if st == 'gone' else ('check' if st == 'online' and not post.origin_misses else 'clock'), 15) }}</span>
+  <span class="origin-text">
+    {% if st == 'gone' %}<strong>Original nicht mehr online</strong> – festgestellt am {{ post.origin_gone_at|localtime('%d.%m.%Y') }}.
+      Gelöscht, geschützt oder Konto gesperrt. Dieser Beleg ist jetzt die Quelle.
+    {% elif post.origin_misses %}Original zuletzt nicht erreichbar – wird in Kürze noch einmal geprüft.
+    {% elif st == 'online' %}Original online · zuletzt geprüft {{ post.origin_checked_at|ago }}
+    {% else %}Original noch nicht geprüft – die App schaut regelmäßig nach, ob es gelöscht wurde.{% endif %}
+  </span>
+  <form method="post" action="{{ url('/posts/' ~ post.id ~ '/original') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button class="btn-ghost sm" type="submit">Jetzt prüfen</button>
+  </form>
+</div>
+{% endif %}

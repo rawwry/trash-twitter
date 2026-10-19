@@ -129,6 +129,13 @@
         {% for key, label in STATUS_LABELS.items() %}<option value="{{ key }}" {% if f.status == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
     </label>
+    <label class="fp-field">Original
+      <select name="original">
+        <option value="">egal</option>
+        <option value="weg" {% if f.origin == 'weg' %}selected{% endif %}>nicht mehr online</option>
+        <option value="online" {% if f.origin == 'online' %}selected{% endif %}>noch online</option>
+      </select>
+    </label>
     {% if filter_person %}
     <div class="fp-field filter-person">
       <span class="label-text">Person</span>
@@ -156,8 +163,26 @@
   <input type="hidden" name="new_list" value="" data-bulk-new-name>
   <button class="btn sm" type="button" disabled data-bulk-submit data-open="list-dialog"
           hx-get="{{ url('/lists/picker') }}" hx-target="#list-dialog-body" hx-swap="innerHTML">{{ icon('lists', 16) }} In Liste ablegen …</button>
+  <button class="btn-soft sm" type="button" disabled data-bulk-tags data-open="bulk-tags-dialog">{{ icon('tag', 16) }}<span class="label-m"> Tags …</span></button>
   <button class="btn-danger sm" type="submit" formaction="{{ url('/posts/bulk/delete') }}" data-bulk-delete disabled
           data-confirm="Alle markierten Postings löschen? Belege und Anmerkungen verschwinden für alle.">{{ icon('trash', 15) }}<span class="label-m"> Löschen</span></button>
   <button type="button" class="icon-btn" data-select-cancel aria-label="Auswahl beenden">{{ icon('close', 18) }}</button>
 </form>
+
+{# 0.21: Tags fuer alle markierten Postings. Die Auswahl haengt app.js beim Absenden an. #}
+<dialog class="sheet" id="bulk-tags-dialog" aria-labelledby="bulk-tags-title">
+  <div class="sheet-grip"></div>
+  <form class="sheet-inner" method="post" action="{{ url('/posts/bulk/tags') }}" data-bulk-tags-form>
+    <div class="sheet-head"><h2 id="bulk-tags-title">Tags für <span data-select-count>0</span> Postings</h2>
+      <button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close') }}</button></div>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="back" value="/" data-bulk-back>
+    {% with field_value='', field_label='Tags' %}{% include "partials/tag_input.html" %}{% endwith %}
+    <div class="bt-actions">
+      <button class="btn" type="submit" name="mode" value="add">{{ icon('plus', 16) }} Hinzufügen</button>
+      <button class="btn-soft" type="submit" name="mode" value="remove">{{ icon('close', 16) }} Entfernen</button>
+    </div>
+    <p class="faint xs">Hinzufügen ergänzt die vorhandenen Tags, Entfernen nimmt nur die gewählten ab.</p>
+  </form>
+</dialog>
 {% endblock %}

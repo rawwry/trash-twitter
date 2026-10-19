@@ -36,7 +36,7 @@ from ..models import (
     Post,
     utcnow,
 )
-from . import accounts, autotag, dates, media, ocr, screenshot, shots
+from . import accounts, autotag, dates, media, ocr, origin, screenshot, shots
 from .platforms import bluesky, get_service
 from .platforms.base import (
     MAX_THREAD_PARTS,
@@ -78,7 +78,43 @@ class CaptureWorker:
             self.enqueue(pid)
         self._task = asyncio.create_task(self._run(), name="sgc-capture")
         self._refresh_task = asyncio.create_task(self._refresh_safe(), name="sgc-accounts")
+        self._watch_task = (asyncio.create_task(self._watch_origins(), name="sgc-origins")
+                            if self.settings.network_enabled else None)
         log.info("Screenshot-Worker gestartet (%d offene Beitraege).", len(pending))
+
+    async def _watch_origins(self, pause_s: float = 4.0, idle_s: float = 900.0) -> None:
+        """Geloescht-Waechter (0.21): nach und nach pruefen, ob die Originale noch online sind."""
+        await asyncio.sleep(60)  # erst die Archivierung nach dem Start abarbeiten lassen
+        async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, follow_redirects=True) as client:
+            while True:
+                try:
+                    found = await self.check_origins(client, pause_s=pause_s)
+                    if found:
+                        log.info("Geloescht-Waechter: %d Originale nicht mehr online.", found)
+                except asyncio.CancelledError:
+                    raise
+                except Exception:
+                    log.exception("Geloescht-Waechter fehlgeschlagen")
+                await asyncio.sleep(idle_s)
+
+    async def check_origins(self, client: httpx.AsyncClient, limit: int = 20, pause_s: float = 4.0) -> int:
+        """Eine Runde: bis zu `limit` faellige Postings pruefen. Rueckgabe: neu als weg erkannt."""
+        found = 0
+        with self.session_factory() as db:
+            ids = [p.id for p in origin.due(db, limit)]
+        for pid in ids:
+            if not self.queue.empty():
+                break  # Archivieren geht vor
+            with self.session_factory() as db:
+                post = db.get(Post, pid)
+                if post is None:
+                    continue
+                db.commit()  # keine Sperre offen halten, waehrend wir im Netz warten
+                result = await origin.probe(post, client)
+                found += origin.record(db, post, result)
+                db.commit()
+            await asyncio.sleep(pause_s)
+        return found
 
     async def _refresh_safe(self) -> None:
         try:
@@ -102,6 +138,8 @@ class CaptureWorker:
     async def stop(self) -> None:
         if getattr(self, "_refresh_task", None):
             self._refresh_task.cancel()
+        if getattr(self, "_watch_task", None):
+            self._watch_task.cancel()
         if self._task:
             self._task.cancel()
             try:

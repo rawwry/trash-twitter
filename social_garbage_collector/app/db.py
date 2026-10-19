@@ -120,6 +120,10 @@ _ADDED_COLUMNS = {
         ("hearts", "INTEGER NOT NULL DEFAULT 0"),
         ("comment_count", "INTEGER NOT NULL DEFAULT 0"),
         ("shot_parsed", "BOOLEAN NOT NULL DEFAULT 0"),
+        ("origin_state", "VARCHAR(8) NOT NULL DEFAULT ''"),
+        ("origin_checked_at", "DATETIME"),
+        ("origin_gone_at", "DATETIME"),
+        ("origin_misses", "INTEGER NOT NULL DEFAULT 0"),
     ],
     "post_media": [
         ("thumb_path", "VARCHAR(255)"),

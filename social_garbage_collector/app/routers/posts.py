@@ -245,9 +245,12 @@ def post_detail(request: Request, post_id: int, user: User = Depends(require_use
     from .comments import comments_for, mark_post_read
     from .research import notes_for_post
 
+    from ..services import repeats
+
     mark_post_read(db, user, post.id)
     return render(request, "post.html", post=post, other_lists=other_lists, newer=newer, older=older,
-                  notes=notes_for_post(db, post.id), comments=comments_for(db, post.id), me=user)
+                  notes=notes_for_post(db, post.id), comments=comments_for(db, post.id), me=user,
+                  repeat=repeats.for_post(db, post))
 
 
 @router.get("/posts/{post_id}/status")
@@ -311,6 +314,34 @@ def update_text(request: Request, post_id: int, text: str = Form(""), db: Sessio
     return redirect(request, f"/posts/{post.id}", toast=toast)
 
 
+@router.post("/posts/{post_id}/original")
+async def check_original(request: Request, post_id: int, db: Session = Depends(get_db),
+                         settings: Settings = Depends(get_settings)):
+    """Geloescht-Waechter (0.21): dieses Original sofort pruefen."""
+    import httpx
+
+    from ..services import origin
+    from ..services.platforms.base import USER_AGENT
+
+    post = _get_post(db, post_id)
+    if not settings.network_enabled or not post.url:
+        return redirect(request, f"/posts/{post.id}#original", toast="Prüfen ist hier nicht möglich.", kind="error")
+    db.commit()
+    async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT}, follow_redirects=True) as client:
+        result = await origin.probe(post, client)
+    gone_now = origin.record(db, post, result)
+    db.commit()
+    if result is None:
+        toast, kind = "Die Plattform hat nicht geantwortet – bitte später noch einmal.", "info"
+    elif result == origin.ONLINE:
+        toast, kind = "Original ist online.", "ok"
+    elif gone_now or post.origin_state == origin.GONE:
+        toast, kind = "Original ist nicht mehr online.", "error"
+    else:
+        toast, kind = "Original nicht erreichbar – zur Sicherheit wird es gleich noch einmal geprüft.", "info"
+    return redirect(request, f"/posts/{post.id}#original", toast=toast, kind=kind)
+
+
 @router.post("/posts/{post_id}/date")
 def update_date(request: Request, post_id: int, day: str = Form(""), clock: str = Form(""),
                 db: Session = Depends(get_db)):
@@ -368,6 +399,45 @@ def remove_from_list(request: Request, post_id: int, list_id: int, back: str = F
     # Nur interne Ruecksprungziele, keine offene Weiterleitung.
     return redirect(request, f"/lists/{list_id}" if back == "list" else f"/posts/{post_id}",
                     toast="Aus der Liste entfernt")
+
+
+@router.post("/posts/bulk/tags")
+def bulk_tags(request: Request, ids: list[int] = Form(default=[]), tags: str = Form(""), mode: str = Form("add"),
+              back: str = Form("/"), db: Session = Depends(get_db)):
+    """Mehrfachauswahl (0.21): Tags an alle markierten Postings haengen oder abnehmen."""
+    from ..services import autotag
+    from .auth import safe_next
+
+    back = safe_next(back)
+    names = post_service.parse_tag_input(tags)
+    posts = list(db.scalars(select(Post).where(Post.id.in_(list(dict.fromkeys(ids))[:500])))) if ids else []
+    if not posts:
+        return redirect(request, back, toast="Keine Postings ausgewählt.", kind="error")
+    if not names:
+        return redirect(request, back, toast="Bitte mindestens ein Tag wählen.", kind="error")
+    label = ", ".join("#" + n for n in names)
+    if mode == "remove":
+        changed = 0
+        for post in posts:
+            keep = [t for t in post.tags if t.name not in names]
+            if len(keep) != len(post.tags):
+                post.tags = keep
+                autotag.forget_manual_removal(db, post.id, {t.id for t in keep})
+                changed += 1
+        db.flush()
+        post_service.remove_orphan_tags(db)
+        db.commit()
+        return redirect(request, back, toast=f"{label} von {changed} {'Posting' if changed == 1 else 'Postings'} entfernt")
+    new_tags = post_service.get_or_create_tags(db, names)
+    changed = 0
+    for post in posts:
+        have = {t.id for t in post.tags}
+        extra = [t for t in new_tags if t.id not in have]
+        if extra:
+            post.tags = list(post.tags) + extra
+            changed += 1
+    db.commit()
+    return redirect(request, back, toast=f"{label} an {changed} {'Posting' if changed == 1 else 'Postings'} vergeben")
 
 
 @router.post("/posts/bulk/delete")

@@ -131,7 +131,7 @@ def open_notification(request: Request, note_id: int, user: User = Depends(requi
         db.commit()
     if note.post_id is None:
         return redirect(request, "/benachrichtigungen")
-    anchor = f"#kommentar-{note.comment_id}" if note.comment_id else "#kommentare"
+    anchor = "#original" if note.kind == "gone" else (f"#kommentar-{note.comment_id}" if note.comment_id else "#kommentare")
     return redirect(request, f"/posts/{note.post_id}{anchor}")
 
 

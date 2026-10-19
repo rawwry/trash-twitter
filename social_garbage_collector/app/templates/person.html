@@ -65,6 +65,20 @@
     {% if notes %}{% include "partials/research_items.html" %}
     {% else %}<p class="muted small" style="margin:0">Noch keine eigenen Fakten oder Hintergründe zu {{ person.name }}. Was ihr herausfindet – Widersprüche, Belege, Kontext – gehört hierher.</p>{% endif %}
   </section>
+  {% if repeats %}
+  <section class="card rp-card" aria-labelledby="repeats-title" id="wiederholt">
+    <div class="section-title">
+      <h2 id="repeats-title">{{ icon('repeat', 18) }} Wiederholt erzählt <span class="faint small">({{ repeats|length }})</span></h2>
+    </div>
+    <p class="muted small rp-intro">Geschichten, die {{ person.name }} mehrmals ähnlich erzählt hat – die App erkennt sie an gemeinsamen, für diese Person seltenen Wörtern.</p>
+    {% for c in repeats[:3] %}{% include "partials/repeat_cluster.html" %}{% endfor %}
+    {% if repeats|length > 3 %}
+    <details class="rp-more"><summary>{{ repeats|length - 3 }} weitere anzeigen</summary>
+      {% for c in repeats[3:] %}{% include "partials/repeat_cluster.html" %}{% endfor %}
+    </details>
+    {% endif %}
+  </section>
+  {% endif %}
   <section aria-labelledby="statements-title">
     <div class="section-title">
       <h2 id="statements-title">Postings</h2>

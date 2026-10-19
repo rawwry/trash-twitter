@@ -421,8 +421,10 @@
     });
     const bar = bulkBar();
     if (!bar) return;
-    $("[data-select-count]", bar).textContent = selected.size;
+    $$("[data-select-count]").forEach((el) => { el.textContent = selected.size; });
     $("[data-bulk-submit]", bar).disabled = selected.size === 0;
+    const tagBtn = $("[data-bulk-tags]", bar);
+    if (tagBtn) tagBtn.disabled = selected.size === 0;
     const del = $("[data-bulk-delete]", bar);
     if (del) {
       del.disabled = selected.size === 0;
@@ -439,6 +441,19 @@
       bar.appendChild(h);
     });
   }
+
+  // Tags fuer die Auswahl (0.21): beim Absenden die markierten IDs anhaengen
+  document.addEventListener("submit", (ev) => {
+    const form = ev.target.closest?.("[data-bulk-tags-form]");
+    if (!form) return;
+    $$("input[name=ids]", form).forEach((i) => i.remove());
+    selected.forEach((id) => {
+      const h = document.createElement("input");
+      h.type = "hidden"; h.name = "ids"; h.value = id;
+      form.appendChild(h);
+    });
+    $("[data-bulk-back]", form).value = location.pathname.replace(root(), "") + location.search;
+  }, true);
 
   function setSelecting(on) {
     body.classList.toggle("selecting", on);

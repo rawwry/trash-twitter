@@ -2755,3 +2755,46 @@ body.selecting .qtile-foot { padding-right: 0; }
   .person-sort { flex: 1 1 auto; }
   .person-sort select { width: 100%; max-width: none; }
 }
+
+/* --- 0.21 Tags per Mehrfachauswahl ----------------------------------------------------------- */
+#bulk-tags-dialog .sheet-inner { display: grid; gap: 14px; }
+.bt-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* --- 0.21 Geloescht-Waechter --------------------------------------------------------------------- */
+.origin { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 10px 12px; border-radius: 12px;
+  font-size: var(--fs-sm); color: var(--text-2); background: var(--surface-2); border: 1px solid var(--line); scroll-margin-top: calc(var(--header-h) + 16px); }
+.origin form { margin: 0 0 0 auto; flex: none; }
+.origin-text { min-width: 0; line-height: 1.4; }
+.origin-icon { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--surface); color: var(--text-3); }
+.origin.is-online .origin-icon { color: light-dark(#2d7a4f, #7fd19d); }
+.origin.is-gone { color: var(--text); background: color-mix(in srgb, #d9534f 9%, var(--surface)); border-color: color-mix(in srgb, #d9534f 40%, var(--line)); }
+.origin.is-gone .origin-icon { color: #fff; background: #d9534f; }
+.origin:target { box-shadow: 0 0 0 3px var(--accent-soft); }
+.q-gone { display: inline-flex; align-items: center; padding: 0 7px; border-radius: 99px; font-size: .68rem; font-weight: 700; line-height: 1.6;
+  color: light-dark(#a02622, #ff9c96); background: color-mix(in srgb, #d9534f 14%, transparent); border: 1px solid color-mix(in srgb, #d9534f 35%, transparent); white-space: nowrap; }
+.nt-gone-icon { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; color: #fff; background: #d9534f; }
+@media (max-width: 600px) { .origin { flex-wrap: wrap; } .origin form { margin-left: 36px; } }
+
+/* --- 0.21 Wiederholt erzaehlt --------------------------------------------------------------------- */
+.rp-card { scroll-margin-top: calc(var(--header-h) + 16px); }
+.rp-intro { margin: -4px 0 12px; }
+.rp-cluster { padding: 12px 0; border-top: 1px solid var(--line); }
+.rp-cluster:first-of-type { border-top: 0; padding-top: 4px; }
+.rp-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.rp-count { display: grid; place-items: center; min-width: 40px; height: 32px; padding: 0 8px; border-radius: 10px; font: 700 1rem var(--font-display);
+  color: var(--accent); background: var(--accent-soft); font-variant-numeric: tabular-nums; }
+.rp-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--fs-sm); color: var(--text-2); }
+.rp-words { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.rp-words span { padding: 1px 7px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); font: 600 .74rem var(--mono); color: var(--text-2); }
+.rp-research { margin-left: auto; }
+.rp-items { list-style: none; margin: 0; padding: 0 0 0 14px; border-left: 2px solid color-mix(in srgb, var(--accent) 30%, var(--line)); display: grid; gap: 2px; }
+.rp-items li { display: grid; grid-template-columns: 6.2rem minmax(0, 1fr); gap: 10px; padding: 6px 8px; border-radius: 9px; position: relative; }
+.rp-items li::before { content: ""; position: absolute; left: -20px; top: 12px; width: 10px; height: 10px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); }
+.rp-items li:hover { background: var(--surface-2); }
+.rp-items li.is-current { background: var(--accent-soft); }
+.rp-items li.is-current::before { background: var(--accent); }
+.rp-items time { font-size: var(--fs-xs); font-weight: 700; color: var(--text-3); font-variant-numeric: tabular-nums; padding-top: 2px; }
+.rp-text { color: var(--text); font-size: var(--fs-sm); line-height: 1.45; min-width: 0; overflow-wrap: anywhere; }
+.rp-more { margin-top: 6px; }
+.rp-more summary { cursor: pointer; font-weight: 600; font-size: var(--fs-sm); color: var(--accent); padding: 6px 0; }
+@media (max-width: 600px) { .rp-items li { grid-template-columns: minmax(0, 1fr); gap: 2px; } }

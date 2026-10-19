@@ -1,0 +1,18 @@
+{# Eine Gruppe "wiederholt erzaehlt" (0.21). Erwartet c (Cluster), optional current (Posting-ID). #}
+{% from "partials/icons.html" import icon %}
+<article class="rp-cluster">
+  <header class="rp-head">
+    <span class="rp-count">{{ c.items|length }}×</span>
+    <span class="rp-meta">erzählt{% if c.span %} · {{ c.span }}{% endif %}{% if c.words %}<span class="rp-words">{% for w in c.words %}<span>{{ w }}</span>{% endfor %}</span>{% endif %}</span>
+    {% if not current %}<a class="btn-ghost sm rp-research" href="{{ url('/recherche/neu') }}?posts={{ c.items|map(attribute='id')|join(',') }}&titel={{ ('Wiederholt erzählt: ' ~ (c.items[0].text|truncate(60, True, ' …')))|urlencode }}" title="Als Recherche festhalten">{{ icon('research', 15) }}<span class="label-m"> Festhalten</span></a>{% endif %}
+  </header>
+  <ol class="rp-items">
+    {% for it in c.items %}
+    <li class="{{ 'is-current' if current == it.id }}">
+      <time>{{ it.when|localtime('%d.%m.%Y') if it.when else '—' }}</time>
+      {% if current == it.id %}<span class="rp-text"><b>dieses Posting</b></span>
+      {% else %}<a class="rp-text" href="{{ url('/posts/' ~ it.id) }}">{{ it.text|truncate(140, True, ' …') }}</a>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</article>

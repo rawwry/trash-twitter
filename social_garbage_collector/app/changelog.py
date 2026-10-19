@@ -7,6 +7,23 @@ Ab 0.14 (Timo): Jede x.x-Version (Feature-Release, nicht x.x.x) bekommt
 
 CHANGES = [
     {
+        "version": "0.21.0",
+        "date": "19.10.2026",
+        "title": "Wiederholungen, Gelöscht-Wächter, Tags für viele",
+        "highlights": [
+            ("repeat", "Wiederholt erzählt", "Erzählt jemand dieselbe Geschichte mehrmals – auch umformuliert –, erkennt die App das. Auf der Personenseite gesammelt, am Posting unter „Auch so erzählt“."),
+            ("close", "Original weg?", "Die App prüft im Hintergrund, ob die Originale noch online sind. Gelöschte tragen „Original weg“, wer archiviert hat, bekommt Bescheid. Im Filter: „Original nicht mehr online“."),
+            ("tag", "Tags für viele auf einmal", "Im Idiotarium mehrere Postings auswählen und mit „Tags …“ Tags vergeben oder abnehmen."),
+            ("search", "Suche mit Wortformen", "„Pakete“ findet jetzt auch „Paket“, „verstorbene“ auch „verstorben“. Genau so wie getippt: in Anführungszeichen."),
+        ],
+        "items": [
+            "Wiederholt erzählt: ähnliche Postings einer Person über seltene gemeinsame Wörter (TF-IDF), an echten Daten eingestellt; Personenseite, Detailseite, „Festhalten“ als Recherche mit allen Postings",
+            "Gelöscht-Wächter: Hintergrundprüfung (gemächlich, je Posting alle paar Tage), „weg“ erst nach zwei Fehlschlägen, Vermerk am Beleg mit „Jetzt prüfen“, Markierung in allen Ansichten, Filter, Benachrichtigung",
+            "Mehrfachauswahl: Tags hinzufügen oder entfernen",
+            "Suche: Wortstamm als Präfix, Anführungszeichen für exakte Suche",
+        ],
+    },
+    {
         "version": "0.20.1",
         "date": "17.10.2026",
         "title": "Feinschliff",

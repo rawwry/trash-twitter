@@ -71,7 +71,7 @@ def test_fulltext_search_and_filters(user_client, harness):
 
 def test_fts_query_sanitising():
     assert fts_query("") is None
-    assert fts_query("katze kaffee") == '"katze"* "kaffee"*'
+    assert fts_query("katze kaffee") == '"katz"* "kaffe"*'  # 0.21: Wortstamm als Praefix
     assert fts_query('"guten morgen" welt') == '"guten morgen" "welt"*'
     assert fts_query('NEAR( x" -y:') == '"NEAR"* "x"* "y"*'
 
