@@ -1,0 +1,77 @@
+# Prüfung und Abbild für den eigenen Server (Hostinger-VPS).
+#
+# Bei jedem Push und Pull Request laufen die Tests. Nur bei einem Push auf
+# main, und nur wenn alle Tests bestanden sind, baut GitHub danach das Abbild
+# und legt es unter ghcr.io/rawwry/trashtwitter ab (Version + latest). Der
+# VPS holt es von dort (Dockhand, nächtliches Auto-Update).
+#
+# Das Home-Assistant-Add-on ist davon unberührt: der Supervisor baut es
+# weiterhin selbst aus social_garbage_collector/Dockerfile.
+name: Prüfung und Abbild
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: social_garbage_collector
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Pakete installieren
+        run: |
+          python -m pip install --quiet --upgrade pip
+          python -m pip install --quiet -r requirements-dev.txt
+
+      - name: Tests
+        run: python -m pytest -q
+
+      - name: Versionsnummer lesen
+        id: version
+        run: |
+          v=$(python -c "import re,pathlib; print(re.search(r'VERSION = \"([^\"]+)\"', pathlib.Path('app/__init__.py').read_text()).group(1))")
+          echo "Version: $v"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+  ausliefern:
+    needs: pruefen
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Nur amd64: der VPS ist x86. Der Pi baut sein Add-on selbst.
+      - uses: docker/build-push-action@v6
+        with:
+          context: social_garbage_collector
+          platforms: linux/amd64
+          push: true
+          labels: |
+            org.opencontainers.image.source=https://github.com/rawwry/trashtwitter-homeassistant
+          tags: |
+            ghcr.io/rawwry/trashtwitter:${{ needs.pruefen.outputs.version }}
+            ghcr.io/rawwry/trashtwitter:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

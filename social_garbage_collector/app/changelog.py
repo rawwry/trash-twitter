@@ -7,6 +7,15 @@ Ab 0.14 (Timo): Jede x.x-Version (Feature-Release, nicht x.x.x) bekommt
 
 CHANGES = [
     {
+        "version": "0.21.1",
+        "date": "21.10.2026",
+        "title": "Läuft auch auf dem eigenen Server",
+        "items": [
+            "TrashTwitter gibt es jetzt zusätzlich als fertiges Abbild für einen eigenen Server (gebaut von GitHub nach bestandenen Tests); das Home-Assistant-Add-on bleibt",
+            "Hinter einem Proxy wie dem Cloudflare-Tunnel zählt die Login-Sperre wieder pro Besucher statt für alle gemeinsam",
+        ],
+    },
+    {
         "version": "0.21.0",
         "date": "19.10.2026",
         "title": "Wiederholungen, Gelöscht-Wächter, Tags für viele",

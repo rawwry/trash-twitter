@@ -50,8 +50,12 @@ echo "[sgc] Zeitzone:    ${TZ} (aktuell $(date '+%d.%m.%Y %H:%M'))"
 
 cd /opt/sgc
 # uvicorn per exec: Prozess 1, bekommt das Stopp-Signal direkt.
-# --proxy-headers nur fuer den Ingress-Proxy des Supervisors (172.30.32.2).
+# --proxy-headers: echte Besucher-IP aus X-Forwarded-For, aber nur von
+# vertrauten Proxys. Standard ist der Ingress-Proxy des Supervisors
+# (172.30.32.2). Auf dem VPS kommt alles ueber den Cloudflare-Tunnel; dort
+# setzt compose.yaml SGC_FORWARDED_ALLOW_IPS="*", sonst saehen alle Anfragen
+# wie eine IP aus und die Login-Sperre traefe alle gleichzeitig.
 exec uvicorn app.main:app \
   --host 0.0.0.0 --port 8000 \
-  --proxy-headers --forwarded-allow-ips 172.30.32.2 \
+  --proxy-headers --forwarded-allow-ips "${SGC_FORWARDED_ALLOW_IPS:-172.30.32.2}" \
   --log-level "${SGC_LOG_LEVEL:-info}"

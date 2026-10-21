@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.21.1 – Läuft auch auf dem eigenen Server (21.10.2026)
+
+- `run.sh`: `--forwarded-allow-ips` aus `SGC_FORWARDED_ALLOW_IPS` (Standard weiter `172.30.32.2` für Ingress). Auf dem VPS `*`, weil der Container nur über Tunnel-Netz und Tailnet erreichbar ist; ohne das zählte die IP-Sperre (`login_max_attempts × 3`) alle Besucher als eine IP.
+- GitHub Actions (`.github/workflows/abbild.yml`): pytest, danach bei Push auf `main` Abbild `ghcr.io/rawwry/trashtwitter:<version>` + `latest` (nur amd64). Das HA-Add-on baut weiter selbst aus dem Dockerfile.
+
 ## 0.21.0 – Wiederholungen, Gelöscht-Wächter, Tags für viele (19.10.2026)
 
 - **Wiederholt erzählt** (`services/repeats.py`): je Person Wörter klein, ohne Füllwörter, grob gestemmt; TF-IDF-Kosinus ≥ 0,20 und mindestens zwei geteilte, für die Person seltene Wörter (≤ 12 % ihrer Postings, mind. 5); Kandidaten nur über seltene Wörter, Gruppen per Union-Find. Ergebnis im Speicher, bis sich die Postings der Person ändern. Abschnitt auf der Personenseite, „Auch so erzählt“ auf der Detailseite, „Festhalten“ → `/recherche/neu?posts=…&titel=…`.
