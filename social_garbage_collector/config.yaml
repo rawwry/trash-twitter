@@ -15,7 +15,7 @@ description: >-
   Verfasser, Datum und Beleg-Screenshot dauerhaft gesichert, nach Personen
   geordnet und durchsuchbar.
 stage: experimental
-url: https://github.com/rawwry/trashtwitter-homeassistant
+url: https://github.com/rawwry/trash-twitter
 
 arch:
   - aarch64

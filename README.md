@@ -102,7 +102,7 @@ Voraussetzung: Home Assistant OS auf dem Pi 5 (aarch64).
 
 ### Variante B: als GitHub-Repository
 
-Das Repository liegt öffentlich unter **https://github.com/rawwry/trashtwitter-homeassistant**. In HA: **Einstellungen → Add-ons → Add-on-Store → ⋮ → Repositories** → diese URL eintragen → **TrashTwitter** installieren. Neue Versionen erscheinen danach per Klick auf „Aktualisieren“ (HA baut das Image auf dem Pi selbst).
+Das Repository liegt öffentlich unter **https://github.com/rawwry/trash-twitter**. In HA: **Einstellungen → Add-ons → Add-on-Store → ⋮ → Repositories** → diese URL eintragen → **TrashTwitter** installieren. Neue Versionen erscheinen danach per Klick auf „Aktualisieren“ (HA baut das Image auf dem Pi selbst).
 
 > **Umstieg von Variante A:** Für Home Assistant ist das ein *anderes* Add-on als das lokale. Die Add-on-Einstellungen (Optionen, „In der Seitenleiste anzeigen“) musst du neu setzen. Deine Daten bleiben erhalten, weil beide denselben Ordner `/share/SocialGarbageCollector` nutzen. Das lokale Add-on vorher stoppen und danach deinstallieren – nicht beide gleichzeitig laufen lassen (gleicher Port 8780, gleiche Datenbank).
 
