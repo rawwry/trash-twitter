@@ -1,6 +1,6 @@
 {# Tag-Auswahl (0.14): vorhandene Tags zuerst. Eintippen sucht in den vorhandenen
    (auch aehnlich geschriebene), ein neuer Tag ist ein bewusster Extra-Klick.
-   Erwartet field_value, optional field_label. Das Feld heisst immer "tags". #}
+   Erwartet field_value, optional field_label und quick_id (Schnellauswahl). Das Feld heisst immer "tags". #}
 {% from "partials/icons.html" import icon %}
 {% set _sid = 'tagsugg-' ~ range(100000, 999999)|random %}
 {% set _chosen = field_value.lower().replace('#', '').split(',') | map('trim') | select | list %}
@@ -15,4 +15,12 @@
            hx-include="closest [data-tag-picker]" data-tag-query>
   </div>
   <div class="tp-results" id="{{ _sid }}" aria-live="polite" data-tag-results></div>
+  {% if quick_id %}
+  {# 0.22: Schnellauswahl zum Antippen - nach dem Einfuegen eines Links per Vorschau ersetzt #}
+  {% set top = tag_choices(8) %}
+  <div class="tp-quick" id="{{ quick_id }}" data-tag-quick>
+    {% if top %}<span class="tp-quick-head">Häufig</span>
+    {% for name, n in top %}<button type="button" class="tp-qchip" data-tag-add="{{ name }}" data-quick aria-pressed="{{ 'true' if name in _chosen else 'false' }}">#{{ name }}</button>{% endfor %}{% endif %}
+  </div>
+  {% endif %}
 </div>

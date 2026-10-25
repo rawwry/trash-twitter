@@ -6,6 +6,11 @@
   <span class="platform platform-{{ check.platform }}">{{ platform_icon(check.platform) }} {{ PLATFORM_LABELS[check.platform] }}</span>
   {% if check.handle %}<span>von <strong>@{{ check.handle }}</strong></span>{% endif %}
   <span class="faint">· bereit</span>
+  {% if slot %}
+  <div class="link-preview" hx-get="{{ url('/posts/preview') }}?url={{ check_url|urlencode }}&slot={{ slot }}" hx-trigger="load" hx-swap="outerHTML">
+    <span class="lp-loading"><span class="spinner" aria-hidden="true"></span> Wortlaut wird geholt …</span>
+  </div>
+  {% endif %}
 </div>
 {% elif check.state == 'duplicate' %}
 <div class="link-check duplicate" aria-live="polite">

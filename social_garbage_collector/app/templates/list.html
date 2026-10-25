@@ -28,6 +28,7 @@
   <div class="ph-actions">
     <button class="btn-ghost sm" type="button" data-edit="title">{{ icon('edit', 15) }} Umbenennen</button>
     <a class="btn-soft sm" href="{{ url('/') }}?list={{ plist.id }}">{{ icon('search', 15) }} Im Idiotarium</a>
+    {% if posts %}<a class="btn-soft sm" href="{{ url('/collage') }}?list={{ plist.id }}">{{ icon('mosaic', 15) }} Collage</a>{% endif %}
     <a class="icon-btn danger" href="{{ url('/lists/' ~ plist.id ~ '/delete') }}" title="Liste löschen" aria-label="Liste löschen">{{ icon('trash', 18) }}</a>
   </div>
 </header>

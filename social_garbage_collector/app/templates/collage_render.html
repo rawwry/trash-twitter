@@ -1,0 +1,111 @@
+{#- Collage (0.22): eigenstaendige Seite in Zielgroesse. Vorschau (iframe) und Export (Playwright).
+    Anordnung macht static/collage.js (inline, damit der Export ohne Server auskommt). -#}
+{% from "partials/icons.html" import platform_icon %}
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>{{ opts.title or 'Collage' }}</title>
+<style>
+{{ fonts|safe }}
+:root { --W: {{ width }}px; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { width: {{ width }}px; {% if height %}height: {{ height }}px; overflow: hidden;{% endif %}
+  font-family: "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+/* Farbwelten */
+body.s-light  { --bg: #f3f1ec; --bg2: #e9e5dc; --card: #ffffff; --ink: #17181c; --ink2: #5b5e66; --line: rgba(20,20,30,.08); --mark: rgba(255, 196, 0, .42); --kick: #a3473a; --shadow: 0 .06em .3em rgba(30,25,15,.08), 0 .4em 1.2em -.4em rgba(30,25,15,.14); }
+body.s-dark   { --bg: #0e1015; --bg2: #171a22; --card: #1b1e26; --ink: #eceae6; --ink2: #9a9ca6; --line: rgba(255,255,255,.08); --mark: rgba(255, 190, 60, .32); --kick: #f08a6e; --shadow: 0 .06em .3em rgba(0,0,0,.4), 0 .5em 1.4em -.5em rgba(0,0,0,.6); }
+body.s-paper  { --bg: #efe6d4; --bg2: #e6dbc4; --card: #fffaf0; --ink: #2a2118; --ink2: #6f6253; --line: rgba(70,50,20,.12); --mark: rgba(214, 110, 60, .28); --kick: #9a3b1f; --shadow: 0 .05em .2em rgba(70,50,20,.12), 0 .4em 1em -.4em rgba(70,50,20,.25); }
+body.s-accent { --bg: #1d1b3a; --bg2: #5b2149; --card: #ffffff; --ink: #17181c; --ink2: #5b5e66; --line: rgba(20,20,30,.08); --mark: rgba(255, 196, 0, .45); --kick: #ffd2c2; --shadow: 0 .1em .4em rgba(0,0,0,.25), 0 .6em 1.6em -.5em rgba(0,0,0,.45); }
+
+#canvas { position: relative; width: {{ width }}px; {% if height %}height: {{ height }}px;{% endif %}
+  padding: calc(var(--W) * .045); color: var(--ink);
+  background: radial-gradient(120% 80% at 0% 0%, var(--bg2), transparent 60%), var(--bg); }
+body.s-accent #canvas { background: linear-gradient(150deg, var(--bg) 0%, var(--bg2) 100%); color: #fff; }
+body.s-paper #canvas::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .35;
+  background-image: radial-gradient(rgba(90,60,20,.18) 1px, transparent 1.2px); background-size: 7px 7px; }
+
+/* Kopf */
+.c-head { position: relative; display: grid; gap: calc(var(--W) * .006); margin-bottom: calc(var(--W) * .032); }
+.c-kicker { display: flex; align-items: center; gap: .6em; font: 700 calc(var(--W) * .0105)/1 "Inter"; letter-spacing: .16em; text-transform: uppercase; color: var(--kick); }
+.c-kicker::before { content: ""; width: 2.4em; height: .18em; border-radius: 1em; background: currentColor; }
+.c-title { margin: 0; font: 640 calc(var(--W) * .052)/1.04 "Source Serif 4", Georgia, serif; letter-spacing: -.015em; text-wrap: balance; max-width: 92%; }
+.c-sub { margin: 0; font: 500 calc(var(--W) * .0145)/1.35 "Inter"; color: var(--ink2); }
+body.s-accent .c-sub { color: rgba(255,255,255,.78); }
+
+/* Flaeche fuer die Karten: collage.js setzt Schriftgroesse und Positionen */
+#board { position: relative; }
+.c-card, .c-shot { position: absolute; top: 0; left: 0; }
+
+/* Karte */
+.c-card { padding: 1.05em 1.15em 1em; border-radius: .9em; background: var(--card); color: var(--ink); box-shadow: var(--shadow);
+  border: 1px solid var(--line); display: grid; gap: .65em; }
+.c-who { display: flex; align-items: center; gap: .6em; min-width: 0; }
+.c-av { width: 2.3em; height: 2.3em; border-radius: 50%; object-fit: cover; flex: none; background: var(--bg2); }
+.c-av.is-empty { display: grid; place-items: center; font: 650 1.05em "Source Serif 4", serif; color: var(--ink2); }
+.c-names { display: grid; min-width: 0; line-height: 1.2; }
+.c-name { font-weight: 700; font-size: .95em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-handle { font-size: .8em; color: var(--ink2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-pf { margin-left: auto; flex: none; color: var(--ink2); display: grid; }
+.c-pf svg { width: 1.05em; height: 1.05em; }
+.c-pf.p-bluesky { color: #1185fe; }
+.c-text { margin: 0; font: 400 1.04em/1.42 "Source Serif 4", Georgia, serif; white-space: pre-line; overflow-wrap: break-word; hyphens: auto; -webkit-hyphenate-limit-before: 4; hyphenate-limit-chars: 10 4 4; }
+.c-text mark { background: linear-gradient(transparent 12%, var(--mark) 12%, var(--mark) 92%, transparent 92%); color: inherit; padding: 0 .08em; }
+.c-media { width: 100%; max-height: 14em; object-fit: cover; border-radius: .55em; display: block; background: var(--bg2); }
+.c-meta { display: flex; justify-content: space-between; gap: 1em; font-size: .74em; font-weight: 600; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.c-meta .gone { color: #c0392b; }
+
+/* Beleg */
+.c-shot { margin: 0; border-radius: .7em; overflow: hidden; background: var(--card); box-shadow: var(--shadow); border: 1px solid var(--line); }
+.c-shot img { display: block; width: 100%; height: auto; }
+.c-shot figcaption { display: flex; justify-content: space-between; padding: .45em .8em; font-size: .7em; font-weight: 600; color: var(--ink2); background: var(--card); }
+
+/* Fuss */
+.c-foot { position: absolute; left: calc(var(--W) * .045); right: calc(var(--W) * .045); bottom: calc(var(--W) * .022);
+  display: flex; justify-content: space-between; align-items: center; font: 600 calc(var(--W) * .0085)/1 "Inter"; color: var(--ink2); letter-spacing: .02em; }
+body.s-accent .c-foot { color: rgba(255,255,255,.7); }
+.c-foot b { color: inherit; font-weight: 800; letter-spacing: .04em; }
+#canvas.no-height .c-foot { position: static; margin-top: calc(var(--W) * .03); }
+</style>
+</head>
+<body class="s-{{ opts.style }}">
+<div id="canvas" class="{{ '' if height else 'no-height' }}" data-w="{{ width }}" data-h="{{ height }}" data-mode="{{ opts.mode }}">
+  {% if opts.title or opts.subtitle %}
+  <header class="c-head" id="head">
+    <div class="c-kicker">TrashTwitter · Quellenarchiv</div>
+    {% if opts.title %}<h1 class="c-title">{{ opts.title }}</h1>{% endif %}
+    {% if opts.subtitle %}<p class="c-sub">{{ opts.subtitle }}</p>{% endif %}
+  </header>
+  {% endif %}
+  <main id="board">
+    {% for c in cards %}
+    {% if opts.mode == 'shots' and c.shot %}
+    <figure class="c-shot" data-ratio="{{ c.ratio }}">
+      <img src="{{ c.shot }}" alt="">
+      {% if opts.dates or opts.numbers %}<figcaption><span>{% if opts.dates %}{{ c.date }}{% endif %}</span><span>{% if opts.numbers %}Nr. {{ c.no }}{% endif %}</span></figcaption>{% endif %}
+    </figure>
+    {% else %}
+    <article class="c-card">
+      <div class="c-who">
+        {% if c.avatar %}<img class="c-av" src="{{ c.avatar }}" alt="">{% else %}<span class="c-av is-empty">{{ c.initial }}</span>{% endif %}
+        <span class="c-names"><span class="c-name">{{ c.name }}</span>{% if c.handle %}<span class="c-handle">@{{ c.handle }}</span>{% endif %}</span>
+        <span class="c-pf p-{{ c.platform }}">{{ platform_icon(c.platform, 20) }}</span>
+      </div>
+      {% if c.text %}<p class="c-text">{{ c.text }}</p>{% endif %}
+      {% if c.media %}<img class="c-media" src="{{ c.media }}" alt="">{% endif %}
+      {% if opts.dates or opts.numbers or c.gone %}
+      <div class="c-meta"><span>{% if opts.dates %}{{ c.date }}{% endif %}{% if c.gone %} · <span class="gone">Original nicht mehr online</span>{% endif %}</span><span>{% if opts.numbers %}Nr. {{ c.no }}{% endif %}</span></div>
+      {% endif %}
+    </article>
+    {% endif %}
+    {% endfor %}
+  </main>
+  {% if opts.footer %}
+  <footer class="c-foot" id="foot"><span><b>TRASHTWITTER</b> · Belege im Wortlaut, mit Datum und Quelle</span><span>Stand {{ today }}</span></footer>
+  {% endif %}
+</div>
+<script>{{ script|safe }}</script>
+</body>
+</html>

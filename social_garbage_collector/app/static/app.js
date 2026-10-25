@@ -192,8 +192,18 @@
     }));
     const q = $("[data-tag-query]", picker);
     q.placeholder = tags.length ? "Weiteren Tag suchen …" : "Tag suchen …";
+    syncQuick(picker);
     field.dispatchEvent(new Event("change", { bubbles: true }));
   }
+  // Schnellauswahl (0.22): Chips zeigen, was schon gewaehlt ist
+  function syncQuick(picker) {
+    const tags = pickerTags(picker);
+    $$("[data-tag-add][data-quick]", picker).forEach((b) => b.setAttribute("aria-pressed", String(tags.includes(b.dataset.tagAdd))));
+  }
+  document.addEventListener("htmx:load", (ev) => {
+    const quick = ev.detail.elt.closest?.("[data-tag-picker]");
+    if (quick && ev.detail.elt.matches?.("[data-tag-quick]")) syncQuick(quick);
+  });
   function refreshSuggestions(picker) {
     const q = $("[data-tag-query]", picker);
     if (window.htmx) window.htmx.trigger(q, "focus");
@@ -204,6 +214,11 @@
       const picker = add.closest("[data-tag-picker]");
       if (!picker) return;
       const tags = pickerTags(picker);
+      if (add.hasAttribute("data-quick")) {
+        // Antippen schaltet um - ohne Tastatur aufzuklappen (Handy)
+        setPickerTags(picker, tags.includes(add.dataset.tagAdd) ? tags.filter((t) => t !== add.dataset.tagAdd) : [...tags, add.dataset.tagAdd]);
+        return;
+      }
       if (!tags.includes(add.dataset.tagAdd)) tags.push(add.dataset.tagAdd);
       setPickerTags(picker, tags);
       const q = $("[data-tag-query]", picker);
@@ -425,6 +440,8 @@
     $("[data-bulk-submit]", bar).disabled = selected.size === 0;
     const tagBtn = $("[data-bulk-tags]", bar);
     if (tagBtn) tagBtn.disabled = selected.size === 0;
+    const colBtn = $("[data-bulk-collage]", bar);
+    if (colBtn) colBtn.disabled = selected.size === 0;
     const del = $("[data-bulk-delete]", bar);
     if (del) {
       del.disabled = selected.size === 0;
@@ -454,6 +471,13 @@
     });
     $("[data-bulk-back]", form).value = location.pathname.replace(root(), "") + location.search;
   }, true);
+
+  // Collage aus der Auswahl (0.22)
+  document.addEventListener("click", (ev) => {
+    const btn = ev.target.closest?.("[data-bulk-collage]");
+    if (!btn || !selected.size) return;
+    location.href = `${btn.dataset.collageUrl}?ids=${[...selected].slice(0, 80).join(",")}`;
+  });
 
   function setSelecting(on) {
     body.classList.toggle("selecting", on);

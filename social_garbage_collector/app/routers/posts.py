@@ -6,7 +6,7 @@ import re
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -108,10 +108,26 @@ def share_target(request: Request, url: str = "", text: str = "", title: str = "
 
 
 @router.get("/posts/check")
-def check_link(request: Request, url: str = "", db: Session = Depends(get_db)):
+def check_link(request: Request, url: str = "", slot: str = "", db: Session = Depends(get_db)):
     """Live-Pruefung waehrend des Einfuegens: Plattform, Verfasser, schon vorhanden?"""
     check = post_service.check_url(db, url[:500])
-    return render(request, "partials/link_check.html", check=check)
+    return render(request, "partials/link_check.html", check=check, check_url=url[:500].strip(),
+                  slot=slot if slot in ("d", "p") else "")
+
+
+@router.get("/posts/preview")
+async def preview_link(request: Request, url: str = "", slot: str = "", db: Session = Depends(get_db),
+                       settings: Settings = Depends(get_settings)):
+    """0.22: Wortlaut-Vorschau und Tag-Vorschlaege zum eingefuegten Link (archiviert nichts)."""
+    from ..services import add_hints
+
+    found = post_service.detect(url[:500].strip())
+    if not found:
+        return HTMLResponse("")
+    service, parsed = found
+    meta, gone = (await add_hints.fetch_preview(service, parsed)) if settings.network_enabled else (None, False)
+    hints = add_hints.build(db, parsed, meta, gone)
+    return render(request, "partials/add_preview.html", hints=hints, slot=slot if slot in ("d", "p") else "")
 
 
 @router.post("/posts/bulk/list")

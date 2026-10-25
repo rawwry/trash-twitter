@@ -27,22 +27,16 @@
            autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="500"
            placeholder="Link von X (Twitter) oder Bluesky einfügen"
            hx-get="{{ url('/posts/check') }}" hx-trigger="input changed delay:250ms, paste delay:50ms{% if form_url %}, load{% endif %}"
+           hx-vals='{"slot": "{{ 'd' if in_dialog else 'p' }}"}'
            hx-target="next .link-check" hx-swap="outerHTML" data-url-input>
     <button type="button" class="btn-soft sm paste-btn" data-paste hidden>{{ icon('clipboard', 16) }} Einfügen</button>
   </div>
   {% if check %}{% include "partials/link_check.html" %}{% else %}<div class="link-check" aria-live="polite"></div>{% endif %}
 
-  <p class="thread-switch faint small">Mehrere zusammenhängende Postings? <a href="{{ url('/add') }}?mode=thread" data-add-tab="thread" data-carry-url>Als Thread hinzufügen →</a></p>
-  <details {% if prefs.add_expanded == 'on' or form_note or form_tags %}open{% endif %}>
-    <summary class="muted small" style="cursor:pointer">Anmerkung &amp; Tags (optional)</summary>
-    <div class="stack" style="margin-top:12px">
-      <label>Anmerkung
-        <textarea name="note" rows="2" maxlength="2000" placeholder="Kontext oder Einordnung">{{ form_note or '' }}</textarea>
-      </label>
-      {% with field_value=form_tags or '' %}{% include "partials/tag_input.html" %}{% endwith %}
-    </div>
-  </details>
+  {% with field_value=form_tags or '', quick_id='tag-quick-' ~ ('d' if in_dialog else 'p') %}{% include "partials/tag_input.html" %}{% endwith %}
+  {% include "partials/add_note.html" %}
   <button class="btn lg" type="submit">{{ icon('plus', 20) }} Posting hinzufügen</button>
+  <p class="thread-switch faint small">Mehrere zusammenhängende Postings? <a href="{{ url('/add') }}?mode=thread" data-add-tab="thread" data-carry-url>Als Thread hinzufügen →</a></p>
   <p class="faint xs center" style="margin:0">Wortlaut, Verfasser, Datum und Beleg-Screenshot kommen automatisch. Unterstützt: x.com, twitter.com, bsky.app</p>
 </form>
 
@@ -65,15 +59,8 @@
   </ol>
   <button type="button" class="btn-ghost sm thread-add" data-thread-add>{{ icon('plus', 16) }} Weiteren Teil hinzufügen</button>
   <p class="faint xs" style="margin:0">Tipp: Mehrere Links auf einmal (z. B. aus einer Nachricht) einfach ins erste Feld einfügen – sie werden auf die Felder verteilt.</p>
-  <details {% if prefs.add_expanded == 'on' or form_note or form_tags %}open{% endif %}>
-    <summary class="muted small" style="cursor:pointer">Anmerkung &amp; Tags (optional)</summary>
-    <div class="stack" style="margin-top:12px">
-      <label>Anmerkung
-        <textarea name="note" rows="2" maxlength="2000" placeholder="Kontext oder Einordnung">{{ form_note or '' }}</textarea>
-      </label>
-      {% with field_value=form_tags or '' %}{% include "partials/tag_input.html" %}{% endwith %}
-    </div>
-  </details>
+  {% with field_value=form_tags or '', quick_id='tag-quick-t' ~ ('d' if in_dialog else 'p') %}{% include "partials/tag_input.html" %}{% endwith %}
+  {% include "partials/add_note.html" %}
   <button class="btn lg" type="submit">{{ icon('plus', 20) }} Thread hinzufügen</button>
 </form>
 
@@ -117,15 +104,8 @@
       </label>
     </div>
   </details>
-  <details {% if form_note or form_tags %}open{% endif %}>
-    <summary class="muted small" style="cursor:pointer">Anmerkung &amp; Tags (optional)</summary>
-    <div class="stack" style="margin-top:12px">
-      <label>Anmerkung
-        <textarea name="note" rows="2" maxlength="2000">{{ form_note or '' }}</textarea>
-      </label>
-      {% with field_value=form_tags or '' %}{% include "partials/tag_input.html" %}{% endwith %}
-    </div>
-  </details>
+  {% with field_value=form_tags or '', quick_id='tag-quick-u' ~ ('d' if in_dialog else 'p') %}{% include "partials/tag_input.html" %}{% endwith %}
+  {% include "partials/add_note.html" %}
   <button class="btn lg" type="submit" data-upload-submit>{{ icon('plus', 20) }} Screenshot hinzufügen</button>
   <p class="faint xs center" style="margin:0">JPG, PNG, WebP oder GIF · bis 10 Bilder à 15 MB · Standort- und Kameradaten werden entfernt</p>
 </form>

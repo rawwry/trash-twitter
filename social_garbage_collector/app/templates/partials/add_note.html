@@ -1,0 +1,5 @@
+{# 0.22: Anmerkung nur auf Wunsch - Tags stehen offen darueber #}
+<details class="add-note" {% if prefs.add_expanded == 'on' or form_note %}open{% endif %}>
+  <summary>+ Anmerkung</summary>
+  <textarea name="note" rows="2" maxlength="2000" placeholder="Kontext oder Einordnung" aria-label="Anmerkung">{{ form_note or '' }}</textarea>
+</details>

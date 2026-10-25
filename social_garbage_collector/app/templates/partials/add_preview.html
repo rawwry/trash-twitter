@@ -1,0 +1,29 @@
+{# 0.22: Vorschau zum eingefuegten Link + Tag-Vorschlaege (ersetzt die Schnellauswahl per oob) #}
+{% if hints.text %}
+<blockquote class="link-preview">
+  {% if hints.author %}<span class="lp-author">{{ hints.author }}</span>{% endif %}
+  <span class="lp-text">{{ hints.text|truncate(320, True, ' …') }}</span>
+</blockquote>
+{% elif hints.gone %}
+<p class="link-preview is-gone">Die Plattform findet diesen Beitrag nicht (mehr) – gelöscht oder nicht öffentlich. Archivieren klappt dann nur mit eigenem Screenshot.</p>
+{% else %}
+<span class="link-preview is-empty"></span>
+{% endif %}
+{% if slot %}
+<div class="tp-quick" id="tag-quick-{{ slot }}" data-tag-quick hx-swap-oob="true">
+  {% if hints.auto %}
+  <span class="tp-quick-head">Kommt automatisch</span>
+  {% for t in hints.auto %}<span class="tp-qchip is-auto" title="Vergibt eine Tag-Regel beim Archivieren von selbst">#{{ t }} ✓</span>{% endfor %}
+  {% endif %}
+  {% if hints.suggested %}
+  <span class="tp-quick-head">Passend zu {{ hints.person.name }}</span>
+  {% for t in hints.suggested %}<button type="button" class="tp-qchip" data-tag-add="{{ t }}" data-quick aria-pressed="false">#{{ t }}</button>{% endfor %}
+  {% endif %}
+  {% set shown = hints.auto + hints.suggested %}
+  {% set rest = tag_choices(12)|rejectattr(0, 'in', shown)|list %}
+  {% if rest %}
+  <span class="tp-quick-head">Häufig</span>
+  {% for name, n in rest[:8] %}<button type="button" class="tp-qchip" data-tag-add="{{ name }}" data-quick aria-pressed="false">#{{ name }}</button>{% endfor %}
+  {% endif %}
+</div>
+{% endif %}

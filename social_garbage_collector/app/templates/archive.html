@@ -163,6 +163,7 @@
   <input type="hidden" name="new_list" value="" data-bulk-new-name>
   <button class="btn sm" type="button" disabled data-bulk-submit data-open="list-dialog"
           hx-get="{{ url('/lists/picker') }}" hx-target="#list-dialog-body" hx-swap="innerHTML">{{ icon('lists', 16) }} In Liste ablegen …</button>
+  <button class="btn-soft sm" type="button" disabled data-bulk-collage data-collage-url="{{ url('/collage') }}">{{ icon('mosaic', 16) }}<span class="label-m"> Collage</span></button>
   <button class="btn-soft sm" type="button" disabled data-bulk-tags data-open="bulk-tags-dialog">{{ icon('tag', 16) }}<span class="label-m"> Tags …</span></button>
   <button class="btn-danger sm" type="submit" formaction="{{ url('/posts/bulk/delete') }}" data-bulk-delete disabled
           data-confirm="Alle markierten Postings löschen? Belege und Anmerkungen verschwinden für alle.">{{ icon('trash', 15) }}<span class="label-m"> Löschen</span></button>

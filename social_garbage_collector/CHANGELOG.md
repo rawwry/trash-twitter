@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.22.0 – Collage & schnelleres Hinzufügen (25.10.2026)
+
+- **Collage** (`routers/collage.py`, `services/collage.py`, `templates/collage.html` + `collage_render.html`, `static/collage.js` + `collage_studio.js`): Studio mit Live-Vorschau (iframe, eingepasst) und Einstellungen; Quelle `?ids=` oder die Filter des Idiotariums (max. 80). Die Render-Seite hat Zielgröße; `collage.js` sucht je Spaltenzahl per Halbierung die größte Schrift, die passt (Deckel: Spaltenbreite/15 für lesbare Zeilen), und wertet Füllung und gleichmäßige Spalten mit. Export `GET /collage/bild.jpg` rendert dieselbe Seite mit eingebetteten Bildern und Schriften per Playwright (Chromium des Workers, sonst eigener) als JPEG; ein Export gleichzeitig.
+- Schriften Inter und Source Serif 4 (variable, latin + latin-ext, OFL) lokal unter `static/vendor/fonts/`.
+- Einstiege: Knopf „Collage“ an den Ergebnissen, „Collage“ in der Mehrfachauswahl, „Collage“ auf Listenseiten.
+- **Hinzufügen:** Tag-Auswahl immer offen mit Schnellauswahl (Chips schalten um, ohne Tastatur); `GET /posts/preview` holt den Wortlaut (6 s Zeitlimit) und ersetzt die Schnellauswahl per hx-swap-oob durch „Kommt automatisch“ (Tag-Regeln), „Passend zu {Person}“ und „Häufig“. Anmerkung als „+ Anmerkung“ (`services/add_hints.py`).
+
 ## 0.21.1 – Läuft auch auf dem eigenen Server (21.10.2026)
 
 - `run.sh`: `--forwarded-allow-ips` aus `SGC_FORWARDED_ALLOW_IPS` (Standard weiter `172.30.32.2` für Ingress). Auf dem VPS `*`, weil der Container nur über Tunnel-Netz und Tailnet erreichbar ist; ohne das zählte die IP-Sperre (`login_max_attempts × 3`) alle Besucher als eine IP.

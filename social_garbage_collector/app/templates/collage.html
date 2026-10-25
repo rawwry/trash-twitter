@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% from "partials/avatar.html" import avatar with context %}
+{% set nav = 'archive' %}
+{% block title %}Collage{% endblock %}
+{% block container_class %}wide{% endblock %}
+{% block head %}<script src="{{ static('collage_studio.js') }}" defer></script>{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url('/') }}" data-back>{{ icon('chev-left', 18) }} Idiotarium</a>
+<header class="page-header cs-header">
+  <div class="ph-text">
+    <h1>Collage</h1>
+    <p class="sub">{{ posts|length }} {{ 'Posting' if posts|length == 1 else 'Postings' }} als eine große Grafik. Gestalten, unpassende abhaken, als JPG speichern.</p>
+  </div>
+</header>
+
+{% if posts %}
+<div class="cs-layout" data-collage-studio
+     data-preview-url="{{ url('/collage/vorschau') }}" data-export-url="{{ url('/collage/bild.jpg') }}">
+  {# --- Vorschau ------------------------------------------------------------------------- #}
+  <section class="cs-stage" aria-label="Vorschau">
+    <div class="cs-frame" data-frame-wrap>
+      <iframe title="Vorschau der Collage" data-preview tabindex="-1"></iframe>
+      <div class="cs-busy" data-busy><span class="spinner" aria-hidden="true"></span> Ordne an …</div>
+    </div>
+    <p class="cs-info faint xs" data-info aria-live="polite"></p>
+  </section>
+
+  {# --- Einstellungen --------------------------------------------------------------------- #}
+  <aside class="cs-panel">
+    <form class="cs-form" data-cs-form>
+      <fieldset class="cs-group">
+        <legend>Text</legend>
+        <label>Titel<input name="titel" value="{{ title }}" maxlength="120" autocomplete="off"></label>
+        <label>Untertitel<input name="untertitel" value="{{ subtitle }}" maxlength="200" autocomplete="off"></label>
+        <label>Wörter markieren <span class="hint">optional, z. B. aus der Suche</span>
+          <input name="markieren" value="{{ highlight }}" maxlength="100" autocomplete="off" placeholder="verstorben, Paket"></label>
+      </fieldset>
+
+      <fieldset class="cs-group">
+        <legend>Format</legend>
+        <div class="cs-formats" role="radiogroup" aria-label="Format">
+          {% for key, (label, w, h) in formats.items() %}
+          <label class="cs-format"><input type="radio" name="format" value="{{ key }}" {% if key == 'portrait' %}checked{% endif %}>
+            <span class="cs-shape" style="--ar: {{ (w / h) if h else 0.45 }}" aria-hidden="true">{% if not h %}<i></i>{% endif %}</span>
+            <span class="cs-flabel">{{ label }}<small>{{ w }} × {{ h if h else '…' }}</small></span></label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <fieldset class="cs-group">
+        <legend>Stil</legend>
+        <div class="cs-styles" role="radiogroup" aria-label="Stil">
+          {% for key, label in styles.items() %}
+          <label class="cs-style s-{{ key }}"><input type="radio" name="stil" value="{{ key }}" {% if loop.first %}checked{% endif %}>
+            <span class="cs-swatch" aria-hidden="true"><i></i><i></i></span><span>{{ label }}</span></label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <fieldset class="cs-group">
+        <legend>Darstellung</legend>
+        <div class="seg full" role="radiogroup" aria-label="Darstellung">
+          <label><input type="radio" name="inhalt" value="cards" checked><span>Karten</span></label>
+          <label title="{{ 'Die Original-Screenshots' if has_shots else 'Keine Beleg-Screenshots vorhanden' }}"><input type="radio" name="inhalt" value="shots" {% if not has_shots %}disabled{% endif %}><span>Belege</span></label>
+        </div>
+        <p class="faint xs cs-note">Karten: einheitlich gestaltet, gut lesbar. Belege: die Original-Screenshots.</p>
+        <div class="cs-checks">
+          <label class="check"><input type="checkbox" name="datum" checked> Datum</label>
+          <label class="check"><input type="checkbox" name="nummern"> Archiv-Nummer</label>
+          <label class="check"><input type="checkbox" name="bilder" checked> Bilder aus Postings</label>
+          <label class="check"><input type="checkbox" name="fusszeile" checked> Fußzeile</label>
+        </div>
+      </fieldset>
+
+      <fieldset class="cs-group cs-posts">
+        <legend>Postings <span class="faint" data-post-count>{{ posts|length }}</span></legend>
+        <div class="cs-post-tools">
+          <select name="reihenfolge" aria-label="Reihenfolge">
+            <option value="new">Neueste zuerst</option>
+            <option value="old">Älteste zuerst</option>
+            <option value="found">Wie gefunden</option>
+          </select>
+          <button class="btn-ghost sm" type="button" data-check-all>Alle</button>
+          <button class="btn-ghost sm" type="button" data-check-none>Keine</button>
+        </div>
+        <ul class="cs-list" data-post-list>
+          {% for p in posts %}
+          <li data-id="{{ p.id }}" data-date="{{ (p.posted_at or p.created_at).isoformat() if (p.posted_at or p.created_at) else '' }}" data-idx="{{ loop.index0 }}">
+            <label class="cs-row">
+              <input type="checkbox" checked data-post-on>
+              <span class="cs-row-main">
+                <span class="cs-row-meta"><b>{{ p.author_name }}</b> · {{ p.posted_at|localtime('%d.%m.%Y') if p.posted_at else 'ohne Datum' }}</span>
+                <span class="cs-row-text">{{ (p.text or 'Kein Wortlaut')|truncate(110, True, ' …') }}</span>
+              </span>
+            </label>
+          </li>
+          {% endfor %}
+        </ul>
+        {% if posts|length >= max_posts %}<p class="faint xs">Höchstens {{ max_posts }} Postings je Collage – grenze die Suche ein, wenn welche fehlen.</p>{% endif %}
+      </fieldset>
+    </form>
+
+    <div class="cs-export">
+      <button class="btn lg" type="button" data-export>{{ icon('download', 18) }} Als JPG speichern</button>
+      <button class="btn-soft lg" type="button" data-export-share hidden>{{ icon('share', 18) }} Teilen</button>
+      <p class="faint xs cs-export-msg" data-export-msg aria-live="polite"></p>
+    </div>
+  </aside>
+</div>
+{% else %}
+<div class="empty-state">
+  <span class="empty-icon">{{ icon('image', 28) }}</span>
+  <h2>Keine Postings für eine Collage</h2>
+  <p>Such im Idiotarium nach einem Thema oder wähle Postings aus – dann auf „Collage“ tippen.</p>
+  <a class="btn" href="{{ url('/') }}">Zum Idiotarium</a>
+</div>
+{% endif %}
+{% endblock %}

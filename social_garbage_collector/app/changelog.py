@@ -7,6 +7,22 @@ Ab 0.14 (Timo): Jede x.x-Version (Feature-Release, nicht x.x.x) bekommt
 
 CHANGES = [
     {
+        "version": "0.22.0",
+        "date": "25.10.2026",
+        "title": "Collage & schnelleres Hinzufügen",
+        "highlights": [
+            ("mosaic", "Collage als JPG", "Suche im Idiotarium nach einem Thema und tippe „Collage“: Alle Treffer werden zu einer großen, sauber angeordneten Grafik. Format, Stil und Inhalt wählen, Unpassendes abhaken, speichern oder teilen."),
+            ("tag", "Tags direkt beim Hinzufügen", "Die Tag-Auswahl ist jetzt sofort offen – mit Chips zum Antippen. Nach dem Einfügen des Links zeigt die App den Wortlaut und schlägt passende Tags vor."),
+            ("sparkles", "Was automatisch kommt", "Greift eine Tag-Regel, siehst du schon beim Hinzufügen „Kommt automatisch: #…“."),
+        ],
+        "items": [
+            "Collage-Studio (/collage): aus Suche, Auswahl oder Liste; Formate Quadrat, Hochformat, Story, Breit, Endlos; Stile Hell, Dunkel, Papier, Akzent; Karten oder Original-Belege; Wörter markieren; Datum, Archiv-Nummer, Bilder, Fußzeile; Postings abhaken und sortieren",
+            "Automatische Anordnung: größtmögliche Schrift bei gut lesbarer Zeilenlänge, gleichmäßig gefüllte Spalten",
+            "Export als JPG in voller Auflösung (bis 3840 px), am Handy auch teilen",
+            "Hinzufügen: Tag-Auswahl offen mit Schnellauswahl, Wortlaut-Vorschau nach dem Einfügen, Tag-Vorschläge aus Regeln und den häufigsten Tags der Person; Anmerkung als „+ Anmerkung“",
+        ],
+    },
+    {
         "version": "0.21.1",
         "date": "21.10.2026",
         "title": "Läuft auch auf dem eigenen Server",
