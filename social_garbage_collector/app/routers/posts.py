@@ -6,7 +6,7 @@ import re
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -54,7 +54,14 @@ def archive(request: Request, page: int = 1, user: User = Depends(require_user),
     flt = post_service.filter_from_params(request.query_params, default_sort=prefs["sort"])
     per_page = int(prefs["per_page"])
     items, total = post_service.search_archive(db, flt, page=page, per_page=per_page)
+    from .saved import clean_query as _clean
+    from ..models import PinnedSearch
+
+    saved_query = _clean(str(request.query_params))
     ctx = dict(
+        saved_query=saved_query,
+        is_saved=bool(saved_query) and db.scalar(select(PinnedSearch.id).where(
+            PinnedSearch.user_id == user.id, PinnedSearch.query == saved_query)) is not None,
         posts=items, total=total, page=page, has_more=page * per_page < total, f=flt,
         view=prefs["archive_view"],
         query_string=_query_without(request, "page", "more", "after_group", "view"),
@@ -67,9 +74,12 @@ def archive(request: Request, page: int = 1, user: User = Depends(require_user),
         return render(request, "partials/results.html", **ctx)
     if request.query_params.get("more"):
         return render(request, "partials/more.html", **ctx)
+    from .saved import for_user
+
     ctx.update(
         all_lists=list(db.scalars(select(PostList).order_by(PostList.title))),
         all_users=list(db.scalars(select(User).order_by(User.username))),
+        saved=for_user(db, user),
     )
     return render(request, "archive.html", **ctx)
 
@@ -128,6 +138,14 @@ async def preview_link(request: Request, url: str = "", slot: str = "", db: Sess
     meta, gone = (await add_hints.fetch_preview(service, parsed)) if settings.network_enabled else (None, False)
     hints = add_hints.build(db, parsed, meta, gone)
     return render(request, "partials/add_preview.html", hints=hints, slot=slot if slot in ("d", "p") else "")
+
+
+@router.get("/posts/ids")
+def archive_ids(request: Request, db: Session = Depends(get_db)):
+    """0.23: alle Treffer der aktuellen Suche auswaehlen (IDs, hoechstens 500)."""
+    flt = post_service.filter_from_params(request.query_params)
+    ids = list(db.scalars(post_service.archive_query(flt).with_only_columns(Post.id).limit(500)))
+    return JSONResponse({"ids": ids})
 
 
 @router.post("/posts/bulk/list")
@@ -386,6 +404,15 @@ def update_note(request: Request, post_id: int, note: str = Form(""), tags: str 
     return redirect(request, f"/posts/{post.id}", toast="Notiz & Tags gespeichert")
 
 
+@router.post("/posts/{post_id:int}/tags")
+def update_tags(request: Request, post_id: int, tags: str = Form(""), db: Session = Depends(get_db)):
+    """0.23: nur die Tags (Bearbeiten direkt an den Chips der Detailseite)."""
+    post = _get_post(db, post_id)
+    post_service.set_post_tags(db, post, tags)
+    db.commit()
+    return redirect(request, f"/posts/{post.id}", toast="Tags gespeichert")
+
+
 @router.post("/posts/{post_id}/lists")
 def add_to_list(request: Request, post_id: int, list_id: int = Form(0), new_list: str = Form(""),
                 user: User = Depends(require_user), db: Session = Depends(get_db)):
@@ -432,28 +459,43 @@ def bulk_tags(request: Request, ids: list[int] = Form(default=[]), tags: str = F
     if not names:
         return redirect(request, back, toast="Bitte mindestens ein Tag wählen.", kind="error")
     label = ", ".join("#" + n for n in names)
+
+    def undo(changed_ids: list[int], inverse: str) -> dict | None:
+        # 0.23: Rueckgaengig nimmt genau diese Aenderung zurueck (Cookie-Groesse: bis 150 Postings)
+        if not changed_ids or len(changed_ids) > 150:
+            return None
+        return {"url": "/posts/bulk/tags", "fields": {"ids": changed_ids, "tags": ", ".join(names), "mode": inverse, "back": back}}
+
     if mode == "remove":
-        changed = 0
+        changed_ids, exact = [], True
         for post in posts:
             keep = [t for t in post.tags if t.name not in names]
+            if len(keep) != len(post.tags) and len(post.tags) - len(keep) != len(names):
+                exact = False   # hatte nur einen Teil der Tags - Rueckgaengig wuerde zu viel anhaengen
             if len(keep) != len(post.tags):
                 post.tags = keep
                 autotag.forget_manual_removal(db, post.id, {t.id for t in keep})
-                changed += 1
+                changed_ids.append(post.id)
         db.flush()
         post_service.remove_orphan_tags(db)
         db.commit()
-        return redirect(request, back, toast=f"{label} von {changed} {'Posting' if changed == 1 else 'Postings'} entfernt")
+        n = len(changed_ids)
+        return redirect(request, back, toast=f"{label} von {n} {'Posting' if n == 1 else 'Postings'} entfernt",
+                        undo=undo(changed_ids, "add") if exact else None)
     new_tags = post_service.get_or_create_tags(db, names)
-    changed = 0
+    changed_ids, exact = [], True
     for post in posts:
         have = {t.id for t in post.tags}
         extra = [t for t in new_tags if t.id not in have]
+        if extra and len(extra) != len(new_tags):
+            exact = False   # hatte schon einen Teil - Rueckgaengig wuerde zu viel abnehmen
         if extra:
             post.tags = list(post.tags) + extra
-            changed += 1
+            changed_ids.append(post.id)
     db.commit()
-    return redirect(request, back, toast=f"{label} an {changed} {'Posting' if changed == 1 else 'Postings'} vergeben")
+    n = len(changed_ids)
+    return redirect(request, back, toast=f"{label} an {n} {'Posting' if n == 1 else 'Postings'} vergeben",
+                    undo=undo(changed_ids, "remove") if exact else None)
 
 
 @router.post("/posts/bulk/delete")

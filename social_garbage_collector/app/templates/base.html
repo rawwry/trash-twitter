@@ -25,6 +25,17 @@
   <script src="{{ static('htmx.min.js') }}" defer></script>
   <script src="{{ static('app.js') }}" defer></script>
   {% block head %}{% endblock %}
+  {% if user and not user.must_change_password %}
+  {# 0.23: Seiten beim Darueberfahren vorladen - nur Links ohne Nebenwirkung #}
+  <script type="speculationrules">
+  {"prefetch": [{"source": "document", "eagerness": "moderate", "where": {"and": [
+    {"href_matches": "/*"},
+    {"not": {"href_matches": "/suchen/*"}}, {"not": {"href_matches": "/benachrichtigungen/*"}},
+    {"not": {"href_matches": "/collage/bild.jpg*"}}, {"not": {"href_matches": "/netzwerk*"}},
+    {"not": {"href_matches": "/*\\?*download=*"}}, {"not": {"href_matches": "/medien/*"}}, {"not": {"href_matches": "/media/*"}},
+    {"not": {"selector_matches": "[download], [target=_blank], [data-no-prefetch]"}}]}}]}
+  </script>
+  {% endif %}
 </head>
 {# htmx schickt das CSRF-Token bei jeder Anfrage als Header mit. #}
 <body hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'
@@ -45,8 +56,16 @@
       <a href="{{ url('/recherche') }}" {% if nav == 'research' %}aria-current="page"{% endif %}>Recherche</a>
       <a href="{{ url('/lists') }}" {% if nav == 'lists' %}aria-current="page"{% endif %}>Listen</a>
       <a href="{{ url('/galerie') }}" {% if nav == 'gallery' %}aria-current="page"{% endif %}>Galerie</a>
-      <a href="{{ url('/netzwerk') }}" {% if nav == 'graph' %}aria-current="page"{% endif %}>Netzwerk</a>
-      <a class="nav-generator" href="{{ url('/generator') }}" {% if nav == 'generator' %}aria-current="page"{% endif %}>Suchgenerator</a>
+      {# 0.23: Seltenes unter "Werkzeuge" - die Leiste bleibt bei den fuenf Bereichen #}
+      <details class="nav-more" data-nav-more>
+        <summary {% if nav in ('generator', 'tools') %}aria-current="page"{% endif %}>Werkzeuge {{ icon('chev-down', 14) }}</summary>
+        <div class="nav-more-panel" role="menu">
+          <a href="{{ url('/generator') }}" role="menuitem">{{ icon('search', 17) }}<span>Suchgenerator<small>Suchbefehle für X und Bluesky</small></span></a>
+          <a href="{{ url('/settings/tags') }}" role="menuitem">{{ icon('tag', 17) }}<span>Tags organisieren<small>umbenennen, zusammenführen, ordnen</small></span></a>
+          <a href="{{ url('/settings/tags/regeln') }}" role="menuitem">{{ icon('sparkles', 17) }}<span>Automatisch taggen<small>Regeln für neue Postings</small></span></a>
+          <a href="{{ url('/collage') }}" role="menuitem">{{ icon('mosaic', 17) }}<span>Collage<small>Postings als große Grafik</small></span></a>
+        </div>
+      </details>
     </nav>
     <div class="header-actions">
       {# Ein Hinzufuegen-Knopf fuer die ganze App - er richtet sich nach dem Bereich. #}
@@ -55,6 +74,8 @@
       {% else %}
       <button class="btn sm btn-add" type="button" data-open="add-dialog" title="Posting zum Archiv hinzufügen (n)" aria-label="Posting hinzufügen">{{ icon('plus', 18) }}<span class="btn-add-label"> Posting hinzufügen</span></button>
       {% endif %}
+      <button class="hdr-search" type="button" data-open="palette" title="Suchen und springen (⌘K / Strg+K)" aria-label="Suchen">
+        {{ icon('search', 19) }}<span>Suchen</span><kbd data-kbd-mod>⌘K</kbd></button>
       {% set _unread = unread_count() %}
       <a class="hdr-bell {{ 'has-unread' if _unread }} {{ 'is-current' if nav == 'notifications' }}" href="{{ url('/benachrichtigungen') }}"
          title="Benachrichtigungen" aria-label="Benachrichtigungen{{ ' (' ~ _unread ~ ' neu)' if _unread }}">{{ icon('bell', 20) }}{% if _unread %}<span class="bell-badge">{{ _unread if _unread < 100 else '99+' }}</span>{% endif %}</a>
@@ -66,8 +87,8 @@
           <a href="{{ url('/settings') }}" role="menuitem">{{ icon('settings', 18) }} Einstellungen</a>
           <a href="{{ url('/settings/konto') }}#passwort" role="menuitem">{{ icon('shield', 18) }} Passwort ändern</a>
           <a href="{{ url('/settings/tags') }}" role="menuitem">{{ icon('tag', 18) }} Tags organisieren</a>
-          <a href="{{ url('/netzwerk') }}" role="menuitem" class="menu-mobile">{{ icon('graph', 18) }} Netzwerk</a>
-          <a href="{{ url('/generator') }}" role="menuitem" class="menu-mobile menu-tablet">{{ icon('search', 18) }} Suchgenerator</a>
+          <a href="{{ url('/generator') }}" role="menuitem" class="menu-mobile">{{ icon('search', 18) }} Suchgenerator</a>
+          <a href="{{ url('/settings/tags/regeln') }}" role="menuitem" class="menu-mobile">{{ icon('sparkles', 18) }} Automatisch taggen</a>
           <a href="{{ url('/hilfe') }}" role="menuitem">{{ icon('help', 18) }} Hilfe &amp; Anleitung</a>
           <a href="{{ url('/ideen') }}" role="menuitem">{{ icon('sparkles', 18) }} Ideen &amp; Wünsche</a>
           {# Admin-Links existieren fuer Nicht-Admins gar nicht im HTML. #}
@@ -137,6 +158,21 @@
   {% with in_dialog=True %}{% include "partials/add_form.html" %}{% endwith %}
 </dialog>
 
+{% if logged_in %}
+{# Suche ueberall (0.23) - Inhalt per htmx aus /suche/schnell #}
+<dialog class="palette" id="palette" aria-label="Suchen und springen">
+  <div class="pal-box">
+    <label class="pal-input">{{ icon('search', 20) }}
+      <input type="search" name="q" placeholder="Suchen oder springen: Person, #Tag, Liste, Wortlaut …" autocomplete="off" spellcheck="false"
+             hx-get="{{ url('/suche/schnell') }}" hx-trigger="input changed delay:140ms, pal-open" hx-target="#pal-results" data-pal-input aria-label="Suchen">
+      <button class="icon-btn" type="button" data-close aria-label="Schließen">{{ icon('close', 18) }}</button>
+    </label>
+    <div class="pal-results" id="pal-results" aria-live="polite"></div>
+    <p class="pal-foot"><kbd>↑</kbd><kbd>↓</kbd> wählen · <kbd>↵</kbd> öffnen · <kbd>Esc</kbd> schließen</p>
+  </div>
+</dialog>
+{% endif %}
+
 {# Rueckfrage vor dem Loeschen (app.js: askConfirm) #}
 <dialog class="sheet confirm-sheet" id="confirm-dialog" aria-labelledby="confirm-title">
   <div class="sheet-inner">
@@ -175,7 +211,16 @@
 {% endif %}
 
 <div class="toasts" id="toasts" aria-live="polite">
-  {% if toast %}<div class="toast {{ toast.kind }}" data-autoclose>{{ toast.message }}</div>{% endif %}
+  {% if toast and toast.undo %}
+  <div class="toast {{ toast.kind }} has-undo" data-autoclose data-undo-toast>
+    <span>{{ toast.message }}</span>
+    <form method="post" action="{{ url(toast.undo.url) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      {% for name, value in toast.undo.fields.items() %}{% if value is string or value is number %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% else %}{% for v in value %}<input type="hidden" name="{{ name }}" value="{{ v }}">{% endfor %}{% endif %}{% endfor %}
+      <button type="submit" class="toast-undo">Rückgängig</button>
+    </form>
+  </div>
+  {% elif toast %}<div class="toast {{ toast.kind }}" data-autoclose>{{ toast.message }}</div>{% endif %}
 </div>
 </body>
 </html>

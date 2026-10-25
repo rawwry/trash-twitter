@@ -7,6 +7,29 @@ Ab 0.14 (Timo): Jede x.x-Version (Feature-Release, nicht x.x.x) bekommt
 
 CHANGES = [
     {
+        "version": "0.23.0",
+        "date": "25.10.2026",
+        "title": "Leichter zu bedienen",
+        "highlights": [
+            ("search", "Suche überall", "⌘K / Strg+K oder die Lupe oben: ein Feld für Personen, Tags, Listen, Recherche, Postings und Aktionen. Pfeiltasten, Enter, fertig."),
+            ("star", "Gemerkte Suchen", "Stern an einer Suche – sie steht dann oben im Idiotarium, mit der Zahl neuer Postings seit dem letzten Öffnen."),
+            ("refresh", "Rückgängig statt Rückfragen", "Löschen und Tags ändern passieren sofort. Ein paar Sekunden lang holt „Rückgängig“ alles zurück."),
+            ("archive", "Aufgeräumt", "Fünf Bereiche oben, Seltenes unter „Werkzeuge“. Detailseite mit Tags direkt an den Chips und „Mehr“. Am Handy: wischen zum nächsten Posting."),
+        ],
+        "items": [
+            "Navigation: Archiv, Personen, Recherche, Listen, Galerie; Suchgenerator, Tags organisieren, Automatisch taggen und Collage unter „Werkzeuge“. Das Netzwerk ist entfernt.",
+            "Suche überall (⌘K / Strg+K, Lupe oben): Aktionen, Personen, Tags, Listen, Recherche, Postings",
+            "Mehrfachauswahl: „Alle … Treffer“ wählt die ganze Suche (bis 500)",
+            "Löschen im Idiotarium ohne Rückfrage mit 8 Sekunden „Rückgängig“; Tags vergeben/abnehmen mit „Rückgängig“",
+            "Detailseite: Tags direkt bearbeiten („+ Tags“), vier Aktionen sichtbar, der Rest unter „Mehr“",
+            "Gemerkte Suchen mit Zähler „neu“, persönlich je Mitglied",
+            "Spürbar schneller: Seiten werden beim Darüberfahren vorgeladen, sanfte Übergänge",
+            "Handy: Wischen zum nächsten/vorherigen Posting, Aktionen in Daumenreichweite",
+            "Einstellungen halbiert – Ansichten merken sich beim Umschalten, Animationen folgen dem Gerät",
+            "Bessere Lesbarkeit: blasse Schrift erreicht jetzt den WCAG-Kontrast AA",
+        ],
+    },
+    {
         "version": "0.22.0",
         "date": "25.10.2026",
         "title": "Collage & schnelleres Hinzufügen",

@@ -1,5 +1,5 @@
 {% from "partials/icons.html" import icon %}
-{# Schnell-Loeschen im Archiv: erscheint beim Drueberfahren, fragt vorher nach. #}
+{# Schnell-Loeschen im Archiv (0.23): ohne Rueckfrage - die Karte verschwindet, 8 Sekunden "Rueckgaengig". #}
 <button class="q-del" type="button" title="Löschen" aria-label="Posting Nr. {{ archive_no(post) }} löschen"
-        hx-post="{{ url('/posts/' ~ post.id ~ '/delete') }}" hx-target="#post-{{ post.id }}" hx-swap="delete swap:180ms"
-        hx-confirm="Posting Nr. {{ archive_no(post) }} von {{ post.author_name }} löschen? Beleg und Anmerkung verschwinden für alle.">{{ icon('trash', 16) }}</button>
+        data-defer-delete="{{ url('/posts/' ~ post.id ~ '/delete') }}" data-post-id="{{ post.id }}"
+        data-label="Posting von {{ post.author_name }}">{{ icon('trash', 16) }}</button>

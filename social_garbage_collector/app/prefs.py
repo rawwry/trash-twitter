@@ -22,6 +22,9 @@ class Pref:
     choices: tuple[tuple[str, str], ...]  # (Wert, Anzeige)
     section: str
     live: bool = False  # sofort im Browser anwenden (Design-Attribute an <html>)
+    # 0.23: nicht auf den Einstellungsseiten - wird beim Umschalten in der App gemerkt
+    # oder folgt dem Geraet. Der Wert bleibt gueltig und gespeichert.
+    shown: bool = True
 
 
 PREFS: tuple[Pref, ...] = (
@@ -33,28 +36,28 @@ PREFS: tuple[Pref, ...] = (
     Pref("density", "Dichte", "Kompakt zeigt mehr Postings auf einmal.", "comfortable",
          (("comfortable", "Luftig"), ("compact", "Kompakt")), "darstellung", live=True),
     Pref("motion", "Animationen", "„Reduziert“ schaltet Übergänge ab.", "system",
-         (("system", "System"), ("full", "An"), ("reduced", "Reduziert")), "darstellung", live=True),
+         (("system", "System"), ("full", "An"), ("reduced", "Reduziert")), "darstellung", live=True, shown=False),
     # --- Archiv -------------------------------------------------------------
     Pref("archive_view", "Ansicht", "Raster: Kacheln mit dem ganzen Wortlaut. Liste: eine Zeile pro Posting. "
          "Zeitachse: nach Monaten, mit allen Angaben.", "raster",
-         (("raster", "Raster"), ("list", "Liste"), ("timeline", "Zeitachse")), "archiv"),
+         (("raster", "Raster"), ("list", "Liste"), ("timeline", "Zeitachse")), "archiv", shown=False),
     Pref("list_view", "Ansicht in Listen", "Wie die Postings einer Liste erscheinen.", "raster",
-         (("raster", "Raster"), ("list", "Liste"), ("timeline", "Zeitachse")), "archiv"),
+         (("raster", "Raster"), ("list", "Liste"), ("timeline", "Zeitachse")), "archiv", shown=False),
     Pref("lists_overview", "Listen-Übersicht", "Kacheln mit Gesichtern oder kompakte Zeilen.", "tiles",
-         (("tiles", "Kacheln"), ("rows", "Zeilen")), "archiv"),
+         (("tiles", "Kacheln"), ("rows", "Zeilen")), "archiv", shown=False),
     Pref("sort", "Sortierung", "Standard: zuletzt archivierte Postings zuerst.", "new",
          (("new", "Zuletzt archiviert"), ("old", "Zuerst archiviert"),
           ("posted", "Neueste Postings"), ("posted_old", "Älteste Postings")), "archiv"),
     Pref("persons_view", "Personen", "Wie die Personenübersicht aussieht.", "tiles",
-         (("tiles", "Kacheln"), ("list", "Liste")), "archiv"),
+         (("tiles", "Kacheln"), ("list", "Liste")), "archiv", shown=False),
     Pref("persons_sort", "Personen sortieren", "Reihenfolge in der Personenübersicht.", "posts",
-         (("posts", "Meiste Postings"), ("recent", "Zuletzt aktiv"), ("name", "Name")), "archiv"),
+         (("posts", "Meiste Postings"), ("recent", "Zuletzt aktiv"), ("name", "Name")), "archiv", shown=False),
     Pref("per_page", "Postings pro Seite", "Weitere lädt der Knopf „Mehr laden“.", "24",
-         (("24", "24"), ("48", "48"), ("96", "96")), "archiv"),
+         (("24", "24"), ("48", "48"), ("96", "96")), "archiv", shown=False),
     Pref("after_add", "Nach dem Hinzufügen", "Wohin es nach dem Archivieren geht.", "detail",
          (("detail", "Posting öffnen"), ("archive", "Im Archiv bleiben")), "archiv"),
     Pref("add_expanded", "Anmerkung & Tags beim Hinzufügen", "Felder gleich aufgeklappt zeigen.", "off",
-         (("off", "Eingeklappt"), ("on", "Aufgeklappt")), "archiv"),
+         (("off", "Eingeklappt"), ("on", "Aufgeklappt")), "archiv", shown=False),
     # --- Suchgenerator ------------------------------------------------------
     Pref("gen_platform", "Standard-Plattform", "Mit welcher Plattform der Generator startet.", "x",
          (("x", "X (Twitter)"), ("bluesky", "Bluesky")), "suchgenerator"),
@@ -99,4 +102,4 @@ def update_prefs(user: User, values: dict[str, str]) -> list[str]:
 
 
 def section_prefs(section: str) -> list[Pref]:
-    return [p for p in PREFS if p.section == section]
+    return [p for p in PREFS if p.section == section and p.shown]

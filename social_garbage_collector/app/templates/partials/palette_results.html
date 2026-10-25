@@ -1,0 +1,16 @@
+{# Suche ueberall (0.23): gruppierte Treffer, per Pfeiltasten waehlbar #}
+{% from "partials/icons.html" import icon %}
+{% for name, items in groups %}
+<div class="pal-group" role="group" aria-label="{{ name }}">
+  <span class="pal-head">{{ name }}</span>
+  {% for it in items %}
+  {% if it.open %}
+  <button type="button" class="pal-item" data-pal-item data-open="{{ it.open }}" data-pal-close>{{ icon(it.icon, 17) }}<span class="pal-label">{{ it.label }}</span>{% if it.sub %}<kbd class="pal-sub">{{ it.sub }}</kbd>{% endif %}</button>
+  {% else %}
+  <a class="pal-item" data-pal-item href="{{ url(it.href) }}">{{ icon(it.icon, 17) }}<span class="pal-label">{{ it.label }}</span>{% if it.sub %}<span class="pal-sub">{{ it.sub }}</span>{% endif %}</a>
+  {% endif %}
+  {% endfor %}
+</div>
+{% else %}
+<p class="pal-empty">Nichts gefunden für „{{ q }}“.</p>
+{% endfor %}

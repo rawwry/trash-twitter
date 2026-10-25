@@ -1,0 +1,15 @@
+{# Gemerkte Suchen (0.23) - oben im Idiotarium #}
+{% from "partials/icons.html" import icon %}
+{% if saved %}
+<nav class="saved-bar" aria-label="Gemerkte Suchen">
+  {% for e in saved %}
+  <span class="saved-chip {{ 'is-current' if saved_query == e.search.query }}">
+    <a href="{{ url('/suchen/' ~ e.search.id) }}" title="{{ e.search.name }}">{{ icon('star', 13) }}<span>{{ e.search.name }}</span>{% if e.new %}<b class="saved-new" title="{{ e.new }} neu seit dem letzten Öffnen">{{ e.new if e.new < 100 else '99+' }}</b>{% endif %}</a>
+    <form method="post" action="{{ url('/suchen/' ~ e.search.id ~ '/loeschen') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" aria-label="„{{ e.search.name }}“ nicht mehr merken" title="Nicht mehr merken">×</button>
+    </form>
+  </span>
+  {% endfor %}
+</nav>
+{% endif %}

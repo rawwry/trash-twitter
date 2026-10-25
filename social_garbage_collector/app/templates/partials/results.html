@@ -1,5 +1,5 @@
 {% from "partials/icons.html" import icon %}
-<section id="results" aria-live="polite">
+<section id="results" aria-live="polite" data-total="{{ total }}" data-ids-url="{{ url('/posts/ids') }}?{{ query_string }}">
   <div class="results-bar">
     <div class="active-filters">
       <span class="result-count"><strong>{{ total }}</strong> {{ 'Posting' if total == 1 else 'Postings' }}</span>
@@ -18,6 +18,15 @@
       {% endif %}
     </div>
     <div class="results-tools">
+      {% if saved_query %}
+      {% if is_saved %}<span class="tool-btn star-btn is-on" title="Diese Suche ist gemerkt">{{ icon('star', 18) }}<span class="tool-label">Gemerkt</span></span>
+      {% else %}
+      <form method="post" action="{{ url('/suchen/merken') }}" class="star-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="query" value="{{ saved_query }}">
+        <button class="tool-btn star-btn" type="submit" title="Suche merken – steht dann oben im Idiotarium">{{ icon('star', 18) }}<span class="tool-label">Merken</span></button>
+      </form>
+      {% endif %}
+      {% endif %}
       {% if posts %}
       <a class="tool-btn collage-btn" href="{{ url('/collage') }}?{{ query_string }}" title="Collage aus {{ 'diesen ' ~ total if total > 1 else 'diesem' }} {{ 'Postings' if total > 1 else 'Posting' }}{% if total > 80 %} (die ersten 80){% endif %}"
          aria-label="Als Collage">{{ icon('mosaic', 19) }}<span class="tool-label">Collage</span></a>

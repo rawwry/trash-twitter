@@ -65,36 +65,55 @@
         <span class="sep-dot" aria-hidden="true">·</span><span class="mono">Nr.&nbsp;{{ archive_no(post) }}</span>
         {% if post.thread_count %}<span class="sep-dot" aria-hidden="true">·</span><span>Thread, {{ post.thread_count }} Teile</span>{% endif %}
         {% if post.text_source == 'ocr' %}<span class="sep-dot" aria-hidden="true">·</span><span class="lead-ocr" title="{{ TEXT_SOURCE_HELP[post.text_source] }}">per Texterkennung gelesen</span>{% endif %}
-        <span class="lead-links">
-          <a class="link-btn" href="#kommentare">{{ 'Kommentieren' if not comments else comments|length ~ (' Kommentar' if comments|length == 1 else ' Kommentare') }}</a>
-          <button class="link-btn" type="button" data-edit="text">Wortlaut korrigieren</button>
-          {% if post.url %}<a class="link-btn" href="#thread">{{ 'Thread ändern' if post.thread_count else 'Thread ergänzen' }}</a>{% endif %}
-        </span>
+        {% if comments %}<span class="sep-dot" aria-hidden="true">·</span><a href="#kommentare">{{ comments|length }} {{ 'Kommentar' if comments|length == 1 else 'Kommentare' }}</a>{% endif %}
       </p>
 
-      {# Anmerkung & Tags: nur zeigen, wenn es welche gibt - bearbeiten ueber den Stift #}
+      {# 0.23: Tags direkt hier bearbeiten - "+ Tag" oeffnet die Auswahl an Ort und Stelle #}
+      <div class="lead-tags" data-edit-view="tags">
+        <div class="chips">
+          {% for t in post.tags %}<a class="chip" href="{{ url('/') }}?tags={{ t.name|urlencode }}">#{{ t.name }}</a>{% endfor %}
+          <button class="chip chip-add" type="button" data-edit="tags" title="Tags bearbeiten">{{ icon('plus', 13) }} {{ 'Tags' if post.tags else 'Tag hinzufügen' }}</button>
+        </div>
+      </div>
+      <form method="post" action="{{ url('/posts/' ~ post.id ~ '/tags') }}" class="stack lead-tag-form" data-edit-form="tags" hidden>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        {% with field_value=post.tags|map(attribute='name')|join(', '), quick_id='tag-quick-detail' %}{% include "partials/tag_input.html" %}{% endwith %}
+        <div class="row"><button class="btn sm" type="submit">Speichern</button>
+          <button class="btn-ghost sm" type="button" data-edit-cancel="tags">Abbrechen</button></div>
+      </form>
+
+      {# Anmerkung: nur zeigen, wenn es eine gibt - bearbeiten ueber "Mehr" #}
       <div class="lead-notes" data-edit-view="note">
         {% if post.note %}<p class="note-view">{{ post.note }}</p>{% endif %}
-        {% if post.tags %}<div class="chips">{% for t in post.tags %}<a class="chip" href="{{ url('/') }}?tags={{ t.name|urlencode }}">#{{ t.name }}</a>{% endfor %}</div>{% endif %}
         {% include "partials/post_lists.html" %}
       </div>
       <form method="post" action="{{ url('/posts/' ~ post.id ~ '/note') }}" class="stack lead-note-form" data-edit-form="note" hidden>
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <label>Anmerkung<textarea name="note" rows="3" maxlength="2000" placeholder="Kontext, Einordnung, Hinweise">{{ post.note }}</textarea></label>
-        {% with field_value=post.tags|map(attribute='name')|join(', ') %}{% include "partials/tag_input.html" %}{% endwith %}
+        <input type="hidden" name="tags" value="{{ post.tags|map(attribute='name')|join(', ') }}">
         <div class="row"><button class="btn sm" type="submit">Speichern</button>
           <button class="btn-ghost sm" type="button" data-edit-cancel="note">Abbrechen</button></div>
       </form>
 
+      {# 0.23: vier Aktionen sichtbar, der Rest unter "Mehr" #}
       <div class="lead-actions" role="toolbar" aria-label="Aktionen">
         {% with big=True %}{% include "partials/heart.html" %}{% endwith %}
         {% if post.url %}<a class="act" href="{{ post.url }}" target="_blank" rel="noopener noreferrer" title="Original öffnen">{{ icon('external', 18) }}<span>Original</span></a>{% endif %}
-        {% if post.text %}<button class="act" type="button" data-copy-text="{{ post.text }}" title="Wortlaut kopieren">{{ icon('copy', 18) }}<span>Text</span></button>{% endif %}
         <button class="act" type="button" data-copy-text="{{ citation(post) }}" title="Quellenangabe kopieren: {{ citation(post) }}">{{ icon('quote', 18) }}<span>Zitieren</span></button>
         <button class="act" type="button" data-open="list-dialog" title="In Listen ablegen"
                 hx-get="{{ url('/lists/picker') }}?post={{ post.id }}" hx-target="#list-dialog-body" hx-swap="innerHTML">{{ icon('lists', 18) }}<span>Listen</span></button>
-        <button class="act" type="button" data-edit="note" title="Anmerkung und Tags bearbeiten">{{ icon('tag', 18) }}<span>Tags</span></button>
-        <a class="act" href="{{ url('/recherche/neu') }}?post={{ post.id }}" title="Recherche zu diesem Posting hinzufügen">{{ icon('research', 18) }}<span>Recherche</span></a>
+        <details class="act-more" data-act-more>
+          <summary class="act" title="Weitere Aktionen">{{ icon('more', 18) }}<span>Mehr</span></summary>
+          <div class="act-more-panel" role="menu">
+            {% if post.text %}<button type="button" role="menuitem" data-copy-text="{{ post.text }}">{{ icon('copy', 16) }} Wortlaut kopieren</button>{% endif %}
+            <a role="menuitem" href="#kommentare" data-focus-comment>{{ icon('comment', 16) }} Kommentieren</a>
+            <a role="menuitem" href="{{ url('/recherche/neu') }}?post={{ post.id }}">{{ icon('research', 16) }} Recherche dazu</a>
+            <button type="button" role="menuitem" data-edit="note">{{ icon('note', 16) }} {{ 'Anmerkung bearbeiten' if post.note else 'Anmerkung schreiben' }}</button>
+            <button type="button" role="menuitem" data-edit="text">{{ icon('edit', 16) }} Wortlaut korrigieren</button>
+            {% if post.url %}<a role="menuitem" href="#thread" data-open-fold="thread">{{ icon('timeline', 16) }} {{ 'Thread ändern' if post.thread_count else 'Thread ergänzen' }}</a>{% endif %}
+            <a role="menuitem" class="danger" href="{{ url('/posts/' ~ post.id ~ '/delete') }}">{{ icon('trash', 16) }} Aus dem Archiv löschen …</a>
+          </div>
+        </details>
       </div>
     </article>
 
@@ -229,7 +248,6 @@
       {% endif %}
     </details>
 
-    <p class="danger-zone"><a href="{{ url('/posts/' ~ post.id ~ '/delete') }}" class="link-danger">{{ icon('trash', 14) }} Aus dem Archiv löschen …</a></p>
   </div>
 </div>
 {% endblock %}

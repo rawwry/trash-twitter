@@ -23,12 +23,67 @@
     box.appendChild(el);
     autoclose(el);
   }
-  function autoclose(el) {
-    setTimeout(() => {
-      el.classList.add("leaving");
-      setTimeout(() => el.remove(), 320);
-    }, 2600);
+  function autoclose(el, ms = el.hasAttribute("data-undo-toast") ? 8000 : 2600) {
+    let left = ms, started = Date.now(), timer = 0;
+    const go = () => { el.classList.add("leaving"); setTimeout(() => el.remove(), 320); };
+    const run = () => { started = Date.now(); timer = setTimeout(go, left); };
+    // Mit Rueckgaengig-Knopf: beim Drueberfahren anhalten
+    if (el.hasAttribute("data-undo-toast")) {
+      el.addEventListener("mouseenter", () => { clearTimeout(timer); left -= Date.now() - started; });
+      el.addEventListener("mouseleave", run);
+    }
+    run();
   }
+
+  // --- Rueckgaengig statt Rueckfrage (0.23) ----------------------------------------------------
+  // Loeschen passiert erst nach 8 Sekunden; bis dahin bringt "Rueckgaengig" alles zurueck.
+  // Verlaesst man die Seite vorher, wird sofort (keepalive) abgeschickt.
+  const csrfToken = () => { try { return JSON.parse(body.getAttribute("hx-headers") || "{}")["X-CSRF-Token"] || ""; } catch (e) { return ""; } };
+  const pending = new Set();
+  function deferAction(message, commit, undo, ms = 8000) {
+    const box = $("#toasts");
+    const el = document.createElement("div");
+    el.className = "toast has-undo";
+    el.setAttribute("data-undo-toast", "");
+    const span = document.createElement("span"); span.textContent = message;
+    const btn = document.createElement("button"); btn.type = "button"; btn.className = "toast-undo"; btn.textContent = "Rückgängig";
+    el.append(span, btn);
+    const job = { done: false, run() { if (this.done) return; this.done = true; pending.delete(this); commit(); } };
+    pending.add(job);
+    btn.addEventListener("click", () => { job.done = true; pending.delete(job); undo(); el.remove(); toast("Zurückgenommen"); });
+    box?.appendChild(el);
+    let left = ms, started = Date.now(), timer = 0;
+    const fire = () => { job.run(); el.classList.add("leaving"); setTimeout(() => el.remove(), 320); };
+    const run = () => { started = Date.now(); timer = setTimeout(fire, left); };
+    el.addEventListener("mouseenter", () => { clearTimeout(timer); left -= Date.now() - started; });
+    el.addEventListener("mouseleave", run);
+    run();
+  }
+  window.addEventListener("pagehide", () => pending.forEach((job) => job.run()));
+  function postForm(url, fields) {
+    const fd = new FormData();
+    fd.append("csrf_token", csrfToken());
+    Object.entries(fields).forEach(([k, v]) => (Array.isArray(v) ? v : [v]).forEach((x) => fd.append(k, x)));
+    return fetch(url, { method: "POST", body: fd, credentials: "same-origin", keepalive: true, redirect: "manual",
+                        headers: { "X-CSRF-Token": csrfToken() } });
+  }
+  function hideCards(ids) {
+    ids.forEach((id) => { const c = $(`[data-post="${CSS.escape(String(id))}"]`); if (c) c.hidden = true; });
+    if (typeof initMasonry === "function") initMasonry();
+  }
+  function showCards(ids) {
+    ids.forEach((id) => { const c = $(`[data-post="${CSS.escape(String(id))}"]`); if (c) c.hidden = false; });
+    if (typeof initMasonry === "function") initMasonry();
+  }
+  document.addEventListener("click", (ev) => {
+    const one = ev.target.closest?.("[data-defer-delete]");
+    if (!one) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const id = one.dataset.postId;
+    hideCards([id]);
+    deferAction(`${one.dataset.label || "Posting"} gelöscht`, () => postForm(one.dataset.deferDelete, {}), () => showCards([id]));
+  }, true);
   // Toast aus dem Server-Header HX-Trigger: {"toast": {"message": "...", "kind": "ok"}}
   body.addEventListener("toast", (ev) => toast(ev.detail.message, ev.detail.kind));
 
@@ -38,18 +93,38 @@
     if (!dlg || dlg.open) return;
     $$("details.menu[open]").forEach((d) => d.removeAttribute("open"));
     dlg.showModal();
-    const input = $("[data-url-input]", dlg);
+    const input = $("[data-url-input], [data-pal-input]", dlg);
     if (input) setTimeout(() => input.focus(), 60);
+    if (id === "palette" && window.htmx) { const q = $("[data-pal-input]", dlg); q.value = ""; window.htmx.trigger(q, "pal-open"); }
   }
   document.addEventListener("click", (ev) => {
     const opener = ev.target.closest("[data-open]");
-    if (opener) { ev.preventDefault(); openDialog(opener.dataset.open); return; }
+    if (opener) {
+      ev.preventDefault();
+      if (opener.hasAttribute("data-pal-close")) opener.closest("dialog")?.close();
+      openDialog(opener.dataset.open);
+      return;
+    }
     const closer = ev.target.closest("[data-close]");
     if (closer) { closer.closest("dialog")?.close(); return; }
     // Klick auf den abgedunkelten Hintergrund schliesst das Sheet
     if (ev.target.tagName === "DIALOG") ev.target.close();
     // Offene Menues schliessen, wenn daneben geklickt wird
-    $$("details.menu[open]").forEach((d) => { if (!d.contains(ev.target)) d.removeAttribute("open"); });
+    $$("details.menu[open], details[data-nav-more][open], details[data-act-more][open]").forEach((d) => { if (!d.contains(ev.target)) d.removeAttribute("open"); });
+    // Detailseite (0.23): Eintraege im "Mehr"-Menue
+    const fold = ev.target.closest("[data-open-fold]");
+    if (fold) {
+      const target = document.getElementById(fold.dataset.openFold);
+      const det = target?.closest("details");
+      if (det) det.open = true;
+      ev.target.closest("details[data-act-more]")?.removeAttribute("open");
+    }
+    if (ev.target.closest("[data-focus-comment]")) {
+      setTimeout(() => $("#kommentare textarea")?.focus({ preventScroll: true }), 50);
+    }
+    if (ev.target.closest(".act-more-panel [data-edit], .act-more-panel [data-copy-text]")) {
+      ev.target.closest("details[data-act-more]")?.removeAttribute("open");
+    }
   });
 
   // --- Einfuegen aus der Zwischenablage (nur in sicherem Kontext moeglich) --
@@ -382,6 +457,61 @@
     form.requestSubmit();
   });
 
+  if (!/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) $$("[data-kbd-mod]").forEach((k) => { k.textContent = "Strg K"; });
+
+  // --- Detailseite am Handy (0.23): wischen = naechstes / vorheriges Posting -----------------------
+  (() => {
+    const layout = $(".detail-layout");
+    if (!layout) return;
+    let x0 = 0, y0 = 0, t0 = 0, ok = false;
+    layout.addEventListener("touchstart", (ev) => {
+      const t = ev.target;
+      ok = ev.touches.length === 1 && !t.closest("input, textarea, select, video, .media-grid, [contenteditable], dialog, .chips, .lead-actions");
+      x0 = ev.touches[0].clientX; y0 = ev.touches[0].clientY; t0 = Date.now();
+    }, { passive: true });
+    layout.addEventListener("touchend", (ev) => {
+      if (!ok) return;
+      const dx = ev.changedTouches[0].clientX - x0, dy = ev.changedTouches[0].clientY - y0;
+      if (Math.abs(dx) < 80 || Math.abs(dy) > 50 || Date.now() - t0 > 600) return;
+      const link = $(`[data-nav="${dx < 0 ? "older" : "newer"}"][href]`);
+      if (!link) return;
+      layout.classList.add(dx < 0 ? "swipe-left" : "swipe-right");
+      location.href = link.href;
+    }, { passive: true });
+  })();
+
+  // --- Suche ueberall (0.23): Cmd/Strg+K, Pfeiltasten, Enter -------------------------------
+  window.addEventListener("keydown", (ev) => {
+    if ((ev.metaKey || ev.ctrlKey) && !ev.altKey && ev.key.toLowerCase() === "k") {
+      if (!document.getElementById("palette")) return;
+      ev.preventDefault();
+      $$("dialog[open]").forEach((d) => { if (d.id !== "palette") d.close(); });
+      openDialog("palette");
+      return;
+    }
+    if (ev.key === "Escape") $$("details[data-nav-more][open]").forEach((d) => d.removeAttribute("open"));
+    const pal = ev.target.closest?.("#palette");
+    if (!pal || !["ArrowDown", "ArrowUp", "Enter"].includes(ev.key)) return;
+    const items = $$("[data-pal-item]", pal);
+    if (!items.length) return;
+    let i = items.findIndex((x) => x.classList.contains("is-active"));
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      const item = items[i] || items[0];
+      if (item.href) location.href = item.href; else item.click();
+      return;
+    }
+    ev.preventDefault();
+    i = ev.key === "ArrowDown" ? Math.min(items.length - 1, i + 1) : Math.max(0, i - 1);
+    items.forEach((x, k) => x.classList.toggle("is-active", k === i));
+    items[i].scrollIntoView({ block: "nearest" });
+  }, true);
+  document.addEventListener("htmx:afterSwap", (ev) => {
+    if (ev.detail.target.id !== "pal-results") return;
+    $("[data-pal-item]", ev.detail.target)?.classList.add("is-active");
+  });
+
   // --- Tastenkuerzel -----------------------------------------------------------------------
   let lastKey = "", lastKeyAt = 0;
   document.addEventListener("keydown", (ev) => {
@@ -437,16 +567,20 @@
     const bar = bulkBar();
     if (!bar) return;
     $$("[data-select-count]").forEach((el) => { el.textContent = selected.size; });
+    // "Alle N Treffer": nur, wenn mehr Treffer existieren als geladen sind
+    const res = $("#results"), allBtn = $("[data-select-results]", bar);
+    if (res && allBtn) {
+      const total = Number(res.dataset.total || 0), loaded = $$("[data-select-item]").length;
+      allBtn.hidden = !(total > loaded && selected.size < total);
+      $("[data-results-total]", allBtn).textContent = Math.min(total, 500);
+    }
     $("[data-bulk-submit]", bar).disabled = selected.size === 0;
     const tagBtn = $("[data-bulk-tags]", bar);
     if (tagBtn) tagBtn.disabled = selected.size === 0;
     const colBtn = $("[data-bulk-collage]", bar);
     if (colBtn) colBtn.disabled = selected.size === 0;
     const del = $("[data-bulk-delete]", bar);
-    if (del) {
-      del.disabled = selected.size === 0;
-      del.dataset.confirm = `${selected.size} ${selected.size === 1 ? "Posting" : "Postings"} löschen? Belege und Anmerkungen verschwinden für alle.`;
-    }
+    if (del) del.disabled = selected.size === 0;
     // Die Formular-Felder "ids" kommen aus den Karten (form="bulk-form"). Nicht mehr sichtbare
     // Auswahl (nach Filterwechsel) geht als versteckte Felder mit.
     $$("input[data-hidden-id]", bar).forEach((i) => i.remove());
@@ -472,6 +606,19 @@
     $("[data-bulk-back]", form).value = location.pathname.replace(root(), "") + location.search;
   }, true);
 
+  // Loeschen aus der Auswahl (0.23): ohne Rueckfrage, mit Rueckgaengig
+  document.addEventListener("click", (ev) => {
+    const btn = ev.target.closest?.("[data-bulk-delete]");
+    if (!btn || !selected.size) return;
+    ev.preventDefault();
+    const ids = [...selected];
+    const back = location.pathname.replace(root(), "") + location.search;
+    hideCards(ids);
+    setSelecting(false);
+    deferAction(`${ids.length} ${ids.length === 1 ? "Posting" : "Postings"} gelöscht`,
+      () => postForm(btn.dataset.deleteUrl, { ids, back }), () => showCards(ids));
+  });
+
   // Collage aus der Auswahl (0.22)
   document.addEventListener("click", (ev) => {
     const btn = ev.target.closest?.("[data-bulk-collage]");
@@ -491,6 +638,15 @@
   document.addEventListener("click", (ev) => {
     if (ev.target.closest("[data-select-toggle]")) { setSelecting(!selecting()); return; }
     if (ev.target.closest("[data-select-cancel]")) { setSelecting(false); return; }
+    if (ev.target.closest("[data-select-results]")) {
+      const res = $("#results");
+      fetch(res.dataset.idsUrl, { credentials: "same-origin" }).then((r) => r.json()).then((data) => {
+        data.ids.forEach((id) => selected.add(String(id)));
+        syncSelection();
+        toast(`${selected.size} Postings ausgewählt`, "ok");
+      });
+      return;
+    }
     if (ev.target.closest("[data-select-all]")) {
       $$("[data-select-item]").forEach((cb) => selected.add(cb.value));
       syncSelection();

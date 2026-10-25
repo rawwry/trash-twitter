@@ -79,7 +79,8 @@ def test_quick_delete_via_htmx_and_bulk(user_client, harness):
         _add(user_client, f"https://x.com/a/status/{i}")
     a, b, c = _ids(harness)
     page = user_client.get("/").text
-    assert "q-del" in page and 'hx-confirm="Posting Nr.' in page and 'id="confirm-dialog"' in page
+    # 0.23: ohne Rueckfrage, aber mit "Rueckgaengig" (verzoegertes Loeschen im Browser)
+    assert "q-del" in page and "data-defer-delete=" in page and 'hx-confirm="Posting Nr.' not in page
     r = user_client.post(f"/posts/{a}/delete", headers={"HX-Request": "true", "HX-Target": f"post-{a}",
                                                        "X-CSRF-Token": user_client.csrf})
     assert r.status_code == 200 and r.text == "" and "toast" in r.headers["HX-Trigger"]

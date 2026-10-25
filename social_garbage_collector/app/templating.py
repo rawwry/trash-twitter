@@ -327,8 +327,11 @@ env.filters["richtext"] = _richtext
 
 # --- Toasts ------------------------------------------------------------------
 
-def _encode_toast(message: str, kind: str) -> str:
-    raw = json.dumps({"m": message, "k": kind}, ensure_ascii=False).encode("utf-8")
+def _encode_toast(message: str, kind: str, undo: dict | None = None) -> str:
+    data = {"m": message, "k": kind}
+    if undo:
+        data["u"] = undo
+    raw = json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     return base64.urlsafe_b64encode(raw).decode("ascii")
 
 
@@ -337,14 +340,17 @@ def _decode_toast(value: str | None) -> dict | None:
         return None
     try:
         data = json.loads(base64.urlsafe_b64decode(value.encode("ascii")))
-        return {"message": str(data.get("m", ""))[:200], "kind": data.get("k", "ok")}
+        undo = data.get("u") if isinstance(data.get("u"), dict) else None
+        return {"message": str(data.get("m", ""))[:200], "kind": data.get("k", "ok"), "undo": undo}
     except (ValueError, TypeError):
         return None
 
 
-def flash(response: Response, request: Request, message: str, kind: str = "ok") -> Response:
-    """Toast fuer die naechste Seite (nach einer Weiterleitung)."""
-    response.set_cookie(TOAST_COOKIE, _encode_toast(message, kind), max_age=60, httponly=True,
+def flash(response: Response, request: Request, message: str, kind: str = "ok", undo: dict | None = None) -> Response:
+    """Toast fuer die naechste Seite (nach einer Weiterleitung). undo (0.23): {"url": …,
+    "fields": {name: wert oder [werte]}} - der Toast bekommt einen Knopf "Rueckgaengig",
+    der genau dieses Formular abschickt."""
+    response.set_cookie(TOAST_COOKIE, _encode_toast(message, kind, undo), max_age=60, httponly=True,
                         samesite="lax", path=(root_path(request) or "") + "/")
     return response
 
@@ -373,7 +379,7 @@ def render(request: Request, name: str, status_code: int = 200, **context) -> HT
     return response
 
 
-def redirect(request: Request, path: str, toast: str | None = None, kind: str = "ok") -> Response:
+def redirect(request: Request, path: str, toast: str | None = None, kind: str = "ok", undo: dict | None = None) -> Response:
     """Weiterleitung, die auch bei htmx-Anfragen und unter Ingress klappt."""
     target = root_path(request) + path
     if request.headers.get("hx-request"):
@@ -381,5 +387,5 @@ def redirect(request: Request, path: str, toast: str | None = None, kind: str = 
     else:
         response = RedirectResponse(target, status_code=303)
     if toast:
-        flash(response, request, toast, kind)
+        flash(response, request, toast, kind, undo)
     return response

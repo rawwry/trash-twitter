@@ -41,3 +41,9 @@ def release_seen(request: Request, user: User = Depends(require_user), db: Sessi
     if request.headers.get("hx-request") or request.headers.get("x-requested-with"):
         return Response(status_code=204)
     return redirect(request, "/")
+
+
+@router.get("/netzwerk")
+def old_network(request: Request):
+    """Netzwerk (0.18) entfernt in 0.23 - alte Lesezeichen landen im Idiotarium."""
+    return redirect(request, "/")

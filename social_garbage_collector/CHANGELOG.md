@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.23.0 – Leichter zu bedienen (25.10.2026)
+
+- **Navigation:** fünf Bereiche, „Werkzeuge“ (`details.nav-more`) mit Suchgenerator, Tags organisieren, Automatisch taggen, Collage. **Netzwerk entfernt** (Router, Seite, `graph.js`, force-graph, Themen-Netz auf Personenseiten, Tests); `/netzwerk` leitet ins Idiotarium.
+- **Suche überall** (`routers/palette.py`, `GET /suche/schnell`, Dialog `#palette`): ⌘K/Strg+K, Lupe in der Kopfzeile; Gruppen Aktionen, Personen (Name/Handle), Tags, Listen, Recherche, Postings (Volltext); Pfeiltasten/Enter.
+- **Alle Treffer wählen:** `GET /posts/ids?<filter>` (bis 500), Knopf „Alle N Treffer“ in der Auswahlleiste.
+- **Rückgängig statt Rückfrage:** Toasts können ein Rückgängig-Formular tragen (`flash(..., undo=…)`); Tags per Auswahl vergeben/abnehmen bieten es an (nur wenn exakt umkehrbar, bis 150 Postings). Löschen im Idiotarium (einzeln und Auswahl) ohne Rückfrage: Karte verschwindet, 8 s „Rückgängig“, danach `fetch(keepalive)`; beim Verlassen der Seite sofort.
+- **Detailseite:** Tags direkt an den Chips (`POST /posts/{id}/tags`), Aktionen Herz, Original, Zitieren, Listen + „Mehr“ (Wortlaut kopieren, Kommentieren, Recherche, Anmerkung, Wortlaut korrigieren, Thread, Löschen).
+- **Gemerkte Suchen** (`routers/saved.py`, Tabelle `pinned_searches`): Stern in der Ergebnisleiste, Leiste oben mit Zähler „neu“ (seit dem letzten Öffnen), × mit Rückgängig; je Mitglied, max. 12.
+- **Tempo:** Speculation Rules (Vorladen beim Darüberfahren, ohne Links mit Nebenwirkung), `@view-transition`.
+- **Handy:** Wischen auf der Detailseite (`data-nav` newer/older), Aktionsleiste unten in Daumenreichweite.
+- **Einstellungen:** `Pref.shown` – 8 von 16 Optionen ausgeblendet (Ansichten, Sortierung Personen, pro Seite, Animationen, Hinzufügen-Felder); Werte bleiben gültig.
+- **Kontrast:** `--text-3` hell #666970, dunkel #9a9ca3 (≥ 4,5:1 auf allen Flächen).
+
 ## 0.22.0 – Collage & schnelleres Hinzufügen (25.10.2026)
 
 - **Collage** (`routers/collage.py`, `services/collage.py`, `templates/collage.html` + `collage_render.html`, `static/collage.js` + `collage_studio.js`): Studio mit Live-Vorschau (iframe, eingepasst) und Einstellungen; Quelle `?ids=` oder die Filter des Idiotariums (max. 80). Die Render-Seite hat Zielgröße; `collage.js` sucht je Spaltenzahl per Halbierung die größte Schrift, die passt (Deckel: Spaltenbreite/15 für lesbare Zeilen), und wertet Füllung und gleichmäßige Spalten mit. Export `GET /collage/bild.jpg` rendert dieselbe Seite mit eingebetteten Bildern und Schriften per Playwright (Chromium des Workers, sonst eigener) als JPEG; ein Export gleichzeitig.

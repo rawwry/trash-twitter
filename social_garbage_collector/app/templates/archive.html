@@ -151,6 +151,7 @@
   <noscript><button class="btn" type="submit">Suchen</button></noscript>
 </form>
 
+{% include "partials/saved_searches.html" %}
 {% include "partials/results.html" %}
 
 {# Mehrfachauswahl: die Kaestchen in den Karten gehoeren per form="bulk-form" zu diesem Formular. #}
@@ -158,15 +159,15 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
   <input type="hidden" name="back" value="/" data-bulk-back>
   <span class="bulk-count"><strong data-select-count>0</strong> ausgewählt</span>
-  <button type="button" class="btn-ghost sm" data-select-all>Alle</button>
+  <button type="button" class="btn-ghost sm" data-select-all title="Alle sichtbaren auswählen">Alle</button>
+  <button type="button" class="btn-ghost sm" data-select-results hidden>Alle <span data-results-total></span> Treffer</button>
   <input type="hidden" name="list_id" value="" data-bulk-list-id>
   <input type="hidden" name="new_list" value="" data-bulk-new-name>
   <button class="btn sm" type="button" disabled data-bulk-submit data-open="list-dialog"
           hx-get="{{ url('/lists/picker') }}" hx-target="#list-dialog-body" hx-swap="innerHTML">{{ icon('lists', 16) }} In Liste ablegen …</button>
   <button class="btn-soft sm" type="button" disabled data-bulk-collage data-collage-url="{{ url('/collage') }}">{{ icon('mosaic', 16) }}<span class="label-m"> Collage</span></button>
   <button class="btn-soft sm" type="button" disabled data-bulk-tags data-open="bulk-tags-dialog">{{ icon('tag', 16) }}<span class="label-m"> Tags …</span></button>
-  <button class="btn-danger sm" type="submit" formaction="{{ url('/posts/bulk/delete') }}" data-bulk-delete disabled
-          data-confirm="Alle markierten Postings löschen? Belege und Anmerkungen verschwinden für alle.">{{ icon('trash', 15) }}<span class="label-m"> Löschen</span></button>
+  <button class="btn-danger sm" type="button" data-bulk-delete data-delete-url="{{ url('/posts/bulk/delete') }}" disabled>{{ icon('trash', 15) }}<span class="label-m"> Löschen</span></button>
   <button type="button" class="icon-btn" data-select-cancel aria-label="Auswahl beenden">{{ icon('close', 18) }}</button>
 </form>
 

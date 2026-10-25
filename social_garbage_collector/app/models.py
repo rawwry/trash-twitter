@@ -701,3 +701,16 @@ class AutoTag(Base):
     tag_id: Mapped[int] = mapped_column(ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
     rule_id: Mapped[int | None] = mapped_column(ForeignKey("tag_rules.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class PinnedSearch(Base):
+    """Gemerkte Suche (0.23): ein Klick fuehrt zur gefilterten Ansicht; die Zahl
+    "neu" zaehlt Postings, die seit dem letzten Oeffnen archiviert wurden."""
+    __tablename__ = "pinned_searches"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(80))
+    query: Mapped[str] = mapped_column(Text, default="")     # Query-String des Idiotariums
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    seen_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
