@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.23.1 – Bilder durchblättern (07.11.2026)
+
+- **Rasterkachel mit mehreren Bildern** (`partials/tile_media.html`): alle Vorschaubilder in einer Scroll-Snap-Leiste – wischen (Touch/Trackpad) oder Pfeile beim Darüberfahren (`data-qm-go`, Capture-Listener in `app.js`, damit der Kachel-Link nicht auslöst). Zähler „1/3“ oben rechts und Punkte unten statt abgedunkeltem „+x“. Ein Klick aufs Bild öffnet weiter das Posting.
+- Postings ohne Text mit mehreren Bildern: großes Karussell (4:5) statt nur des ersten Bilds.
+- `.q-more` (Listen/Zeitachse, mehr als 4 Bilder): kleines Schild unten rechts statt Abdunklung.
+
 ## 0.23.0 – Leichter zu bedienen (25.10.2026)
 
 - **Navigation:** fünf Bereiche, „Werkzeuge“ (`details.nav-more`) mit Suchgenerator, Tags organisieren, Automatisch taggen, Collage. **Netzwerk entfernt** (Router, Seite, `graph.js`, force-graph, Themen-Netz auf Personenseiten, Tests); `/netzwerk` leitet ins Idiotarium.

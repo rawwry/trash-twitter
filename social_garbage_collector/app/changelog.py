@@ -7,6 +7,16 @@ Ab 0.14 (Timo): Jede x.x-Version (Feature-Release, nicht x.x.x) bekommt
 
 CHANGES = [
     {
+        "version": "0.23.1",
+        "date": "07.11.2026",
+        "title": "Bilder durchblättern",
+        "items": [
+            "Raster: Postings mit mehreren Bildern lassen sich direkt in der Kachel durchschalten – wischen am Handy, Pfeile mit der Maus. Keine Abdunklung mehr; ein Zähler (z. B. 1/3) und Punkte zeigen, dass es mehr gibt.",
+            "Postings ohne Text mit mehreren Bildern zeigen alle Bilder statt nur des ersten",
+            "Listen- und Zeitachsen-Ansicht: der Hinweis auf weitere Bilder ist ein kleines Schild statt eines abgedunkelten Bilds",
+        ],
+    },
+    {
         "version": "0.23.0",
         "date": "25.10.2026",
         "title": "Leichter zu bedienen",

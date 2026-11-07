@@ -1,0 +1,17 @@
+{# 0.23.1: Bilder einer Rasterkachel. Mehrere lassen sich durchwischen (Touch, Trackpad)
+   oder per Pfeil durchschalten - ohne Abdunklung; Zaehler und Punkte zeigen, dass es mehr gibt. #}
+{% from "partials/icons.html" import icon %}
+{% set n = thumbs|length %}
+<span class="qtile-media{{ ' is-big' if big }}" {% if n > 1 %}data-qm{% endif %}>
+  <span class="qm-track">
+    {% for m in thumbs %}<span class="qm-slide"><img src="{{ url('/medien/' ~ m.thumb_path) }}" alt="{{ m.alt or '' }}" loading="lazy" decoding="async">
+      {% if m.kind == 'video' %}<span class="q-play" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M8 5.5v13l11-6.5z"/></svg></span>{% endif %}
+      {% if m.kind == 'gif' %}<span class="media-badge">GIF</span>{% endif %}</span>{% endfor %}
+  </span>
+  {% if n > 1 %}
+  <span class="qm-count" role="img" aria-label="{{ n }} Bilder">{{ icon('image', 12) }}<span><span data-qm-pos>1</span>/{{ n }}</span></span>
+  <span class="qm-btn prev" data-qm-go="-1" aria-hidden="true" hidden>{{ icon('chev-left', 18) }}</span>
+  <span class="qm-btn next" data-qm-go="1" aria-hidden="true">{{ icon('chev-right', 18) }}</span>
+  {% if n <= 10 %}<span class="qm-dots" aria-hidden="true">{% for m in thumbs %}<i{% if loop.first %} class="on"{% endif %}></i>{% endfor %}</span>{% endif %}
+  {% endif %}
+</span>

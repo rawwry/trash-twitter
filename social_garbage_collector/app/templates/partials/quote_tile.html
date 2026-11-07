@@ -1,5 +1,6 @@
 {# Raster: ultraclean - gleich grosse Kacheln, nur Verfasser, Wortlaut, Datum und (0.20.1) dezent die Tags. #}
 {% set av = post_avatar(post) %}
+{% set thumbs = (post.media|selectattr('thumb_path')|list) if post.media else [] %}
 <article class="qtile" id="post-{{ post.id }}" data-post="{{ post.id }}">
   {% if not plist %}{% include "partials/quick_delete.html" %}
   <label class="select-box" aria-label="Auswählen"><input type="checkbox" name="ids" value="{{ post.id }}" form="bulk-form" data-select-item><span></span></label>{% endif %}
@@ -10,13 +11,13 @@
       <span class="qtile-name">{{ post.author_name }}</span>
     </span>
     {% if post.text %}<span class="qtile-text">{{ post.text }}</span>
+    {% elif thumbs|length > 1 %}{% with big=True %}{% include "partials/tile_media.html" %}{% endwith %}
     {% elif post.media and post.media[0].thumb_path %}<img class="qtile-shot" src="{{ url('/medien/' ~ post.media[0].thumb_path) }}"
          alt="" loading="lazy" decoding="async">
     {% elif post.screenshot_path %}<img class="qtile-shot" src="{{ shot(post) }}" alt="" loading="lazy" decoding="async">
     {% elif post.status in ('pending', 'running') %}<span class="q-skeleton" role="status" aria-label="Wortlaut wird abgerufen …"><span></span><span></span><span></span></span>
     {% else %}<span class="qtile-text q-missing">Kein Wortlaut</span>{% endif %}
-    {% set first = (post.media|selectattr('thumb_path')|first) if post.media else None %}
-    {% if first and post.text %}<span class="qtile-media"><img src="{{ url('/medien/' ~ first.thumb_path) }}" alt="" loading="lazy" decoding="async">{% if post.media|length > 1 %}<span class="q-more">+{{ post.media|length - 1 }}</span>{% endif %}</span>{% endif %}
+    {% if thumbs and post.text %}{% with big=False %}{% include "partials/tile_media.html" %}{% endwith %}{% endif %}
     <span class="qtile-foot">
       <time class="qtile-date" datetime="{{ post.said_at.isoformat() }}Z">{{ post.posted_at|localtime('%d.%m.%Y') if post.posted_at else '' }}</time>
       {% if post.origin_state == 'gone' %}<span class="q-gone" title="Original nicht mehr online (gelöscht, geschützt oder gesperrt)">Original weg</span>{% endif %}

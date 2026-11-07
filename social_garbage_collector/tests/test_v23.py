@@ -7,7 +7,7 @@ import base64
 import json
 from datetime import datetime
 
-from app.models import PinnedSearch, Post, Tag
+from app.models import PinnedSearch, Post, PostMedia, Tag
 from app.prefs import PREFS, section_prefs
 
 
@@ -147,3 +147,20 @@ def test_speed_mobile_settings_contrast(user_client):
     assert all(p.shown for p in section_prefs("archiv"))
     settings = user_client.get("/settings/archiv").text
     assert "Postings pro Seite" not in settings
+
+
+def test_tile_media_carousel(user_client, harness):
+    """0.23.1: mehrere Bilder in der Rasterkachel zum Durchschalten statt abgedunkelt mit "+x"."""
+    _add(user_client, "https://x.com/a/status/700")
+    _add(user_client, "https://x.com/a/status/701")
+    with harness.db() as db:
+        many, one = (db.query(Post).filter_by(post_id=n).one() for n in ("700", "701"))
+        many.text, many.status, one.text, one.status = "Drei Bilder", "done", "Ein Bild", "done"
+        for i in range(3):
+            many.media.append(PostMedia(kind="photo", position=i, path=f"media/x/m{i}.jpg", thumb_path=f"media/x/m{i}.thumb.webp"))
+        one.media.append(PostMedia(kind="photo", path="media/x/e.jpg", thumb_path="media/x/e.thumb.webp"))
+        db.commit()
+    page = user_client.get("/?view=raster").text
+    assert page.count("data-qm>") == 1 and page.count('class="qm-slide"') == 4
+    assert '<span data-qm-pos>1</span>/3' in page and page.count("<i") >= 3 and "q-more" not in page
+    assert "media/x/m2.thumb.webp" in page

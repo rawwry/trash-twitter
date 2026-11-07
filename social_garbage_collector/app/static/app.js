@@ -1298,6 +1298,33 @@
   });
   document.addEventListener("htmx:afterSettle", applyGallery);
 
+  // --- Mehrere Bilder in einer Rasterkachel (0.23.1) -------------------------------------------
+  // Pfeile fuer die Maus, Wischen per Touch/Trackpad; Zaehler und Punkte folgen dem Scrollen.
+  function qmSync(track) {
+    const box = track.closest("[data-qm]");
+    if (!box) return;
+    const n = track.children.length;
+    const i = Math.min(n - 1, Math.round(track.scrollLeft / Math.max(1, track.clientWidth)));
+    $("[data-qm-pos]", box).textContent = i + 1;
+    $$(".qm-dots i", box).forEach((d, k) => d.classList.toggle("on", k === i));
+    $(".qm-btn.prev", box).hidden = i === 0;
+    $(".qm-btn.next", box).hidden = i >= n - 1;
+  }
+  // Capture auf window: kommt vor dem Kachel-Link und vor der Auswahl-Logik
+  window.addEventListener("click", (ev) => {
+    const btn = ev.target.closest && ev.target.closest("[data-qm-go]");
+    if (!btn) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const track = $(".qm-track", btn.closest("[data-qm]"));
+    const calm = matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.dataset.motion === "reduced";
+    track.scrollBy({ left: track.clientWidth * Number(btn.dataset.qmGo), behavior: calm ? "auto" : "smooth" });
+  }, true);
+  document.addEventListener("scroll", (ev) => {
+    const t = ev.target;
+    if (t instanceof Element && t.classList.contains("qm-track")) requestAnimationFrame(() => qmSync(t));
+  }, true);
+
   // --- Raster als Mauerwerk (0.12) ------------------------------------------------------------
   // Jede Kachel ist so hoch wie ihr Text; das Grid hat 2px-Zeilen, jede Kachel
   // spannt so viele, wie sie braucht. Reihenfolge bleibt zeilenweise.
